@@ -8,12 +8,15 @@ export async function GET(
   { params }: { params: Promise<{ author: string; slug: string }> },
 ) {
   try {
+    console.log("asasasasa");
     const { author: authorName, slug: themeSlug } = await params;
 
     // First find the author by name
     const author = await db.query.user.findFirst({
       where: (user, { eq }) => eq(user.name, authorName),
     });
+
+    console.log(author);
 
     if (!author) {
       return NextResponse.json({ error: "Author not found" }, { status: 404 });

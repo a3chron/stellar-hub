@@ -11,7 +11,7 @@ First, run the development server:
 pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://127.0.0.1:3000](http://127.0.0.1:3000) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
@@ -31,3 +31,33 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## TODOs
+
+### 1. Create remaining pages:
+
+Theme detail page (app/themes/[author]/[slug]/page.tsx)
+Upload form page (app/upload/page.tsx)
+Homepage with trending themes
+
+
+### 2. Add features:
+
+Search functionality
+Color scheme filtering
+Theme groups display
+Edit theme (for owners)
+Delete theme (for owners)
+
+
+### 3. CLI Integration:
+
+Point CLI to your deployed API
+Test full download flow
+
+
+### 4. Deploy:
+
+Vercel for Next.js
+Update BETTER_AUTH_URL to production URL
+Update GitHub OAuth callback URL

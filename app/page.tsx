@@ -16,8 +16,8 @@ export default async function HomePage() {
   return (
     <main className="container mx-auto px-4 py-12">
       <section className="text-center mb-16">
-        <h1 className="text-5xl font-bold mb-4">Stellar</h1>
-        <p className="text-xl text-gray-600">
+        <h1 className="text-5xl font-bold mb-4">stellar</h1>
+        <p className="text-xl text-text-muted">
           Beautiful Starship themes, one command away
         </p>
       </section>

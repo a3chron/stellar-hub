@@ -5,15 +5,17 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 
 interface PageProps {
-  params: {
+  params: Promise<{
     author: string;
     slug: string;
-  };
+  }>;
 }
 
 export default async function ThemePage({ params }: PageProps) {
+  const { slug: themeSlug } = await params;
+
   const theme = await db.query.themes.findFirst({
-    where: and(eq(themes.slug, params.slug)),
+    where: and(eq(themes.slug, themeSlug)),
     with: {
       author: true,
       versions: {

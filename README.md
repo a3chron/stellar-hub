@@ -36,7 +36,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ### 1. Create remaining pages:
 
-Theme detail page (app/themes/[author]/[slug]/page.tsx)
+Theme detail page (app/[author]/[slug]/page.tsx)
 Upload form page (app/upload/page.tsx)
 Homepage with trending themes
 

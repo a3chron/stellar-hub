@@ -19,7 +19,7 @@ interface ThemeCardProps {
 export default function ThemeCard({ theme }: ThemeCardProps) {
   return (
     <Link
-      href={`/themes/${theme.author.name}/${theme.slug}`}
+      href={`/${theme.author.name}/${theme.slug}`}
       className="group block bg-ctp-mantle rounded-lg border border-ctp-crust"
     >
       <div className="aspect-video overflow-hidden rounded-t-lg">

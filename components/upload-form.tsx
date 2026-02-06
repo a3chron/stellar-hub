@@ -20,7 +20,7 @@ export default function UploadForm() {
 
     if (response.ok) {
       const { slug, author } = await response.json();
-      router.push(`/themes/${author}/${slug}`);
+      router.push(`/${author}/${slug}`);
     } else {
       alert("Upload failed");
       setLoading(false);

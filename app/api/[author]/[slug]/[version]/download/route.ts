@@ -5,12 +5,20 @@ import { eq, and } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { author: string; slug: string; version: string } },
+  {
+    params,
+  }: { params: Promise<{ author: string; slug: string; version: string }> },
 ) {
   try {
+    const {
+      author: authorName,
+      slug: themeSlug,
+      version: versionIn,
+    } = await params;
+
     // Find author
     const author = await db.query.user.findFirst({
-      where: (user, { eq }) => eq(user.name, params.author),
+      where: (user, { eq }) => eq(user.name, authorName),
     });
 
     if (!author) {
@@ -19,7 +27,7 @@ export async function GET(
 
     // Find theme
     const theme = await db.query.themes.findFirst({
-      where: and(eq(themes.authorId, author.id), eq(themes.slug, params.slug)),
+      where: and(eq(themes.authorId, author.id), eq(themes.slug, themeSlug)),
     });
 
     if (!theme) {
@@ -27,7 +35,7 @@ export async function GET(
     }
 
     // Normalize version (remove 'v' prefix if present)
-    const normalizedVersion = params.version.replace(/^v/, "");
+    const normalizedVersion = versionIn.replace(/^v/, "");
 
     // Find version (or latest if version is "latest")
     let version;
@@ -60,7 +68,7 @@ export async function GET(
     return new NextResponse(version.configContent, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
-        "Content-Disposition": `attachment; filename="${params.slug}-${version.version}.toml"`,
+        "Content-Disposition": `attachment; filename="${themeSlug}-${version.version}.toml"`,
       },
     });
   } catch (error) {

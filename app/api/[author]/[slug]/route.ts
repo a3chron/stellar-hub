@@ -5,12 +5,14 @@ import { eq, and } from "drizzle-orm";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { author: string; slug: string } },
+  { params }: { params: Promise<{ author: string; slug: string }> },
 ) {
   try {
+    const { author: authorName, slug: themeSlug } = await params;
+
     // First find the author by name
     const author = await db.query.user.findFirst({
-      where: (user, { eq }) => eq(user.name, params.author),
+      where: (user, { eq }) => eq(user.name, authorName),
     });
 
     if (!author) {
@@ -19,7 +21,7 @@ export async function GET(
 
     // Then find the theme
     const theme = await db.query.themes.findFirst({
-      where: and(eq(themes.authorId, author.id), eq(themes.slug, params.slug)),
+      where: and(eq(themes.authorId, author.id), eq(themes.slug, themeSlug)),
       with: {
         author: {
           columns: {

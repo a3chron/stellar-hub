@@ -1,0 +1,1 @@
+ALTER TABLE "theme_versions" ADD COLUMN "min_starship_version" text DEFAULT '1.24.0' NOT NULL;

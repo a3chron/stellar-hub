@@ -51,6 +51,19 @@ export default function UploadForm() {
       </div>
 
       <div>
+        <label className="block text-sm font-medium mb-2">
+          Min starship version
+        </label>
+        <input
+          type="text"
+          name="minStarshipVersion"
+          defaultValue="1.0.0"
+          pattern="^\d+\.\d+\.\d+$"
+          placeholder="1.24.2"
+        />
+      </div>
+
+      <div>
         <label className="block text-sm font-medium mb-2">Screenshot</label>
         <input
           type="file"

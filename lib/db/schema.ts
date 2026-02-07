@@ -1,6 +1,7 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  index,
   integer,
   jsonb,
   pgTable,
@@ -81,7 +82,7 @@ export const themes = pgTable(
     description: text("description"),
     screenshotUrl: text("screenshot_url").notNull(),
     downloads: integer("downloads").default(0).notNull(),
-    groupId: uuid("group_id"),
+    group: text("group"),
     colorSchemeId: uuid("color_scheme_id").references(() => colorSchemes.id, {
       onDelete: "set null",
     }),
@@ -93,7 +94,9 @@ export const themes = pgTable(
       table.authorId,
       table.slug,
     ),
-    downloadsIdx: uniqueIndex("idx_themes_downloads").on(table.downloads),
+    downloadsIdx: index("idx_themes_downloads").on(table.downloads),
+    authorIdx: index("idx_themes_author").on(table.authorId),
+    createdAtIdx: index("idx_themes_created_at").on(table.createdAt),
   }),
 );
 

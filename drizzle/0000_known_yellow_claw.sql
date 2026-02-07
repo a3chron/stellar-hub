@@ -33,14 +33,6 @@ CREATE TABLE "session" (
 	CONSTRAINT "session_token_unique" UNIQUE("token")
 );
 --> statement-breakpoint
-CREATE TABLE "theme_groups" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"author_id" text NOT NULL,
-	"name" text NOT NULL,
-	"description" text,
-	"created_at" timestamp DEFAULT now() NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE "theme_versions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"theme_id" uuid NOT NULL,
@@ -48,6 +40,7 @@ CREATE TABLE "theme_versions" (
 	"config_content" text NOT NULL,
 	"version_notes" text,
 	"dependencies" jsonb,
+	"min_starship_version" text DEFAULT '1.24.0' NOT NULL,
 	"installation_notes" text,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
@@ -60,7 +53,7 @@ CREATE TABLE "themes" (
 	"description" text,
 	"screenshot_url" text NOT NULL,
 	"downloads" integer DEFAULT 0 NOT NULL,
-	"group_id" uuid,
+	"group" text,
 	"color_scheme_id" uuid,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
@@ -89,12 +82,11 @@ CREATE TABLE "verification" (
 --> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_userId_user_id_fk" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "theme_groups" ADD CONSTRAINT "theme_groups_author_id_user_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "theme_versions" ADD CONSTRAINT "theme_versions_theme_id_themes_id_fk" FOREIGN KEY ("theme_id") REFERENCES "public"."themes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "themes" ADD CONSTRAINT "themes_author_id_user_id_fk" FOREIGN KEY ("author_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "themes" ADD CONSTRAINT "themes_group_id_theme_groups_id_fk" FOREIGN KEY ("group_id") REFERENCES "public"."theme_groups"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "themes" ADD CONSTRAINT "themes_color_scheme_id_color_schemes_id_fk" FOREIGN KEY ("color_scheme_id") REFERENCES "public"."color_schemes"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE UNIQUE INDEX "unique_author_group_name" ON "theme_groups" USING btree ("author_id","name");--> statement-breakpoint
 CREATE UNIQUE INDEX "unique_theme_version" ON "theme_versions" USING btree ("theme_id","version");--> statement-breakpoint
 CREATE UNIQUE INDEX "unique_author_slug" ON "themes" USING btree ("author_id","slug");--> statement-breakpoint
-CREATE UNIQUE INDEX "idx_themes_downloads" ON "themes" USING btree ("downloads");
+CREATE INDEX "idx_themes_downloads" ON "themes" USING btree ("downloads");--> statement-breakpoint
+CREATE INDEX "idx_themes_author" ON "themes" USING btree ("author_id");--> statement-breakpoint
+CREATE INDEX "idx_themes_created_at" ON "themes" USING btree ("created_at");

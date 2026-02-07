@@ -32,30 +32,9 @@ nix shell nixpkgs#biome --command biome check --write .
 
 ## TODOs
 
-### 1. Create remaining pages:
-
-Theme detail page (app/[author]/[slug]/page.tsx)
-Upload form page (app/upload/page.tsx)
-Homepage with trending themes
-
-
-### 2. Add features:
-
-Search functionality
-Color scheme filtering
-Theme groups display
-Edit theme (for owners)
-Delete theme (for owners)
-
-
-### 3. CLI Integration:
-
-Point CLI to your deployed API
-Test full download flow
-
-
-### 4. Deploy:
-
-Vercel for Next.js
-Update BETTER_AUTH_URL to production URL
-Update GitHub OAuth callback URL
+- Search functionality
+- Color scheme filtering
+- Theme groups display
+- Edit theme (for owners)
+- Delete theme (for owners)
+- Github workflow upload new theme version

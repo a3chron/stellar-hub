@@ -1,5 +1,5 @@
 {
-  "id": "3aca5eb1-65f7-4401-a2a8-1b1f1dcbf2f7",
+  "id": "acfbcd93-1826-46eb-8e9d-7b157060cd68",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -221,83 +221,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.theme_groups": {
-      "name": "theme_groups",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "author_id": {
-          "name": "author_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "unique_author_group_name": {
-          "name": "unique_author_group_name",
-          "columns": [
-            {
-              "expression": "author_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "name",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "theme_groups_author_id_user_id_fk": {
-          "name": "theme_groups_author_id_user_id_fk",
-          "tableFrom": "theme_groups",
-          "tableTo": "user",
-          "columnsFrom": ["author_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.theme_versions": {
       "name": "theme_versions",
       "schema": "",
@@ -338,6 +261,13 @@
           "type": "jsonb",
           "primaryKey": false,
           "notNull": false
+        },
+        "min_starship_version": {
+          "name": "min_starship_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'1.24.0'"
         },
         "installation_notes": {
           "name": "installation_notes",
@@ -441,9 +371,9 @@
           "notNull": true,
           "default": 0
         },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
+        "group": {
+          "name": "group",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -500,7 +430,37 @@
               "nulls": "last"
             }
           ],
-          "isUnique": true,
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_themes_author": {
+          "name": "idx_themes_author",
+          "columns": [
+            {
+              "expression": "author_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_themes_created_at": {
+          "name": "idx_themes_created_at",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -514,15 +474,6 @@
           "columnsFrom": ["author_id"],
           "columnsTo": ["id"],
           "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "themes_group_id_theme_groups_id_fk": {
-          "name": "themes_group_id_theme_groups_id_fk",
-          "tableFrom": "themes",
-          "tableTo": "theme_groups",
-          "columnsFrom": ["group_id"],
-          "columnsTo": ["id"],
-          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "themes_color_scheme_id_color_schemes_id_fk": {

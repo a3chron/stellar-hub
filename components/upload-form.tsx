@@ -56,13 +56,15 @@ export default function UploadForm() {
 
       <div>
         <label className="block text-sm font-medium mb-2">
-          Min starship version
+          {" "}
+          {/** TODO: get latest starship verison & prefill */}
+          Min starship version (e.g. 1.24.0)
           <input
             type="text"
             name="minStarshipVersion"
             defaultValue="1.0.0"
             pattern="^\d+\.\d+\.\d+$"
-            placeholder="1.24.2"
+            placeholder="1.24.0"
           />
         </label>
       </div>

@@ -57,7 +57,7 @@ export async function GET(
       screenshotUrl: theme.screenshotUrl,
       downloads: theme.downloads,
       colorScheme: theme.colorScheme?.name,
-      groupId: theme.groupId,
+      group: theme.group,
       versions: theme.versions.map((v) => ({
         version: v.version,
         versionNotes: v.versionNotes,

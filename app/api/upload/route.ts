@@ -20,7 +20,7 @@ const uploadSchema = z.object({
   config: z.string().min(1).max(100000), // 100KB max
   version: z.string().regex(/^v?\d+\.\d+$/),
   colorSchemeId: z.string().uuid().optional(),
-  groupId: z.string().uuid().optional(),
+  group: z.string().optional(),
   dependencies: z
     .array(
       z.object({
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       config: formData.get("config"),
       version: formData.get("version"),
       colorSchemeId: formData.get("colorSchemeId") || undefined,
-      groupId: formData.get("groupId") || undefined,
+      group: formData.get("group") || undefined,
       dependencies: formData.get("dependencies")
         ? JSON.parse(formData.get("dependencies") as string)
         : undefined,
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
 
       // Check for custom commands (security)
       if (data.config.includes("[custom.")) {
-        // Allow but we'll warn users when they download
+        // Allow but warn users when they download TODO: maybe set in db
         console.warn("Theme contains custom commands:", data.slug);
       }
     } catch (_error) {
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     let themeId: string;
 
     if (existingTheme) {
-      // Update existing theme
+      // Update existing theme TODO: make a extra form for that, potentially later with diff
       const [updated] = await db
         .update(themes)
         .set({
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
           description: data.description,
           screenshotUrl: publicUrl,
           colorSchemeId: data.colorSchemeId,
-          groupId: data.groupId,
+          group: data.group,
           updatedAt: new Date(),
         })
         .where(eq(themes.id, existingTheme.id))
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
           description: data.description,
           screenshotUrl: publicUrl,
           colorSchemeId: data.colorSchemeId,
-          groupId: data.groupId,
+          group: data.group,
         })
         .returning();
 

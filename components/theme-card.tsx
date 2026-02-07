@@ -20,20 +20,22 @@ export default function ThemeCard({ theme }: ThemeCardProps) {
   return (
     <Link
       href={`/${theme.author.name}/${theme.slug}`}
-      className="group block bg-ctp-mantle rounded-lg border border-ctp-crust"
+      className="group block bg-ctp-mantle rounded-lg border-2 border-ctp-crust"
     >
-      <div className="aspect-video overflow-hidden rounded-t-lg">
+      <div className="overflow-hidden rounded-t-lg">
         <Image
           src={theme.screenshotUrl}
           alt={theme.name}
           width={600}
-          height={400}
+          height={120}
           className="w-full h-full object-cover group-hover:scale-105 duration-300"
         />
       </div>
-      <div className="p-4">
-        <h3 className="font-semibold text-lg">{theme.name}</h3>
-        <p className="text-sm text-ctp-subtext0">by {theme.author.name}</p>
+      <div className="p-4 border-t border-t-ctp-crust flex justify-between items-start">
+        <div>
+          <h3 className="font-semibold text-lg">{theme.name}</h3>
+          <p className="text-sm text-ctp-subtext0">by {theme.author.name}</p>
+        </div>
         <div className="flex items-center gap-2 mt-2 text-sm text-ctp-subtext0">
           <span>{theme.downloads} downloads</span>
           {theme.colorScheme && <span>• {theme.colorScheme.name}</span>}

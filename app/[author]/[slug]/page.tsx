@@ -3,6 +3,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
+import ApplyCommand from "./apply-command";
 
 interface PageProps {
   params: Promise<{
@@ -59,14 +60,10 @@ export default async function ThemePage({ params }: PageProps) {
           alt={theme.name}
           width={1200}
           height={800}
-          className="rounded-lg shadow-lg mb-8"
+          className="rounded-lg shadow-lg border-2 border-ctp-crust mb-8"
         />
 
-        <div className="bg-gray-100 rounded p-4 mb-8">
-          <code className="text-sm">
-            stellar apply {theme.author.name}/{theme.slug}
-          </code>
-        </div>
+        <ApplyCommand author={author.name} theme={theme.slug} />
 
         {theme.description && (
           <p className="text-lg mb-8">{theme.description}</p>
@@ -77,7 +74,7 @@ export default async function ThemePage({ params }: PageProps) {
           {theme.versions.map((version) => (
             <div
               key={version.id}
-              className="border-l-4 border-blue-500 pl-4 mb-4"
+              className="border-l-4 border-ctp-text pl-4 mb-4"
             >
               <h3 className="font-semibold">{version.version}</h3>
               {version.versionNotes && (

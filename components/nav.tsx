@@ -1,9 +1,7 @@
-// components/nav.tsx
+import { headers } from "next/headers";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import AuthButton from "./auth-button";
-import Image from "next/image";
 import AsteriskLogo from "./icons/asterisk";
 
 export default async function Nav() {

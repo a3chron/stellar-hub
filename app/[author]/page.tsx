@@ -1,8 +1,8 @@
-import { db } from "@/lib/db";
-import { notFound } from "next/navigation";
-import Image from "next/image";
-import ThemeCard from "@/components/theme-card";
 import { User } from "lucide-react";
+import Image from "next/image";
+import { notFound } from "next/navigation";
+import ThemeCard from "@/components/theme-card";
+import { db } from "@/lib/db";
 
 interface PageProps {
   params: Promise<{

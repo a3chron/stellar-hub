@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
+import { type NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import { z } from "zod";
 
 const schema = z.object({
   author: z.string(),

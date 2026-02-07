@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export default function UploadForm() {
   const router = useRouter();
@@ -30,76 +30,84 @@ export default function UploadForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium mb-2">Theme Name</label>
-        <input
-          type="text"
-          name="name"
-          required
-          className="w-full border rounded px-3 py-2"
-          placeholder="My Awesome Theme"
-        />
+        <label className="block text-sm font-medium mb-2">
+          Theme Name
+          <input
+            type="text"
+            name="name"
+            required
+            className="w-full border rounded px-3 py-2"
+            placeholder="My Awesome Theme"
+          />
+        </label>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Description</label>
-        <textarea
-          name="description"
-          rows={3}
-          className="w-full border rounded px-3 py-2"
-          placeholder="A brief description..."
-        />
+        <label className="block text-sm font-medium mb-2">
+          Description
+          <textarea
+            name="description"
+            rows={3}
+            className="w-full border rounded px-3 py-2"
+            placeholder="A brief description..."
+          />
+        </label>
       </div>
 
       <div>
         <label className="block text-sm font-medium mb-2">
           Min starship version
+          <input
+            type="text"
+            name="minStarshipVersion"
+            defaultValue="1.0.0"
+            pattern="^\d+\.\d+\.\d+$"
+            placeholder="1.24.2"
+          />
         </label>
-        <input
-          type="text"
-          name="minStarshipVersion"
-          defaultValue="1.0.0"
-          pattern="^\d+\.\d+\.\d+$"
-          placeholder="1.24.2"
-        />
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Screenshot</label>
-        <input
-          type="file"
-          name="screenshot"
-          accept="image/png,image/jpeg,image/webp"
-          required
-          className="w-full"
-        />
+        <label className="block text-sm font-medium mb-2">
+          Screenshot
+          <input
+            type="file"
+            name="screenshot"
+            accept="image/png,image/jpeg,image/webp"
+            required
+            className="w-full"
+          />
+        </label>
       </div>
 
       <div>
         <label className="block text-sm font-medium mb-2">
           Starship Config (TOML)
-        </label>
-        <textarea
-          name="config"
-          rows={10}
-          required
-          className="w-full border rounded px-3 py-2 font-mono text-sm"
-          placeholder="[character]
+          <textarea
+            name="config"
+            rows={10}
+            required
+            className="w-full border rounded px-3 py-2 font-mono text-sm"
+            placeholder="[character]
 success_symbol = '[➜](bold green)'
 ..."
-        />
+          />
+        </label>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-2">Version</label>
-        <input
-          type="text"
-          name="version"
-          required
-          defaultValue="1.0"
-          pattern="^v?\d+\.\d+$"
-          className="w-full border rounded px-3 py-2"
-          placeholder="1.0"
-        />
+        <label className="block text-sm font-medium mb-2">
+          Version
+          <input
+            type="text"
+            name="version"
+            required
+            defaultValue="1.0"
+            pattern="^v?\d+\.\d+$"
+            className="w-full border rounded px-3 py-2"
+            placeholder="1.0"
+          />
+        </label>
       </div>
 
       <button

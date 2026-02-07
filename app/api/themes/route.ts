@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { asc, desc, eq, type SQL, sql } from "drizzle-orm";
+import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
-import { desc, asc, ilike, sql, eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,26 +12,6 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get("offset") || "0");
     const colorScheme = searchParams.get("colorScheme");
     const author = searchParams.get("author");
-
-    // Build query
-    let query = db.query.themes.findMany({
-      with: {
-        author: {
-          columns: {
-            id: true,
-            name: true,
-            image: true,
-          },
-        },
-        colorScheme: true,
-        versions: {
-          orderBy: (versions, { desc }) => [desc(versions.createdAt)],
-          limit: 1, // Only get latest version
-        },
-      },
-      limit,
-      offset,
-    });
 
     // Apply filters
     const conditions = [];
@@ -51,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Apply sorting
-    let orderBy;
+    let orderBy: SQL[];
     switch (sort) {
       case "trending":
         // Trending = most downloads in last 7 days (simplified: just by total downloads)

@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
+import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { themes, themeVersions } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import type { ThemeVersion } from "@/lib/db/types";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   {
     params,
   }: { params: Promise<{ author: string; slug: string; version: string }> },
@@ -38,7 +39,7 @@ export async function GET(
     const normalizedVersion = versionIn.replace(/^v/, "");
 
     // Find version (or latest if version is "latest")
-    let version;
+    let version: ThemeVersion | undefined;
     if (normalizedVersion === "latest") {
       version = await db.query.themeVersions.findFirst({
         where: eq(themeVersions.themeId, theme.id),

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Nav from "@/components/nav";
 import { Analytics } from "@vercel/analytics/next";
+import Nav from "@/components/nav";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",

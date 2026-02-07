@@ -1,8 +1,8 @@
+import { and, eq } from "drizzle-orm";
+import Image from "next/image";
+import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
-import { notFound } from "next/navigation";
-import Image from "next/image";
 
 interface PageProps {
   params: Promise<{
@@ -12,17 +12,33 @@ interface PageProps {
 }
 
 export default async function ThemePage({ params }: PageProps) {
-  const { slug: themeSlug } = await params;
+  const { author: authorName, slug: themeSlug } = await params;
 
+  // First find the author by name
+  const author = await db.query.user.findFirst({
+    where: (user, { eq }) => eq(user.name, authorName),
+  });
+
+  if (!author) {
+    return notFound();
+  }
+
+  // Then find the theme
   const theme = await db.query.themes.findFirst({
-    where: and(eq(themes.slug, themeSlug)),
+    where: and(eq(themes.authorId, author.id), eq(themes.slug, themeSlug)),
     with: {
-      author: true,
+      author: {
+        columns: {
+          id: true,
+          name: true,
+          image: true,
+          bio: true,
+        },
+      },
       versions: {
         orderBy: (versions, { desc }) => [desc(versions.createdAt)],
       },
       colorScheme: true,
-      group: true,
     },
   });
 
@@ -75,8 +91,8 @@ export default async function ThemePage({ params }: PageProps) {
           <section>
             <h2 className="text-2xl font-semibold mb-4">Dependencies</h2>
             <ul className="list-disc list-inside">
-              {latestVersion.dependencies.map((dep, i) => (
-                <li key={i}>{dep.name}</li>
+              {latestVersion.dependencies.map((dep) => (
+                <li key={dep.name}>{dep.name}</li>
               ))}
             </ul>
           </section>

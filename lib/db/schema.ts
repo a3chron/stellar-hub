@@ -1,14 +1,14 @@
-import {
-  pgTable,
-  uuid,
-  text,
-  integer,
-  timestamp,
-  jsonb,
-  uniqueIndex,
-  boolean,
-} from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import {
+  boolean,
+  integer,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -68,26 +68,6 @@ export const colorSchemes = pgTable("color_schemes", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Theme Groups (optional grouping)
-export const themeGroups = pgTable(
-  "theme_groups",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    authorId: text("author_id")
-      .references(() => user.id, { onDelete: "cascade" })
-      .notNull(),
-    name: text("name").notNull(),
-    description: text("description"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => ({
-    uniqueAuthorName: uniqueIndex("unique_author_group_name").on(
-      table.authorId,
-      table.name,
-    ),
-  }),
-);
-
 // Themes
 export const themes = pgTable(
   "themes",
@@ -101,9 +81,7 @@ export const themes = pgTable(
     description: text("description"),
     screenshotUrl: text("screenshot_url").notNull(),
     downloads: integer("downloads").default(0).notNull(),
-    groupId: uuid("group_id").references(() => themeGroups.id, {
-      onDelete: "set null",
-    }),
+    groupId: uuid("group_id"),
     colorSchemeId: uuid("color_scheme_id").references(() => colorSchemes.id, {
       onDelete: "set null",
     }),
@@ -149,7 +127,6 @@ export const themeVersions = pgTable(
 // Relations
 export const userRelations = relations(user, ({ many }) => ({
   themes: many(themes),
-  groups: many(themeGroups),
 }));
 
 export const themesRelations = relations(themes, ({ one, many }) => ({
@@ -158,10 +135,6 @@ export const themesRelations = relations(themes, ({ one, many }) => ({
     references: [user.id],
   }),
   versions: many(themeVersions),
-  group: one(themeGroups, {
-    fields: [themes.groupId],
-    references: [themeGroups.id],
-  }),
   colorScheme: one(colorSchemes, {
     fields: [themes.colorSchemeId],
     references: [colorSchemes.id],
@@ -173,12 +146,4 @@ export const themeVersionsRelations = relations(themeVersions, ({ one }) => ({
     fields: [themeVersions.themeId],
     references: [themes.id],
   }),
-}));
-
-export const themeGroupsRelations = relations(themeGroups, ({ one, many }) => ({
-  author: one(user, {
-    fields: [themeGroups.authorId],
-    references: [user.id],
-  }),
-  themes: many(themes),
 }));

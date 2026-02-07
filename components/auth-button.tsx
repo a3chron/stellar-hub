@@ -1,6 +1,7 @@
 // components/auth-button.tsx
 "use client";
 
+import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 
 interface AuthButtonProps {
@@ -33,9 +34,11 @@ export default function AuthButton({ user }: AuthButtonProps) {
     return (
       <div className="flex items-center gap-4">
         {user.image && (
-          <img
+          <Image
             src={user.image}
             alt={user.name}
+            width={32}
+            height={32}
             className="w-8 h-8 rounded-full"
           />
         )}
@@ -44,6 +47,7 @@ export default function AuthButton({ user }: AuthButtonProps) {
         </span>
         <button
           onClick={handleSignOut}
+          type="submit"
           className="px-4 py-2 text-sm font-medium text-ctp-subtext1"
         >
           Sign Out
@@ -55,6 +59,7 @@ export default function AuthButton({ user }: AuthButtonProps) {
   return (
     <button
       onClick={handleSignIn}
+      type="submit"
       className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
     >
       Sign In with GitHub

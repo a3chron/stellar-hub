@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "biome check",
+    "lint": "biome check --write .",
+    "lint:check": "biome check .",
     "format": "biome format --write",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
@@ -26,7 +27,7 @@
     "zod": "3.24.1"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.14",
+    "@biomejs/biome": "2.3.6",
     "@tailwindcss/postcss": "4",
     "@types/node": "22.10.2",
     "@types/react": "19",

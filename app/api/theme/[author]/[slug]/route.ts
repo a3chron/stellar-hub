@@ -1,22 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
+import { and, eq } from "drizzle-orm";
+import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ author: string; slug: string }> },
 ) {
   try {
-    console.log("asasasasa");
     const { author: authorName, slug: themeSlug } = await params;
 
     // First find the author by name
     const author = await db.query.user.findFirst({
       where: (user, { eq }) => eq(user.name, authorName),
     });
-
-    console.log(author);
 
     if (!author) {
       return NextResponse.json({ error: "Author not found" }, { status: 404 });
@@ -38,7 +35,6 @@ export async function GET(
           orderBy: (versions, { desc }) => [desc(versions.createdAt)],
         },
         colorScheme: true,
-        group: true,
       },
     });
 
@@ -61,13 +57,7 @@ export async function GET(
       screenshotUrl: theme.screenshotUrl,
       downloads: theme.downloads,
       colorScheme: theme.colorScheme?.name,
-      group: theme.group
-        ? {
-            id: theme.group.id,
-            name: theme.group.name,
-            description: theme.group.description,
-          }
-        : null,
+      groupId: theme.groupId,
       versions: theme.versions.map((v) => ({
         version: v.version,
         versionNotes: v.versionNotes,

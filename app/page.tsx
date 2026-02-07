@@ -1,7 +1,7 @@
-import { db } from "@/lib/db";
-import { themes } from "@/lib/db/schema";
 import { desc } from "drizzle-orm";
 import ThemeCard from "@/components/theme-card";
+import { db } from "@/lib/db";
+import { themes } from "@/lib/db/schema";
 
 export default async function HomePage() {
   const trendingThemes = await db.query.themes.findMany({

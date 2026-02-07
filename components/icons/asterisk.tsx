@@ -9,6 +9,7 @@ export default function AsteriskLogo(props: React.SVGProps<SVGSVGElement>) {
       width="24"
       {...props}
     >
+      <title>stellar</title>
       <desc>Asterisk Streamline Icon: https://streamlinehq.com</desc>
       <path
         fill="currentColor"

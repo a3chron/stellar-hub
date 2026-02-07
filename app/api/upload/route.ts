@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { eq } from "drizzle-orm";
+import { headers } from "next/headers";
+import { type NextRequest, NextResponse } from "next/server";
+import sharp from "sharp";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { themes, themeVersions } from "@/lib/db/schema";
 import { supabaseAdmin } from "@/lib/supabase";
-import sharp from "sharp";
-import { headers } from "next/headers";
-import { z } from "zod";
-import { eq } from "drizzle-orm";
 
 // Validation schema
 const uploadSchema = z.object({
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         // Allow but we'll warn users when they download
         console.warn("Theme contains custom commands:", data.slug);
       }
-    } catch (error) {
+    } catch (_error) {
       return NextResponse.json(
         { error: "Invalid Starship config (TOML)" },
         { status: 400 },
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     // Generate unique filename
     const filename = `${session.user.id}-${Date.now()}.webp`;
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const { data: _data, error: uploadError } = await supabaseAdmin.storage
       .from("stellar")
       .upload(filename, optimizedImage, {
         contentType: "image/webp",
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
       .returning();
 
     return NextResponse.json({
-      success: true,
+      success: !!version,
       slug: data.slug,
       author: session.user.name,
       version: normalizedVersion,

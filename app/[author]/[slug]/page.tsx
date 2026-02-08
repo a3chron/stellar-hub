@@ -74,6 +74,17 @@ export default async function ThemePage({ params }: PageProps) {
           <p className="text-lg mb-8">{theme.description}</p>
         )}
 
+        {latestVersion.dependencies && (
+          <section>
+            <h2 className="text-2xl font-semibold mb-4">Dependencies</h2>
+            <ul className="list-disc list-inside">
+              {latestVersion.dependencies.map((dep) => (
+                <li key={dep}>{dep}</li>
+              ))}
+            </ul>
+          </section>
+        )}
+
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Versions</h2>
           {theme.versions.map((version) => (
@@ -98,17 +109,6 @@ export default async function ThemePage({ params }: PageProps) {
             </div>
           ))}
         </section>
-
-        {latestVersion.dependencies && (
-          <section>
-            <h2 className="text-2xl font-semibold mb-4">Dependencies</h2>
-            <ul className="list-disc list-inside">
-              {latestVersion.dependencies.map((dep) => (
-                <li key={dep}>{dep}</li>
-              ))}
-            </ul>
-          </section>
-        )}
       </div>
     </main>
   );

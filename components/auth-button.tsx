@@ -1,9 +1,7 @@
-// components/auth-button.tsx
 "use client";
 
-import { UserIcon } from "lucide-react";
-import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
+import ProfileDropdown from "./profile-dropdown";
 
 interface AuthButtonProps {
   user: {
@@ -33,29 +31,11 @@ export default function AuthButton({ user }: AuthButtonProps) {
 
   if (user) {
     return (
-      <div className="flex items-center gap-4">
-        <span className="text-sm font-medium text-ctp-subtext1">
-          {user.name}
-        </span>
-        {user.image ? (
-          <Image
-            src={user.image}
-            alt={user.name}
-            width={32}
-            height={32}
-            className="w-8 h-8 rounded-full"
-          />
-        ) : (
-          <UserIcon size={32} />
-        )}
-        <button
-          onClick={handleSignOut}
-          type="submit"
-          className="px-4 py-2 text-sm font-medium text-ctp-subtext1"
-        >
-          Sign Out
-        </button>
-      </div>
+      <ProfileDropdown
+        userImage={user.image}
+        userName={user.name}
+        handleSignout={handleSignOut}
+      />
     );
   }
 

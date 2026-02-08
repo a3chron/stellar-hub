@@ -2,6 +2,7 @@
 
 import { Check, Copy } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function ApplyCommand({
   author,
@@ -23,10 +24,14 @@ export default function ApplyCommand({
             `stellar apply ${author}/${theme}`,
           );
           setCopied(true);
-          setTimeout(() => setCopied(false), 5000); // revert after 5s
+          setTimeout(() => setCopied(false), 10000); // revert after 5s
         }}
         type="button"
-        className="ml-4 p-2 rounded bg-ctp-surface0 flex items-center justify-center cursor-pointer ring-1 ring-offset-2 ring-ctp-surface0 ring-offset-ctp-crust"
+        className={cn(
+          "ml-4 p-2 rounded flex items-center justify-center",
+          !copied &&
+            "bg-ctp-surface0 ring-1 ring-offset-2 ring-ctp-surface0 ring-offset-ctp-crust cursor-pointer",
+        )}
       >
         {copied ? (
           <Check className="w-4 h-4 text-ctp-green" />

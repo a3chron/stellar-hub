@@ -28,7 +28,7 @@ export default function ThemeCard({ theme }: ThemeCardProps) {
           alt={theme.name}
           width={600}
           height={120}
-          className="w-full h-full object-cover group-hover:scale-105 duration-300"
+          className="w-full h-32 object-cover"
         />
       </div>
       <div className="p-4 border-t border-t-ctp-crust flex justify-between items-start">

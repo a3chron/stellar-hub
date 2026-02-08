@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
@@ -51,15 +52,19 @@ export default async function ThemePage({ params }: PageProps) {
     <main className="container mx-auto px-4 py-12">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-bold mb-2">{theme.name}</h1>
-        <p className="text-gray-600 mb-8">
-          by {theme.author.name} • {theme.downloads} downloads
+        <p className="text-ctp-subtext0 mb-8">
+          by{" "}
+          <Link className="text-ctp-text" href={`/${theme.author.name}`}>
+            {theme.author.name}
+          </Link>{" "}
+          • {theme.downloads} downloads
         </p>
 
         <Image
           src={theme.screenshotUrl}
           alt={theme.name}
           width={1200}
-          height={800}
+          height={240}
           className="rounded-lg shadow-lg border-2 border-ctp-crust mb-8"
         />
 
@@ -74,12 +79,22 @@ export default async function ThemePage({ params }: PageProps) {
           {theme.versions.map((version) => (
             <div
               key={version.id}
-              className="border-l-4 border-ctp-text pl-4 mb-4"
+              className="border-l-4 border-ctp-subtext0 pl-4 mb-4 w-96"
             >
-              <h3 className="font-semibold">{version.version}</h3>
-              {version.versionNotes && (
-                <p className="text-gray-600">{version.versionNotes}</p>
-              )}
+              <div className="flex justify-between gap-4">
+                <h3 className="font-semibold">{version.version}</h3>
+                {version.minStarshipVersion && (
+                  <span>
+                    starship {">="} {version.minStarshipVersion}
+                  </span>
+                )}
+              </div>
+              {version.versionNotes ||
+                (true && (
+                  <p className="text-ctp-subtext1 mt-1.5">
+                    {version.versionNotes}
+                  </p>
+                ))}
             </div>
           ))}
         </section>

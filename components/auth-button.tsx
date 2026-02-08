@@ -1,6 +1,7 @@
 // components/auth-button.tsx
 "use client";
 
+import { UserIcon } from "lucide-react";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 
@@ -33,7 +34,10 @@ export default function AuthButton({ user }: AuthButtonProps) {
   if (user) {
     return (
       <div className="flex items-center gap-4">
-        {user.image && (
+        <span className="text-sm font-medium text-ctp-subtext1">
+          {user.name}
+        </span>
+        {user.image ? (
           <Image
             src={user.image}
             alt={user.name}
@@ -41,10 +45,9 @@ export default function AuthButton({ user }: AuthButtonProps) {
             height={32}
             className="w-8 h-8 rounded-full"
           />
+        ) : (
+          <UserIcon size={32} />
         )}
-        <span className="text-sm font-medium text-ctp-subtext1">
-          {user.name}
-        </span>
         <button
           onClick={handleSignOut}
           type="submit"
@@ -60,7 +63,7 @@ export default function AuthButton({ user }: AuthButtonProps) {
     <button
       onClick={handleSignIn}
       type="submit"
-      className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+      className="px-4 py-2 bg-ctp-crust border border-ctp-surface0 text-ctp-text rounded-lg text-sm font-medium cursor-pointer"
     >
       Sign In with GitHub
     </button>

@@ -1,6 +1,7 @@
 # stellar-hub
 Web hub for stellar
 
+> [!NOTE] 
 > Check out [stellar-cli](https://github.com/a3chron/stellar) for info about stellar.
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).

@@ -1,4 +1,7 @@
 import { desc } from "drizzle-orm";
+import Image from "next/image";
+import Link from "next/link";
+import InstallIntruction from "@/components/install-intruction";
 import ThemeCard from "@/components/theme-card";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
@@ -15,11 +18,32 @@ export default async function HomePage() {
 
   return (
     <main className="container mx-auto px-4 py-12">
-      <section className="text-center mb-16">
-        <h1 className="text-5xl font-bold mb-4">stellar</h1>
-        <p className="text-xl text-text-muted">
-          Beautiful Starship themes, one command away
-        </p>
+      <section className="mb-16 flex gap-44 justify-center">
+        <div className="mt-10">
+          <h1 className="text-5xl font-bold mb-4">stellar</h1>
+          <p className="text-xl text-text-muted">
+            Beautiful Starship themes, one command away
+          </p>
+          <div className="flex mt-8 gap-6">
+            <InstallIntruction />
+            <Link
+              href={"/upload"}
+              className="p-4 px-6 rounded-xl border-2 border-ctp-subtext0 bg-ctp-mantle text-lg font-medium duration-300"
+            >
+              Publish your theme
+            </Link>
+          </div>
+        </div>
+        <div className="relative z-10">
+          <Image
+            src={"/demo.gif"}
+            width={600}
+            height={400}
+            alt="Demo Gif"
+            className="rounded-3xl absolute top-0 z-10"
+          />
+          <div className="rotate-5 bg-ctp-surface0 rounded-3xl w-[600px] h-[400px]" />
+        </div>
       </section>
 
       <section>

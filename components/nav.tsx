@@ -21,31 +21,7 @@ export default async function Nav() {
             <AsteriskLogo width={36} height={36} />
           </Link>
 
-          {/* Navigation Links */}
-          <div className="flex items-center gap-6">
-            <Link href="/" className="text-sm font-medium text-ctp-subtext1">
-              Themes
-            </Link>
-
-            {session && (
-              <>
-                <Link
-                  href="/upload"
-                  className="text-sm font-medium text-ctp-subtext1"
-                >
-                  Upload
-                </Link>
-                <Link
-                  href={`/${session.user.name}`}
-                  className="text-sm font-medium text-ctp-subtext1"
-                >
-                  My Profile
-                </Link>
-              </>
-            )}
-
-            <AuthButton user={session?.user || null} />
-          </div>
+          <AuthButton user={session?.user || null} />
         </div>
       </div>
     </nav>

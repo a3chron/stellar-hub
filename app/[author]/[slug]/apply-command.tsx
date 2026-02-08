@@ -24,7 +24,7 @@ export default function ApplyCommand({
             `stellar apply ${author}/${theme}`,
           );
           setCopied(true);
-          setTimeout(() => setCopied(false), 10000); // revert after 5s
+          setTimeout(() => setCopied(false), 10000);
         }}
         type="button"
         className={cn(

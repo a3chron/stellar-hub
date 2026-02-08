@@ -104,7 +104,7 @@ export default async function ThemePage({ params }: PageProps) {
             <h2 className="text-2xl font-semibold mb-4">Dependencies</h2>
             <ul className="list-disc list-inside">
               {latestVersion.dependencies.map((dep) => (
-                <li key={dep.name}>{dep.name}</li>
+                <li key={dep}>{dep}</li>
               ))}
             </ul>
           </section>

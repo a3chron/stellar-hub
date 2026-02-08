@@ -112,7 +112,7 @@ export const themeVersions = pgTable(
     configContent: text("config_content").notNull(),
     versionNotes: text("version_notes"),
     dependencies:
-      jsonb("dependencies").$type<Array<{ type: string; name: string }>>(),
+      text("dependencies").array(),
     minStarshipVersion: text("min_starship_version")
       .notNull()
       .default("1.24.0"),

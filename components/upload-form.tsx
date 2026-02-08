@@ -108,7 +108,7 @@ success_symbol = '[➜](bold green)'
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-ctp-text border-2 border-ctp-subtext0 text-ctp-crust py-3 rounded-lg font-semibold disabled:bg-ctp-mantle"
+        className="w-full bg-ctp-text border-2 border-ctp-subtext0 text-ctp-crust py-3 rounded-lg font-semibold"
       >
         {loading ? "Uploading..." : "Upload Theme"}
       </button>

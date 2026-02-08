@@ -3,7 +3,6 @@ import {
   boolean,
   index,
   integer,
-  jsonb,
   pgTable,
   text,
   timestamp,
@@ -111,8 +110,7 @@ export const themeVersions = pgTable(
     version: text("version").notNull(),
     configContent: text("config_content").notNull(),
     versionNotes: text("version_notes"),
-    dependencies:
-      text("dependencies").array(),
+    dependencies: text("dependencies").array(),
     minStarshipVersion: text("min_starship_version")
       .notNull()
       .default("1.24.0"),

@@ -21,14 +21,7 @@ const uploadSchema = z.object({
   version: z.string().regex(/^v?\d+\.\d+$/),
   colorSchemeId: z.string().uuid().optional(),
   group: z.string().optional(),
-  dependencies: z
-    .array(
-      z.object({
-        type: z.string(),
-        name: z.string(),
-      }),
-    )
-    .optional(),
+  dependencies: z.array(z.string()).optional(),
   installationNotes: z.string().max(1000).optional(),
   versionNotes: z.string().max(500).optional(),
 });

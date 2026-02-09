@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Markdown from "@/components/markdown";
+import ThemeCard from "@/components/theme-card";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
 import ApplyCommand from "./apply-command";
@@ -48,6 +49,31 @@ export default async function ThemePage({ params }: PageProps) {
   if (!theme) return notFound();
 
   const latestVersion = theme.versions[0];
+
+  // Fetch related themes in the same group (if group exists)
+  const relatedThemes = theme.group
+    ? await db.query.themes.findMany({
+        where: and(
+          eq(themes.authorId, author.id),
+          eq(themes.group, theme.group),
+          // Exclude the current theme
+          eq(themes.slug, themeSlug) ? undefined : eq(themes.slug, themeSlug),
+        ),
+        with: {
+          author: {
+            columns: {
+              name: true,
+            },
+          },
+          colorScheme: true,
+        },
+      })
+    : [];
+
+  // Filter out the current theme from related themes
+  const filteredRelatedThemes = relatedThemes.filter(
+    (t) => t.slug !== themeSlug,
+  );
 
   return (
     <main className="container mx-auto px-4 py-12">
@@ -103,15 +129,28 @@ export default async function ThemePage({ params }: PageProps) {
                   </span>
                 )}
               </div>
-              {version.versionNotes ||
-                (true && (
-                  <p className="text-ctp-subtext1 mt-1.5">
-                    {version.versionNotes}
-                  </p>
-                ))}
+              {version.versionNotes && (
+                <p className="text-ctp-subtext1 mt-1.5">
+                  {version.versionNotes}
+                </p>
+              )}
             </div>
           ))}
         </section>
+
+        {/* Related Themes Section */}
+        {filteredRelatedThemes.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">
+              Other themes in this group
+            </h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {filteredRelatedThemes.map((relatedTheme) => (
+                <ThemeCard key={relatedTheme.id} theme={relatedTheme} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );

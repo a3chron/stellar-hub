@@ -71,11 +71,13 @@ export default async function ThemePage({ params }: PageProps) {
         <ApplyCommand author={author.name} theme={theme.slug} />
 
         {theme.description && (
-          <p className="text-lg mb-8">{theme.description}</p>
+          <p className="text-lg mb-8 whitespace-pre-line">
+            {theme.description}
+          </p>
         )}
 
         {latestVersion.dependencies && (
-          <section>
+          <section className="mb-8">
             <h2 className="text-2xl font-semibold mb-4">Dependencies</h2>
             <ul className="list-disc list-inside">
               {latestVersion.dependencies.map((dep) => (

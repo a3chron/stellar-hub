@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       const filename = `avatars/${session.user.id}-${Date.now()}.webp`;
       const { data: _uploadData, error: uploadError } =
         await supabaseAdmin.storage
-          .from("screenshots") // Reusing same bucket
+          .from("screenshots") // Reusing same bucket TODO: better structure
           .upload(filename, optimizedImage, {
             contentType: "image/webp",
             cacheControl: "3600",

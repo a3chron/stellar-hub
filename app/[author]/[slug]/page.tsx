@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Markdown from "@/components/markdown";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
 import ApplyCommand from "./apply-command";
@@ -71,9 +72,9 @@ export default async function ThemePage({ params }: PageProps) {
         <ApplyCommand author={author.name} theme={theme.slug} />
 
         {theme.description && (
-          <p className="text-lg mb-8 whitespace-pre-line">
-            {theme.description}
-          </p>
+          <div className="mb-8 text-ctp-subtext1">
+            <Markdown>{theme.description}</Markdown>
+          </div>
         )}
 
         {latestVersion.dependencies && (

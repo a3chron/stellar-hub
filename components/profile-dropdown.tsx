@@ -38,7 +38,7 @@ export default function ProfileDropdown({
   }, [isOpen]);
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative h-8" ref={dropdownRef}>
       <button
         type="button"
         className="cursor-pointer"

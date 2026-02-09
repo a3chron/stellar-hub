@@ -84,6 +84,7 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
             placeholder="A brief description of your theme..."
           />
         </label>
+        <p className="text-xs text-ctp-subtext0 mt-1">Supports markdown</p>
       </div>
 
       {/* Color Scheme */}

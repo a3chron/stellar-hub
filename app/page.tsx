@@ -40,7 +40,7 @@ export default async function HomePage() {
             width={600}
             height={400}
             alt="Demo Gif"
-            className="rounded-3xl md:absolute top-0 z-10"
+            className="rounded-3xl md:absolute top-0 z-10 border-2 border-ctp-surface2"
           />
           <div className="rotate-5 bg-ctp-surface0 rounded-3xl w-[600px] h-[400px] hidden md:block" />
         </div>

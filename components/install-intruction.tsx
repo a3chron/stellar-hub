@@ -8,8 +8,8 @@ export default function InstallInstruction() {
   const [copied, setCopied] = useState(false);
   return (
     <div className="p-3 px-4 group rounded-xl border-2 border-ctp-text bg-ctp-text text-lg text-ctp-crust font-medium flex items-center">
-      <span>Install</span>
-      <div className="h-full w-0.5 rounded-full bg-ctp-subtext0 mx-2" />
+      <span className="hidden sm:block">Install</span>
+      <div className="h-full w-0.5 rounded-full bg-ctp-subtext0 mx-2 hidden sm:block" />
       <span className="relative max-w-44 whitespace-nowrap overflow-hidden">
         <span className="block">
           curl -fsSL

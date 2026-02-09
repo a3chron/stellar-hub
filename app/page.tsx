@@ -18,13 +18,13 @@ export default async function HomePage() {
 
   return (
     <main className="container mx-auto px-4 py-12">
-      <section className="mb-16 flex gap-44 justify-center">
+      <section className="mb-16 flex flex-col md:flex-row gap-16 justify-between">
         <div className="mt-10">
           <h1 className="text-5xl font-bold mb-4">stellar</h1>
           <p className="text-xl text-text-muted">
             Beautiful Starship themes, one command away
           </p>
-          <div className="flex mt-8 gap-6">
+          <div className="flex flex-wrap mt-8 gap-6">
             <InstallIntruction />
             <Link
               href={"/upload"}
@@ -40,15 +40,15 @@ export default async function HomePage() {
             width={600}
             height={400}
             alt="Demo Gif"
-            className="rounded-3xl absolute top-0 z-10"
+            className="rounded-3xl md:absolute top-0 z-10"
           />
-          <div className="rotate-5 bg-ctp-surface0 rounded-3xl w-[600px] h-[400px]" />
+          <div className="rotate-5 bg-ctp-surface0 rounded-3xl w-[600px] h-[400px] hidden md:block" />
         </div>
       </section>
 
       <section>
         <h2 className="text-3xl font-semibold mb-8">Trending Themes</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {trendingThemes.map((theme) => (
             <ThemeCard key={theme.id} theme={theme} />
           ))}

@@ -1,5 +1,6 @@
-import { User } from "lucide-react";
+import { GithubIcon, GlobeIcon, User } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import ThemeCard from "@/components/theme-card";
 import { db } from "@/lib/db";
@@ -63,7 +64,27 @@ export default async function AuthorPage({ params }: PageProps) {
 
           {/* Profile Info */}
           <div className="flex-1">
-            <h1 className="text-4xl font-bold mb-2">{author.name}</h1>
+            <div className="flex items-center gap-8">
+              <h1 className="text-4xl font-bold mb-2">{author.name}</h1>
+              <div className="flex gap-4">
+                {author.socialLinks?.github && (
+                  <Link
+                    href={`https://github.com/${author.socialLinks.github}`}
+                    className="bg-ctp-crust rounded-full p-2 ring-2 ring-ctp-surface0 hover:ring-offset-2 ring-offset-ctp-base duration-300"
+                  >
+                    <GithubIcon size={16} />
+                  </Link>
+                )}
+                {author.socialLinks?.website && (
+                  <Link
+                    href={author.socialLinks.website}
+                    className="bg-ctp-crust rounded-full p-2 ring-2 ring-ctp-surface0 hover:ring-offset-2 ring-offset-ctp-base duration-300"
+                  >
+                    <GlobeIcon size={16} />
+                  </Link>
+                )}
+              </div>
+            </div>
 
             <div className="flex items-center gap-6 text-ctp-subtext0">
               <div>
@@ -87,7 +108,9 @@ export default async function AuthorPage({ params }: PageProps) {
               </div>
             </div>
 
-            {author.bio && <p className="text-lg mb-4">{author.bio}</p>}
+            {author.bio && (
+              <p className="text-lg my-4 text-ctp-subtext1">{author.bio}</p>
+            )}
           </div>
         </div>
 

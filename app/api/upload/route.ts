@@ -13,15 +13,15 @@ const uploadSchema = z.object({
   name: z.string().min(1).max(100),
   slug: z
     .string()
-    .min(1)
     .max(50)
-    .regex(/^[a-z0-9-]+$/),
+    .regex(/^[a-z0-9-]*$/),
   description: z.string().max(500).optional(),
   config: z.string().min(1).max(100000), // 100KB max
   version: z.string().regex(/^v?\d+\.\d+$/),
-  colorSchemeId: z.string().uuid().optional(),
+  minStarshipVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
+  colorSchemeId: z.string().uuid().optional().or(z.literal("")),
   group: z.string().optional(),
-  dependencies: z.array(z.string()).optional(),
+  dependencies: z.string().optional(), // Will be split into array
   installationNotes: z.string().max(1000).optional(),
   versionNotes: z.string().max(500).optional(),
 });
@@ -65,32 +65,39 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Validate other fields
-    const data = uploadSchema.parse({
+    const rawData = {
       name: formData.get("name"),
-      slug:
-        formData.get("slug") || generateSlug(formData.get("name") as string),
+      slug: formData.get("slug") || undefined,
       description: formData.get("description") || undefined,
       config: formData.get("config"),
       version: formData.get("version"),
+      minStarshipVersion: formData.get("minStarshipVersion"),
       colorSchemeId: formData.get("colorSchemeId") || undefined,
       group: formData.get("group") || undefined,
-      dependencies: formData.get("dependencies")
-        ? JSON.parse(formData.get("dependencies") as string)
-        : undefined,
+      dependencies: formData.get("dependencies") || undefined,
       installationNotes: formData.get("installationNotes") || undefined,
       versionNotes: formData.get("versionNotes") || undefined,
-    });
+    };
+
+    const data = uploadSchema.parse(rawData);
+
+    // Parse dependencies (one per line)
+    const dependenciesArray = data.dependencies
+      ? data.dependencies
+          .split("\n")
+          .map((d) => d.trim())
+          .filter((d) => d.length > 0)
+      : undefined;
 
     // 4. Validate TOML config
     try {
-      // Basic TOML validation (you might want to use a TOML parser here)
+      // Basic TOML validation
       if (!data.config.includes("[") || !data.config.includes("]")) {
         throw new Error("Invalid TOML format");
       }
 
-      // Check for custom commands (security)
+      // Check for custom commands (security warning)
       if (data.config.includes("[custom.")) {
-        // Allow but warn users when they download TODO: maybe set in db
         console.warn("Theme contains custom commands:", data.slug);
       }
     } catch (_error) {
@@ -112,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     // Generate unique filename
     const filename = `${session.user.id}-${Date.now()}.webp`;
-    const { data: _data, error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from("stellar")
       .upload(filename, optimizedImage, {
         contentType: "image/webp",
@@ -141,14 +148,14 @@ export async function POST(request: NextRequest) {
     let themeId: string;
 
     if (existingTheme) {
-      // Update existing theme TODO: make a extra form for that, potentially later with diff
+      // Update existing theme
       const [updated] = await db
         .update(themes)
         .set({
           name: data.name,
           description: data.description,
           screenshotUrl: publicUrl,
-          colorSchemeId: data.colorSchemeId,
+          colorSchemeId: data.colorSchemeId || null,
           group: data.group,
           updatedAt: new Date(),
         })
@@ -166,7 +173,7 @@ export async function POST(request: NextRequest) {
           name: data.name,
           description: data.description,
           screenshotUrl: publicUrl,
-          colorSchemeId: data.colorSchemeId,
+          colorSchemeId: data.colorSchemeId || null,
           group: data.group,
         })
         .returning();
@@ -184,7 +191,8 @@ export async function POST(request: NextRequest) {
         version: normalizedVersion,
         configContent: data.config,
         versionNotes: data.versionNotes,
-        dependencies: data.dependencies,
+        dependencies: dependenciesArray,
+        minStarshipVersion: data.minStarshipVersion,
         installationNotes: data.installationNotes,
       })
       .returning();
@@ -210,12 +218,4 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
-}
-
-// Helper function to generate slug from name
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 }

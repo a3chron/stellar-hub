@@ -27,8 +27,8 @@ export default function ThemeCard({ theme }: ThemeCardProps) {
           src={theme.screenshotUrl}
           alt={theme.name}
           width={600}
-          height={120}
-          className="w-full h-32 object-cover"
+          height={144}
+          className="w-full h-36 object-cover"
         />
       </div>
       <div className="p-4 border-t border-t-ctp-crust flex justify-between items-start">

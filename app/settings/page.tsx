@@ -12,12 +12,17 @@ export default async function SettingsPage() {
     redirect("/api/auth/signin/github");
   }
 
-  // Fetch user with themes
+  // Fetch user with themes and versions
   const user = await db.query.user.findFirst({
     where: (users, { eq }) => eq(users.id, session.user.id),
     with: {
       themes: {
         orderBy: (themes, { desc }) => [desc(themes.updatedAt)],
+        with: {
+          versions: {
+            orderBy: (versions, { desc }) => [desc(versions.createdAt)],
+          },
+        },
       },
     },
   });
@@ -25,6 +30,11 @@ export default async function SettingsPage() {
   if (!user) {
     redirect("/api/auth/signin/github");
   }
+
+  // Fetch color schemes
+  const colorSchemes = await db.query.colorSchemes.findMany({
+    orderBy: (colorSchemes, { asc }) => [asc(colorSchemes.name)],
+  });
 
   return (
     <main className="min-h-screen bg-ctp-base">
@@ -37,7 +47,11 @@ export default async function SettingsPage() {
 
           <div className="space-y-12">
             <ProfileSettings user={user} />
-            <ThemeManagement themes={user.themes} />
+            <ThemeManagement
+              author={user.name}
+              themes={user.themes}
+              colorSchemes={colorSchemes}
+            />
           </div>
         </div>
       </div>

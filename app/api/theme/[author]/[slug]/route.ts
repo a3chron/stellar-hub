@@ -62,7 +62,6 @@ export async function GET(
         version: v.version,
         versionNotes: v.versionNotes,
         dependencies: v.dependencies,
-        installationNotes: v.installationNotes,
         createdAt: v.createdAt.toISOString(),
       })),
       createdAt: theme.createdAt.toISOString(),

@@ -58,13 +58,6 @@ export async function GET(
       return NextResponse.json({ error: "Version not found" }, { status: 404 });
     }
 
-    // Increment download count (fire and forget)
-    db.update(themes)
-      .set({ downloads: theme.downloads + 1 })
-      .where(eq(themes.id, theme.id))
-      .execute()
-      .catch((err) => console.error("Failed to increment downloads:", err));
-
     // Return TOML content
     return new NextResponse(version.configContent, {
       headers: {

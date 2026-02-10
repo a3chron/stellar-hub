@@ -33,9 +33,12 @@ nix shell nixpkgs#biome --command biome check --write .
 
 ## TODOs
 
+Very big todo: clean up API
+
 - Search functionality
 - Color scheme filtering
-- Theme groups display
-- Edit theme (for owners)
-- Delete theme (for owners)
 - Github workflow upload new theme version
+
+<br />
+<p align="center"><a href="https://github.com/a3chron/stellar-hub/blob/main/LICENSE"><img alt="GitHub License" src="https://img.shields.io/github/license/a3chron/stellar-hub?style=for-the-badge&labelColor=363a4f&color=b7bdf8">
+</a></p>

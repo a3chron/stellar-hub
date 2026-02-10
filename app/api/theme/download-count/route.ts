@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
 
-//TODO: some kind of rate limits
+//TODO: add some kind of rate limits
 
 export async function POST(req: Request) {
   try {
@@ -21,7 +21,6 @@ export async function POST(req: Request) {
       .update(themes)
       .set({
         downloads: sql`${themes.downloads} + 1`,
-        updatedAt: new Date(),
       })
       .where(and(eq(themes.authorId, author), eq(themes.slug, slug)))
       .returning({ id: themes.id });

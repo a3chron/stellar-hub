@@ -1,0 +1,1 @@
+ALTER TABLE "theme_versions" DROP COLUMN "installation_notes";

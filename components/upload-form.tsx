@@ -26,6 +26,9 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
 
     const formData = new FormData(e.currentTarget);
 
+    // Auto-set version to 1.0 for new themes
+    formData.set("version", "1.0");
+
     const response = await fetch("/api/upload", {
       method: "POST",
       body: formData,
@@ -56,20 +59,18 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
         />
       </div>
 
-      {/* Slug (auto-generated but editable) */}
+      {/* Slug (auto-generated, read-only) */}
       <div>
         <Input
           type="text"
           name="slug"
           value={generateSlug(themeName)}
           readOnly
-          label="Slug (read only)"
+          label="Slug (auto-generated)"
           className="focus:ring-0!"
-          placeholder="my-awesome-theme"
         />
         <p className="text-xs text-ctp-subtext0 mt-1">
-          Used in URLs. Only lowercase letters, numbers, and hyphens.
-          Auto-generated from name.
+          Used in URLs. Auto-generated from theme name.
         </p>
       </div>
 
@@ -105,10 +106,6 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
             ))}
           </select>
         </label>
-        <p className="text-xs text-ctp-subtext0 mt-1">
-          Select if your theme is based on a popular color scheme (Catppuccin,
-          Gruvbox, etc.)
-        </p>
       </div>
 
       {/* Group */}
@@ -117,11 +114,11 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
           type="text"
           name="group"
           label="Group (optional)"
-          placeholder="e.g., 'variants' or 'seasons'"
+          placeholder="e.g., 'seasons'"
         />
         <p className="text-xs text-ctp-subtext0 mt-1">
           Group related themes together (e.g., different color variants of the
-          same theme)
+          same theme, like catppuccin flavors / accents)
         </p>
       </div>
 
@@ -136,9 +133,6 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
           pattern="^\d+\.\d+\.\d+$"
           placeholder="1.24.0"
         />
-        <p className="text-xs text-ctp-subtext0 mt-1">
-          Minimum Starship version required for this theme
-        </p>
       </div>
 
       {/* Screenshot */}
@@ -168,7 +162,7 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
             name="config"
             rows={12}
             required
-            className="p-3 rounded-lg text-sm font-mono bg-ctp-mantle border-2 border-ctp-crust text-ctp-text placeholder:text-ctp-subtext0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base"
+            className="p-3 rounded-lg text-xs font-mono bg-ctp-mantle border-2 border-ctp-crust text-ctp-text placeholder:text-ctp-subtext0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base"
             placeholder={`[character]
 success_symbol = '[➜](bold green)'
 error_symbol = '[✗](bold red)'
@@ -188,7 +182,7 @@ truncation_length = 3
       <div>
         <label className="flex flex-col">
           <span className="mb-1.5 text-sm text-ctp-text">
-            Dependencies (optional)
+            Prerequesites (optional)
           </span>
           <textarea
             name="dependencies"
@@ -199,63 +193,17 @@ JetBrainsMono Nerd Font`}
           />
         </label>
         <p className="text-xs text-ctp-subtext0 mt-1">
-          One dependency per line (usually Nerd Fonts)
+          One per line (usually Nerd Fonts)
         </p>
-      </div>
-
-      {/* Installation Notes */}
-      <div>
-        <label className="flex flex-col">
-          <span className="mb-1.5 text-sm text-ctp-text">
-            Installation Notes (optional)
-          </span>
-          <textarea
-            name="installationNotes"
-            rows={3}
-            className="p-2 rounded-lg text-sm bg-ctp-mantle border-2 border-ctp-crust text-ctp-text placeholder:text-ctp-subtext0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base"
-            placeholder="Any special installation instructions..."
-          />
-        </label>
-      </div>
-
-      {/* Version */}
-      <div>
-        <Input
-          type="text"
-          name="version"
-          label="Version"
-          required
-          defaultValue="1.0"
-          pattern="^v?\d+\.\d+$"
-          placeholder="1.0 or v1.0"
-        />
-        <p className="text-xs text-ctp-subtext0 mt-1">
-          Format: 1.0 or v1.0 (major.minor)
-        </p>
-      </div>
-
-      {/* Version Notes */}
-      <div>
-        <label className="flex flex-col">
-          <span className="mb-1.5 text-sm text-ctp-text">
-            Version Notes (optional)
-          </span>
-          <textarea
-            name="versionNotes"
-            rows={2}
-            className="p-2 rounded-lg text-sm bg-ctp-mantle border-2 border-ctp-crust text-ctp-text placeholder:text-ctp-subtext0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base"
-            placeholder="What's new in this version..."
-          />
-        </label>
       </div>
 
       {/* Submit Button */}
       <button
         type="submit"
         disabled={loading}
-        className="w-full bg-ctp-text hover:bg-ctp-subtext1 border-2 border-ctp-subtext0 text-ctp-base py-3 rounded-lg font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-ctp-text hover:bg-ctp-subtext1 border-2 border-ctp-subtext0 text-ctp-base py-3 rounded-lg font-semibold transition disabled:opacity-50"
       >
-        {loading ? "Uploading..." : "Publish Theme"}
+        {loading ? "Publishing..." : "Publish Theme"}
       </button>
     </form>
   );

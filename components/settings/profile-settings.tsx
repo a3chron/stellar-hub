@@ -78,7 +78,7 @@ export default function ProfileSettings({ user }: { user: UserType }) {
               )}
             </div>
 
-            <label className="cursor-pointer px-4 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded border border-ctp-surface1 transition flex items-center gap-2">
+            <label className="cursor-pointer px-4 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 border-ctp-surface1 transition flex items-center gap-2">
               <Upload className="w-4 h-4" />
               Upload Image
               <input
@@ -156,7 +156,7 @@ export default function ProfileSettings({ user }: { user: UserType }) {
           <button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded border border-ctp-surface1 transition disabled:opacity-50"
+            className="px-6 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 border-ctp-surface1 transition disabled:opacity-50"
           >
             {loading ? "Saving..." : "Save Changes"}
           </button>

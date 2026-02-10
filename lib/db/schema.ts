@@ -119,7 +119,6 @@ export const themeVersions = pgTable(
     minStarshipVersion: text("min_starship_version")
       .notNull()
       .default("1.24.0"),
-    installationNotes: text("installation_notes"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({

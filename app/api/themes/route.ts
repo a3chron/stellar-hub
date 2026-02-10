@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
       pagination: {
         limit,
         offset,
-        total: results.length, // In production, you'd want a separate count query
+        total: results.length,
       },
     });
   } catch (error) {

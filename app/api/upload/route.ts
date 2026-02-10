@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
@@ -22,7 +21,6 @@ const uploadSchema = z.object({
   colorSchemeId: z.string().uuid().optional().or(z.literal("")),
   group: z.string().optional(),
   dependencies: z.string().optional(), // Will be split into array
-  installationNotes: z.string().max(1000).optional(),
   versionNotes: z.string().max(500).optional(),
 });
 
@@ -75,11 +73,25 @@ export async function POST(request: NextRequest) {
       colorSchemeId: formData.get("colorSchemeId") || undefined,
       group: formData.get("group") || undefined,
       dependencies: formData.get("dependencies") || undefined,
-      installationNotes: formData.get("installationNotes") || undefined,
       versionNotes: formData.get("versionNotes") || undefined,
     };
 
     const data = uploadSchema.parse(rawData);
+
+    const existingTheme = await db.query.themes.findFirst({
+      where: (themes, { and, eq }) =>
+        and(eq(themes.authorId, session.user.id), eq(themes.slug, data.slug)),
+    });
+
+    if (existingTheme) {
+      return NextResponse.json(
+        {
+          error:
+            "This theme already exists. Update your themes in the settings",
+        },
+        { status: 400 },
+      );
+    }
 
     // Parse dependencies (one per line)
     const dependenciesArray = data.dependencies
@@ -139,47 +151,19 @@ export async function POST(request: NextRequest) {
       data: { publicUrl },
     } = supabaseAdmin.storage.from("stellar").getPublicUrl(filename);
 
-    // 6. Check if theme already exists
-    const existingTheme = await db.query.themes.findFirst({
-      where: (themes, { and, eq }) =>
-        and(eq(themes.authorId, session.user.id), eq(themes.slug, data.slug)),
-    });
-
-    let themeId: string;
-
-    if (existingTheme) {
-      // Update existing theme
-      const [updated] = await db
-        .update(themes)
-        .set({
-          name: data.name,
-          description: data.description,
-          screenshotUrl: publicUrl,
-          colorSchemeId: data.colorSchemeId || null,
-          group: data.group,
-          updatedAt: new Date(),
-        })
-        .where(eq(themes.id, existingTheme.id))
-        .returning();
-
-      themeId = updated.id;
-    } else {
-      // Create new theme
-      const [newTheme] = await db
-        .insert(themes)
-        .values({
-          authorId: session.user.id,
-          slug: data.slug,
-          name: data.name,
-          description: data.description,
-          screenshotUrl: publicUrl,
-          colorSchemeId: data.colorSchemeId || null,
-          group: data.group,
-        })
-        .returning();
-
-      themeId = newTheme.id;
-    }
+    // Create new theme
+    const [newTheme] = await db
+      .insert(themes)
+      .values({
+        authorId: session.user.id,
+        slug: data.slug,
+        name: data.name,
+        description: data.description,
+        screenshotUrl: publicUrl,
+        colorSchemeId: data.colorSchemeId || null,
+        group: data.group,
+      })
+      .returning();
 
     // 7. Create version
     const normalizedVersion = data.version.replace(/^v/, "");
@@ -187,13 +171,12 @@ export async function POST(request: NextRequest) {
     const [version] = await db
       .insert(themeVersions)
       .values({
-        themeId,
+        themeId: newTheme.id,
         version: normalizedVersion,
         configContent: data.config,
         versionNotes: data.versionNotes,
         dependencies: dependenciesArray,
         minStarshipVersion: data.minStarshipVersion,
-        installationNotes: data.installationNotes,
       })
       .returning();
 

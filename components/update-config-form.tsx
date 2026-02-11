@@ -11,7 +11,8 @@ interface LatestVersion {
 }
 
 interface UpdateConfigFormProps {
-  themeId: string;
+  author: string;
+  themeSlug: string;
   themeName: string;
   latestVersion: LatestVersion;
   onCancel: () => void;
@@ -31,7 +32,8 @@ function calculateNextVersion(
 }
 
 export default function UpdateConfigForm({
-  themeId,
+  author,
+  themeSlug,
   themeName,
   latestVersion,
   onCancel,
@@ -49,7 +51,7 @@ export default function UpdateConfigForm({
     const formData = new FormData(e.currentTarget);
     formData.set("version", nextVersion);
 
-    const response = await fetch(`/api/themes/${themeId}/config`, {
+    const response = await fetch(`/api/${author}/${themeSlug}/${nextVersion}`, {
       method: "POST",
       body: formData,
     });

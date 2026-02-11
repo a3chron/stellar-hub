@@ -37,6 +37,7 @@ export default async function HomePage() {
         <div className="relative z-10">
           <Image
             src={"/demo.gif"}
+            unoptimized
             width={600}
             height={400}
             alt="Demo Gif"

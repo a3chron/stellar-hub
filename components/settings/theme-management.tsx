@@ -48,7 +48,10 @@ export default function ThemeManagement({
       return;
     }
 
-    const response = await fetch(`/api/settings/themes/${themeId}`, {
+    const themeToDelete = themes.find((t) => t.id === themeId);
+    if (!themeToDelete) return;
+
+    const response = await fetch(`/api/${author}/${themeToDelete.slug}`, {
       method: "DELETE",
     });
 
@@ -210,6 +213,7 @@ export default function ThemeManagement({
       {/* Edit Metadata Modal */}
       {editingTheme && (
         <EditMetadataForm
+          author={author}
           theme={editingTheme}
           colorSchemes={colorSchemes}
           onCancel={() => setEditingMetadata(null)}
@@ -219,7 +223,8 @@ export default function ThemeManagement({
       {/* Update Config Modal */}
       {updatingTheme?.versions[0] && (
         <UpdateConfigForm
-          themeId={updatingTheme.id}
+          author={author}
+          themeSlug={updatingTheme.slug}
           themeName={updatingTheme.name}
           latestVersion={updatingTheme.versions[0]}
           onCancel={() => setUpdatingConfig(null)}

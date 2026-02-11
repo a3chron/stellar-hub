@@ -16,12 +16,14 @@ interface Theme {
 }
 
 interface EditMetadataFormProps {
+  author: string;
   theme: Theme;
   colorSchemes: Array<{ id: string; name: string }>;
   onCancel: () => void;
 }
 
 export default function EditMetadataForm({
+  author,
   theme,
   colorSchemes,
   onCancel,
@@ -47,7 +49,7 @@ export default function EditMetadataForm({
 
     const formData = new FormData(e.currentTarget);
 
-    const response = await fetch(`/api/themes/${theme.id}/metadata`, {
+    const response = await fetch(`/api/${author}/${theme.slug}`, {
       method: "PATCH",
       body: formData,
     });
@@ -144,12 +146,12 @@ export default function EditMetadataForm({
               <p className="text-xs text-ctp-subtext0 mb-2">
                 Current screenshot:
               </p>
-              <div className="relative w-full h-48 rounded overflow-hidden bg-ctp-surface0">
+              <div className="relative w-full h-48 rounded-lg overflow-hidden bg-ctp-surface0 border-2 border-ctp-surface0">
                 <Image
                   src={previewImage || theme.screenshotUrl}
                   alt={theme.name}
                   fill
-                  className="object-cover"
+                  className="object-cover object-top-left"
                 />
               </div>
             </div>

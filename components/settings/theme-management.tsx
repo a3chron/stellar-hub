@@ -42,16 +42,13 @@ export default function ThemeManagement({
   const [updatingConfig, setUpdatingConfig] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const handleDelete = async (themeId: string) => {
-    if (deleteConfirm !== themeId) {
-      setDeleteConfirm(themeId);
+  const handleDelete = async (slug: string) => {
+    if (deleteConfirm !== slug) {
+      setDeleteConfirm(slug);
       return;
     }
 
-    const themeToDelete = themes.find((t) => t.id === themeId);
-    if (!themeToDelete) return;
-
-    const response = await fetch(`/api/${author}/${themeToDelete.slug}`, {
+    const response = await fetch(`/api/${author}/${slug}`, {
       method: "DELETE",
     });
 
@@ -82,8 +79,8 @@ export default function ThemeManagement({
     );
   }
 
-  const editingTheme = themes.find((t) => t.id === editingMetadata);
-  const updatingTheme = themes.find((t) => t.id === updatingConfig);
+  const editingTheme = themes.find((t) => t.slug === editingMetadata);
+  const updatingTheme = themes.find((t) => t.slug === updatingConfig);
 
   return (
     <>
@@ -135,7 +132,7 @@ export default function ThemeManagement({
                       {/* Actions */}
                       <div className="flex items-center gap-2 shrink-0">
                         <button
-                          onClick={() => setEditingMetadata(theme.id)}
+                          onClick={() => setEditingMetadata(theme.slug)}
                           type="button"
                           className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer"
                           title="Edit metadata"
@@ -143,7 +140,7 @@ export default function ThemeManagement({
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => setUpdatingConfig(theme.id)}
+                          onClick={() => setUpdatingConfig(theme.slug)}
                           type="button"
                           className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer"
                           title="Update config"
@@ -151,27 +148,27 @@ export default function ThemeManagement({
                           <Upload className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDelete(theme.id)}
+                          onClick={() => handleDelete(theme.slug)}
                           type={deleteConfirm ? "submit" : "button"}
                           className={`p-2 transition cursor-pointer ${
-                            deleteConfirm === theme.id
+                            deleteConfirm === theme.slug
                               ? "text-ctp-crust bg-ctp-red rounded-l pr-2.5"
                               : "text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded"
                           }`}
                           title={
-                            deleteConfirm === theme.id
+                            deleteConfirm === theme.slug
                               ? "Click again to confirm"
                               : "Delete theme"
                           }
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
-                        {deleteConfirm === theme.id && (
+                        {deleteConfirm === theme.slug && (
                           <button
                             onClick={() => setDeleteConfirm(null)}
                             type="button"
                             className="p-2 pl-2.5 -ml-2 bg-ctp-surface0 rounded-r text-ctp-text cursor-pointer"
-                            title="Update config"
+                            title="Cancel deletion"
                           >
                             <XIcon className="w-4 h-4" />
                           </button>
@@ -194,7 +191,7 @@ export default function ThemeManagement({
                     </div>
 
                     {/* Delete confirmation */}
-                    {deleteConfirm === theme.id && (
+                    {deleteConfirm === theme.slug && (
                       <div className="mt-3 p-3 bg-ctp-surface0 border border-ctp-red/20 rounded">
                         <p className="text-sm text-ctp-red">
                           Are you sure? Click delete again to confirm. This

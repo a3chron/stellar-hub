@@ -45,14 +45,19 @@ async function findThemeByAuthorAndSlug(authorName: string, themeSlug: string) {
 /**
  * GET /api/[author]/[slug]/[version]
  * Download the TOML config for a specific version (or "latest")
+ * Use ?preview=true to get JSON response for UI display
  */
-export async function GET(_request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const {
       author: authorName,
       slug: themeSlug,
       version: versionIn,
     } = await params;
+
+    // Check if preview mode (for UI to display config)
+    const { searchParams } = new URL(request.url);
+    const preview = searchParams.get("preview") === "true";
 
     const result = await findThemeByAuthorAndSlug(authorName, themeSlug);
     if ("error" in result) {
@@ -86,6 +91,23 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Version not found" }, { status: 404 });
     }
 
+    // Preview mode returns JSON with config content and metadata
+    if (preview) {
+      // Check for custom commands to warn in UI
+      const hasCustomCommands = version.configContent.includes("[custom.");
+
+      return NextResponse.json({
+        version: version.version,
+        configContent: version.configContent,
+        hasCustomCommands,
+        versionNotes: version.versionNotes,
+        dependencies: version.dependencies,
+        minStarshipVersion: version.minStarshipVersion,
+        createdAt: version.createdAt.toISOString(),
+      });
+    }
+
+    // Default: download as file
     return new NextResponse(version.configContent, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",

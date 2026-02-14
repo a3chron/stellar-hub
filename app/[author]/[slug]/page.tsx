@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ViewConfigButton } from "@/components/config-preview-modal";
 import Markdown from "@/components/markdown";
 import ThemeCard from "@/components/theme-card";
 import { db } from "@/lib/db";
@@ -122,7 +123,15 @@ export default async function ThemePage({ params }: PageProps) {
               className="border-l-4 border-ctp-subtext0 pl-4 mb-4 w-96"
             >
               <div className="flex justify-between gap-4">
-                <h3 className="font-semibold">{version.version}</h3>
+                <div className="flex gap-3 items-center">
+                  <h3 className="font-semibold">{version.version}</h3>
+                  <ViewConfigButton
+                    author={author.name}
+                    slug={themeSlug}
+                    version={version.version}
+                    customCommand={version.configContent.includes("custom.")}
+                  />
+                </div>
                 {version.minStarshipVersion && (
                   <span>
                     starship {">="} {version.minStarshipVersion}

@@ -2,10 +2,23 @@ import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { user as userTable } from "@/lib/db/schema";
+import {
+  extractValidFilename,
+  isValidAvatarFilename,
+} from "@/lib/file-validation";
 import { supabaseAdmin } from "@/lib/supabase";
+
+// Schema for validating social links
+const socialLinksSchema = z
+  .object({
+    github: z.string().url().optional().or(z.literal("")),
+    website: z.string().url().optional().or(z.literal("")),
+  })
+  .strict();
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,8 +36,25 @@ export async function POST(request: NextRequest) {
     const socialLinksJson = formData.get("socialLinks") as string;
     const avatarFile = formData.get("avatar") as File | null;
 
-    // Parse social links
-    const socialLinks = socialLinksJson ? JSON.parse(socialLinksJson) : {};
+    // Parse and validate social links
+    let socialLinks: { github?: string; website?: string } = {};
+    if (socialLinksJson) {
+      try {
+        const parsed = JSON.parse(socialLinksJson);
+        socialLinks = socialLinksSchema.parse(parsed);
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: "Invalid social links format", details: error.errors },
+            { status: 400 },
+          );
+        }
+        return NextResponse.json(
+          { error: "Invalid JSON in social links" },
+          { status: 400 },
+        );
+      }
+    }
 
     let avatarUrl = session.user.image;
 
@@ -80,11 +110,19 @@ export async function POST(request: NextRequest) {
       // Delete old avatar if it's not from GitHub
       if (session.user.image && !session.user.image.includes("github")) {
         try {
-          const oldFilename = session.user.image.split("/").pop();
+          const oldFilename = extractValidFilename(
+            session.user.image,
+            isValidAvatarFilename,
+          );
+          // Additional check: filename should start with user's ID
           if (oldFilename?.startsWith(session.user.id)) {
             await supabaseAdmin.storage
               .from("screenshots")
               .remove([`avatars/${oldFilename}`]);
+          } else if (oldFilename) {
+            console.warn(
+              "Avatar filename doesn't belong to user, skipping deletion",
+            );
           }
         } catch (error) {
           console.error("Failed to delete old avatar:", error);

@@ -5,6 +5,11 @@ import sharp from "sharp";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
+import {
+  extractValidFilename,
+  isValidScreenshotFilename,
+} from "@/lib/file-validation";
+import { downloadRateLimiter, getClientIP } from "@/lib/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase";
 
 type RouteParams = { params: Promise<{ author: string; slug: string }> };
@@ -122,9 +127,17 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     // Delete screenshot from Supabase Storage
     if (theme.screenshotUrl) {
       try {
-        const filename = theme.screenshotUrl.split("/").pop();
+        const filename = extractValidFilename(
+          theme.screenshotUrl,
+          isValidScreenshotFilename,
+        );
         if (filename) {
           await supabaseAdmin.storage.from("stellar").remove([filename]);
+        } else {
+          console.warn(
+            "Skipping deletion of invalid screenshot filename:",
+            theme.screenshotUrl,
+          );
         }
       } catch (error) {
         console.error("Failed to delete screenshot:", error);
@@ -220,9 +233,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
       // Delete old screenshot
       try {
-        const oldFilename = theme.screenshotUrl.split("/").pop();
+        const oldFilename = extractValidFilename(
+          theme.screenshotUrl,
+          isValidScreenshotFilename,
+        );
         if (oldFilename) {
           await supabaseAdmin.storage.from("stellar").remove([oldFilename]);
+        } else {
+          console.warn(
+            "Skipping deletion of invalid old screenshot filename:",
+            theme.screenshotUrl,
+          );
         }
       } catch (error) {
         console.error("Failed to delete old screenshot:", error);
@@ -275,11 +296,29 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 /**
  * POST /api/[author]/[slug]
- * Increment download count for a theme TODO: add rate limiting
+ * Increment download count for a theme
+ * Rate limited: 1 increment per IP per theme per 30 minutes
  */
-export async function POST(_request: NextRequest, { params }: RouteParams) {
+export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { author: authorName, slug: themeSlug } = await params;
+
+    // Per-theme rate limit check
+    const clientIP = getClientIP(request);
+    const rateLimitKey = `${clientIP}:${authorName}/${themeSlug}`;
+    const rateLimit = downloadRateLimiter.check(rateLimitKey);
+
+    if (rateLimit.limited) {
+      return NextResponse.json(
+        { error: "Too many requests. Please try again later." },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": String(rateLimit.retryAfter),
+          },
+        },
+      );
+    }
 
     const author = await db.query.user.findFirst({
       where: (user, { eq }) => eq(user.name, authorName),

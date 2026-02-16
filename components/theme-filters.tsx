@@ -34,7 +34,7 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
       {/* Sort Options */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
           onClick={() => handleSortChange("downloads")}

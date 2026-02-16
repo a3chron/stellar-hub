@@ -76,7 +76,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           <p className="text-xl text-ctp-subtext0">
             Beautiful Starship themes, one command away
           </p>
-          <div className="flex flex-wrap mt-8 gap-6">
+          <div className="flex flex-wrap mt-8 gap-10 md:gap-6">
             <InstallIntruction />
             <Link
               href={"/upload"}

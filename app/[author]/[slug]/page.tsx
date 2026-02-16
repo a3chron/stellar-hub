@@ -120,7 +120,7 @@ export default async function ThemePage({ params }: PageProps) {
           {theme.versions.map((version) => (
             <div
               key={version.id}
-              className="border-l-4 border-ctp-subtext0 pl-4 mb-4 w-96"
+              className="border-l-4 border-ctp-subtext0 bg-ctp-crust rounded-r-xl px-4 py-2 mb-4 w-full max-w-lg"
             >
               <div className="flex justify-between gap-4">
                 <div className="flex gap-3 items-center">

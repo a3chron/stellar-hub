@@ -10,7 +10,7 @@ export default async function UploadPage() {
   });
 
   if (!session) {
-    redirect("/api/auth/signin");
+    redirect("/login?callbackUrl=/upload");
   }
 
   // Fetch color schemes for the select dropdown

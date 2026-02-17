@@ -9,7 +9,7 @@ export default async function SettingsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session) {
-    redirect("/api/auth/signin/github");
+    redirect("/login?callbackUrl=/settings");
   }
 
   // Fetch user with themes and versions
@@ -28,7 +28,7 @@ export default async function SettingsPage() {
   });
 
   if (!user) {
-    redirect("/api/auth/signin/github");
+    redirect("/login?callbackUrl=/settings");
   }
 
   // Fetch color schemes

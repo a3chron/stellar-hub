@@ -1,4 +1,5 @@
 import { and, eq } from "drizzle-orm";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -14,6 +15,46 @@ interface PageProps {
     author: string;
     slug: string;
   }>;
+}
+
+export async function generateMetadata({
+  params,
+}: PageProps): Promise<Metadata> {
+  const { author: authorName, slug: themeSlug } = await params;
+
+  const author = await db.query.user.findFirst({
+    where: (user, { eq }) => eq(user.name, authorName),
+  });
+
+  if (!author) {
+    return {
+      title: "Theme Not Found - Stellar",
+    };
+  }
+
+  const theme = await db.query.themes.findFirst({
+    where: and(eq(themes.authorId, author.id), eq(themes.slug, themeSlug)),
+  });
+
+  if (!theme) {
+    return {
+      title: "Theme Not Found - Stellar",
+    };
+  }
+
+  const description =
+    theme.description || `${theme.name} - A Starship theme by ${author.name}`;
+
+  return {
+    title: `${theme.name} by ${author.name} - Stellar`,
+    description,
+    openGraph: {
+      title: `${theme.name} - Stellar`,
+      description,
+      images: [theme.screenshotUrl],
+      type: "website",
+    },
+  };
 }
 
 export default async function ThemePage({ params }: PageProps) {

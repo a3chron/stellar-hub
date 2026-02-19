@@ -1,4 +1,5 @@
 import { and, desc, eq, gt, type SQL, sql } from "drizzle-orm";
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import InstallIntruction from "@/components/install-intruction";
@@ -7,6 +8,18 @@ import ThemeCard from "@/components/theme-card";
 import ThemeFilters from "@/components/theme-filters";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
+
+export const metadata: Metadata = {
+  title: "Stellar - Beautiful Starship Themes",
+  description:
+    "Discover and install beautiful Starship shell prompt themes with a single command. Browse community-created themes and customize your terminal.",
+  openGraph: {
+    title: "Stellar - Beautiful Starship Themes",
+    description:
+      "Discover and install beautiful Starship shell prompt themes with a single command.",
+    type: "website",
+  },
+};
 
 interface HomePageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

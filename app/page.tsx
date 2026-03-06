@@ -1,4 +1,4 @@
-import { and, desc, eq, gt, type SQL, sql } from "drizzle-orm";
+import { and, desc, eq, type SQL, sql } from "drizzle-orm";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -49,11 +49,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   if (sort === "latest") {
     orderBy = [desc(themes.createdAt)];
   } else if (sort === "trending") {
-    // Trending: themes created in last month, sorted by downloads
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-    whereConditions.push(gt(themes.createdAt, oneMonthAgo));
-    orderBy = [desc(themes.downloads), desc(themes.createdAt)];
+    // Time-decay score: downloads / (age_in_hours + 2)^1.5
+    orderBy = [
+      desc(
+        sql`${themes.downloads} / POWER(EXTRACT(EPOCH FROM (NOW() - ${themes.createdAt})) / 3600 + 2, 1.5)`,
+      ),
+      desc(themes.createdAt),
+    ];
   } else {
     // Default: most downloads
     orderBy = [desc(themes.downloads)];

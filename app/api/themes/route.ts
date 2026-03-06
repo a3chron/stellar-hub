@@ -34,8 +34,14 @@ export async function GET(request: NextRequest) {
     let orderBy: SQL[];
     switch (sort) {
       case "trending":
-        // Trending = most downloads in last 7 days (simplified: just by total downloads)
-        orderBy = [desc(themes.downloads), desc(themes.createdAt)];
+        // Time-decay score: downloads / (age_in_hours + 2)^1.5
+        // Newer themes with downloads rank higher; no time window cutoff
+        orderBy = [
+          desc(
+            sql`${themes.downloads} / POWER(EXTRACT(EPOCH FROM (NOW() - ${themes.createdAt})) / 3600 + 2, 1.5)`,
+          ),
+          desc(themes.createdAt),
+        ];
         break;
       case "recent":
         orderBy = [desc(themes.createdAt)];

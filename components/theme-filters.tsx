@@ -1,8 +1,6 @@
 "use client";
 
-import { InfoIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Tooltip from "./tooltip";
 
 interface ThemeFiltersProps {
   colorSchemes: Array<{ id: string; name: string }>;
@@ -67,9 +65,6 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
           }`}
         >
           Trending
-          <Tooltip content="Themes with most downloads, created in the last 30d">
-            <InfoIcon size={16} />
-          </Tooltip>
         </button>
       </div>
 

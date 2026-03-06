@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 /**
  * Simple in-memory per-theme rate limiter
  *
@@ -95,21 +97,20 @@ export const downloadRateLimiter = new RateLimiter({
 });
 
 /**
- * Get client IP from request headers
- * Vercel sets x-forwarded-for, fallback to x-real-ip
+ * Get client IP from request headers and return a SHA-256 hash of it.
+ * Vercel sets x-forwarded-for, fallback to x-real-ip.
+ * The raw IP is never stored — only its hash is used as a rate-limit key.
  */
 export function getClientIP(request: Request): string {
+  let ip: string;
+
   const forwardedFor = request.headers.get("x-forwarded-for");
   if (forwardedFor) {
     // x-forwarded-for can contain multiple IPs, get the first one
-    return forwardedFor.split(",")[0].trim();
+    ip = forwardedFor.split(",")[0].trim();
+  } else {
+    ip = request.headers.get("x-real-ip") ?? "unknown";
   }
 
-  const realIP = request.headers.get("x-real-ip");
-  if (realIP) {
-    return realIP;
-  }
-
-  // Fallback (shouldn't happen in production)
-  return "unknown";
+  return createHash("sha256").update(ip).digest("hex");
 }

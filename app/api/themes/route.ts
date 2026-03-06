@@ -33,9 +33,13 @@ export async function GET(request: NextRequest) {
     }
 
     if (colorMode === "dark") {
-      conditions.push(or(eq(themes.colorMode, "dark"), eq(themes.colorMode, "both"))!);
+      conditions.push(
+        or(eq(themes.colorMode, "dark"), eq(themes.colorMode, "both"))!,
+      );
     } else if (colorMode === "light") {
-      conditions.push(or(eq(themes.colorMode, "light"), eq(themes.colorMode, "both"))!);
+      conditions.push(
+        or(eq(themes.colorMode, "light"), eq(themes.colorMode, "both"))!,
+      );
     } else if (colorMode === "both") {
       conditions.push(eq(themes.colorMode, "both"));
     }

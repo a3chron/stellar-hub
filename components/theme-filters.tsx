@@ -14,7 +14,9 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
 
   const currentSort = searchParams.get("sort") || "downloads";
   const currentColorScheme = searchParams.get("colorScheme") || "";
-  const currentColorMode = (searchParams.get("colorMode") || "") as ColorMode | "";
+  const currentColorMode = (searchParams.get("colorMode") || "") as
+    | ColorMode
+    | "";
 
   const handleSortChange = (sort: string) => {
     const params = new URLSearchParams(searchParams.toString());

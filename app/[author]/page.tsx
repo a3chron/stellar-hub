@@ -136,6 +136,7 @@ export default async function AuthorPage({ params }: PageProps) {
                     name: theme.name,
                     screenshotUrl: theme.screenshotUrl,
                     downloads: theme.downloads,
+                    colorMode: theme.colorMode,
                     author: {
                       name: author.name,
                     },

@@ -1,5 +1,4 @@
 import { and, desc, eq, or, type SQL, sql } from "drizzle-orm";
-import type { colorModeEnum } from "@/lib/db/schema";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -8,6 +7,7 @@ import Pagination from "@/components/pagination";
 import ThemeCard from "@/components/theme-card";
 import ThemeFilters from "@/components/theme-filters";
 import { db } from "@/lib/db";
+import type { colorModeEnum } from "@/lib/db/schema";
 import { themes } from "@/lib/db/schema";
 
 export const metadata: Metadata = {
@@ -30,7 +30,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
   const sort = (params.sort as string) || "downloads";
   const colorSchemeId = params.colorScheme as string;
-  const colorMode = params.colorMode as (typeof colorModeEnum.enumValues)[number] | undefined;
+  const colorMode = params.colorMode as
+    | (typeof colorModeEnum.enumValues)[number]
+    | undefined;
   const page = Math.max(1, parseInt((params.page as string) || "1"));
   const limit = 12;
   const offset = (page - 1) * limit;
@@ -46,9 +48,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     whereConditions.push(eq(themes.colorSchemeId, colorSchemeId));
   }
   if (colorMode === "dark") {
-    whereConditions.push(or(eq(themes.colorMode, "dark"), eq(themes.colorMode, "both"))!);
+    whereConditions.push(
+      or(eq(themes.colorMode, "dark"), eq(themes.colorMode, "both"))!,
+    );
   } else if (colorMode === "light") {
-    whereConditions.push(or(eq(themes.colorMode, "light"), eq(themes.colorMode, "both"))!);
+    whereConditions.push(
+      or(eq(themes.colorMode, "light"), eq(themes.colorMode, "both"))!,
+    );
   } else if (colorMode === "both") {
     whereConditions.push(eq(themes.colorMode, "both"));
   }

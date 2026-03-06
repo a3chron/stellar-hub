@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Input from "./input";
 
+type ColorMode = "dark" | "light" | "both";
+
 interface Theme {
   id: string;
   name: string;
@@ -12,6 +14,7 @@ interface Theme {
   description: string | null;
   screenshotUrl: string;
   colorSchemeId: string | null;
+  colorMode: ColorMode;
   group: string | null;
 }
 
@@ -95,6 +98,22 @@ export default function EditMetadataForm({
                 className="p-2 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text placeholder:text-ctp-subtext0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
                 placeholder="A brief description..."
               />
+            </label>
+          </div>
+
+          {/* Color Mode */}
+          <div>
+            <label className="flex flex-col">
+              <span className="mb-1.5 text-sm text-ctp-text">Theme Mode</span>
+              <select
+                name="colorMode"
+                defaultValue={theme.colorMode}
+                className="p-2 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
+              >
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+                <option value="both">Dark &amp; Light</option>
+              </select>
             </label>
           </div>
 

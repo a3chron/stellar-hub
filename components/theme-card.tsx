@@ -7,6 +7,7 @@ interface ThemeCardProps {
     name: string;
     screenshotUrl: string;
     downloads: number;
+    colorMode: "dark" | "light" | "both";
     author: {
       name: string;
     };
@@ -36,9 +37,17 @@ export default function ThemeCard({ theme }: ThemeCardProps) {
           <h3 className="font-semibold text-lg">{theme.name}</h3>
           <p className="text-sm text-ctp-subtext0">by {theme.author.name}</p>
         </div>
-        <div className="flex items-center gap-2 mt-2 text-sm text-ctp-subtext0">
-          <span>{theme.downloads} downloads</span>
-          {theme.colorScheme && <span>• {theme.colorScheme.name}</span>}
+        <div className="flex flex-col items-end gap-1 mt-1">
+          <span className="text-sm text-ctp-subtext0">{theme.downloads} downloads</span>
+          <div className="flex items-center gap-1.5 text-xs text-ctp-overlay0">
+            {theme.colorScheme && <span>{theme.colorScheme.name}</span>}
+            {theme.colorScheme && <span>·</span>}
+            <span>
+              {theme.colorMode === "dark" && "Dark"}
+              {theme.colorMode === "light" && "Light"}
+              {theme.colorMode === "both" && "Light/Dark"}
+            </span>
+          </div>
         </div>
       </div>
     </Link>

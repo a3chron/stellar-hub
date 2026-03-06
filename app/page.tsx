@@ -1,4 +1,5 @@
-import { and, desc, eq, type SQL, sql } from "drizzle-orm";
+import { and, desc, eq, or, type SQL, sql } from "drizzle-orm";
+import type { colorModeEnum } from "@/lib/db/schema";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -29,6 +30,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
   const sort = (params.sort as string) || "downloads";
   const colorSchemeId = params.colorScheme as string;
+  const colorMode = params.colorMode as (typeof colorModeEnum.enumValues)[number] | undefined;
   const page = Math.max(1, parseInt((params.page as string) || "1"));
   const limit = 12;
   const offset = (page - 1) * limit;
@@ -38,10 +40,17 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     orderBy: (colorSchemes, { asc }) => [asc(colorSchemes.name)],
   });
 
-  // Build where clause for color scheme filter
+  // Build where clause for filters
   const whereConditions = [];
   if (colorSchemeId) {
     whereConditions.push(eq(themes.colorSchemeId, colorSchemeId));
+  }
+  if (colorMode === "dark") {
+    whereConditions.push(or(eq(themes.colorMode, "dark"), eq(themes.colorMode, "both"))!);
+  } else if (colorMode === "light") {
+    whereConditions.push(or(eq(themes.colorMode, "light"), eq(themes.colorMode, "both"))!);
+  } else if (colorMode === "both") {
+    whereConditions.push(eq(themes.colorMode, "both"));
   }
 
   // Determine order by based on sort parameter

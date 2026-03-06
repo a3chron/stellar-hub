@@ -88,6 +88,22 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
         <p className="text-xs text-ctp-subtext0 mt-1">Supports markdown</p>
       </div>
 
+      {/* Color Mode */}
+      <div>
+        <label className="flex flex-col">
+          <span className="mb-1.5 text-sm text-ctp-text">Theme Mode</span>
+          <select
+            name="colorMode"
+            defaultValue="dark"
+            className="p-2 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base"
+          >
+            <option value="dark">Dark</option>
+            <option value="light">Light</option>
+            <option value="both">Dark &amp; Light</option>
+          </select>
+        </label>
+      </div>
+
       {/* Color Scheme */}
       <div>
         <label className="flex flex-col">

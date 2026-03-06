@@ -1,7 +1,7 @@
-import { asc, desc, eq, type SQL, sql } from "drizzle-orm";
+import { asc, desc, eq, or, type SQL, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { themes } from "@/lib/db/schema";
+import { colorModeEnum, themes } from "@/lib/db/schema";
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,6 +11,12 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
     const offset = parseInt(searchParams.get("offset") || "0");
     const colorScheme = searchParams.get("colorScheme");
+    const colorModeParam = searchParams.get("colorMode");
+    const colorMode = colorModeEnum.enumValues.includes(
+      colorModeParam as (typeof colorModeEnum.enumValues)[number],
+    )
+      ? (colorModeParam as (typeof colorModeEnum.enumValues)[number])
+      : null;
     const author = searchParams.get("author");
 
     // Apply filters
@@ -24,6 +30,14 @@ export async function GET(request: NextRequest) {
 
     if (colorScheme) {
       conditions.push(eq(themes.colorSchemeId, colorScheme));
+    }
+
+    if (colorMode === "dark") {
+      conditions.push(or(eq(themes.colorMode, "dark"), eq(themes.colorMode, "both"))!);
+    } else if (colorMode === "light") {
+      conditions.push(or(eq(themes.colorMode, "light"), eq(themes.colorMode, "both"))!);
+    } else if (colorMode === "both") {
+      conditions.push(eq(themes.colorMode, "both"));
     }
 
     if (author) {

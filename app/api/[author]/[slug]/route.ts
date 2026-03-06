@@ -202,6 +202,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const name = formData.get("name") as string;
     const description = formData.get("description") as string | null;
     const colorSchemeId = formData.get("colorSchemeId") as string | null;
+    const colorModeParam = formData.get("colorMode") as string | null;
+    const colorMode =
+      colorModeParam === "dark" ||
+      colorModeParam === "light" ||
+      colorModeParam === "both"
+        ? colorModeParam
+        : null;
     const group = formData.get("group") as string | null;
     const screenshot = formData.get("screenshot") as File | null;
 
@@ -278,6 +285,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         name: name || theme.name,
         description: description || null,
         colorSchemeId: colorSchemeId || null,
+        colorMode: colorMode ?? theme.colorMode,
         group: group || null,
         screenshotUrl,
         updatedAt: new Date(),

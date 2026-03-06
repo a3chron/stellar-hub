@@ -4,12 +4,15 @@ import {
   index,
   integer,
   jsonb,
+  pgEnum,
   pgTable,
   text,
   timestamp,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+
+export const colorModeEnum = pgEnum("color_mode", ["dark", "light", "both"]);
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -90,6 +93,7 @@ export const themes = pgTable(
     colorSchemeId: uuid("color_scheme_id").references(() => colorSchemes.id, {
       onDelete: "set null",
     }),
+    colorMode: colorModeEnum("color_mode").notNull().default("dark"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

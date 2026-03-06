@@ -16,6 +16,7 @@ interface Theme {
   screenshotUrl: string;
   downloads: number;
   colorSchemeId: string | null;
+  colorMode: "dark" | "light" | "both";
   group: string | null;
   createdAt: Date;
   updatedAt: Date;

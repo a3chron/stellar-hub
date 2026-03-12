@@ -23,13 +23,13 @@ export default function ThemeCard({ theme }: ThemeCardProps) {
       href={`/${theme.author.name}/${theme.slug}`}
       className="group block bg-ctp-mantle rounded-lg border-2 border-ctp-crust"
     >
-      <div className="overflow-hidden rounded-t-lg">
+      <div className="overflow-hidden rounded-t-lg relative h-36">
         <Image
           src={theme.screenshotUrl}
           alt={theme.name}
-          width={600}
-          height={144}
-          className="w-full h-36 object-cover object-top-left"
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover object-top-left"
         />
       </div>
       <div className="p-4 border-t border-t-ctp-crust flex justify-between items-start">

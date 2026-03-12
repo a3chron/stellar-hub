@@ -28,8 +28,9 @@ nix shell nixpkgs#biome --command biome check --write .
 ## TODOs
 
 - [x] better trending themes select, group by likes and creation date, then limit to a few pages
-- [ ] for author on his own themes page edit & update button as well
 - [x] light & dark filter for themes (lateron auto switch if theme has light & dark?)
+- [ ] fix the dropdowns theme, currently using system / bowser one
+- [ ] for author on his own themes page edit & update button as well
 - [ ] add docs for api
 - [ ] Search (author & themes)
 - [ ] Better delete dialog UX

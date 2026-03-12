@@ -238,30 +238,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         .webp({ quality: 100 })
         .toBuffer();
 
-      // Delete old screenshot
-      try {
-        const oldFilename = extractValidFilename(
-          theme.screenshotUrl,
-          isValidScreenshotFilename,
-        );
-        if (oldFilename) {
-          await supabaseAdmin.storage.from("stellar").remove([oldFilename]);
-        } else {
-          console.warn(
-            "Skipping deletion of invalid old screenshot filename:",
-            theme.screenshotUrl,
-          );
-        }
-      } catch (error) {
-        console.error("Failed to delete old screenshot:", error);
-      }
+      const oldFilename = extractValidFilename(
+        theme.screenshotUrl,
+        isValidScreenshotFilename,
+      );
+      const filename = oldFilename ?? `${session.user.id}-${Date.now()}.webp`;
 
-      const filename = `${session.user.id}-${Date.now()}.webp`;
       const { error: uploadError } = await supabaseAdmin.storage
         .from("stellar")
         .upload(filename, optimizedImage, {
           contentType: "image/webp",
-          cacheControl: "3600",
+          cacheControl: "43200",
+          upsert: true, // overwrite existing
         });
 
       if (uploadError) {

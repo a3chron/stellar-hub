@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   images: {
+    minimumCacheTTL: 2678400,
+    formats: ["image/webp"],
+    qualities: [75],
     remotePatterns: [
       {
         protocol: "https",

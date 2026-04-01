@@ -53,6 +53,7 @@ export default async function AuthorPage({ params }: PageProps) {
                 alt={author.name}
                 width={120}
                 height={120}
+                unoptimized
                 className="rounded-full border-2 border-ctp-crust"
               />
             ) : (

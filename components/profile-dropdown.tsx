@@ -51,6 +51,7 @@ export default function ProfileDropdown({
             alt={userName}
             width={32}
             height={32}
+            unoptimized
             className="w-8 h-8 rounded-full cursor-pointer hover:ring-2 ring-offset-2 ring-offset-ctp-mantle hover:ring-ctp-surface0 transition-all"
           />
         ) : (

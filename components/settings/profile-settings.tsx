@@ -69,6 +69,7 @@ export default function ProfileSettings({ user }: { user: UserType }) {
                   src={previewImage}
                   alt={user.name}
                   fill
+                  sizes="96px"
                   className="object-cover"
                 />
               ) : (

@@ -106,6 +106,7 @@ export default function ThemeManagement({
                       src={theme.screenshotUrl}
                       alt={theme.name}
                       fill
+                      sizes="128px"
                       className="object-cover object-top-left"
                     />
                   </div>

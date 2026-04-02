@@ -13,6 +13,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Stellar",
   description: "Web Hub for starship configs",
+  verification: {
+    google: "waG0eqk7cOJVSMbB42gHQIR-bDsRmy5ABoQWNFI8UKQ"
+  }
 };
 
 export default function RootLayout({

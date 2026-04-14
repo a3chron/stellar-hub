@@ -1,6 +1,5 @@
 import { and, eq } from "drizzle-orm";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ViewConfigButton } from "@/components/config-preview-modal";
@@ -9,6 +8,7 @@ import ThemeCard from "@/components/theme-card";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
 import ApplyCommand from "./apply-command";
+import { ThemeScreenshot } from "./theme-screenshot";
 
 interface PageProps {
   params: Promise<{
@@ -129,13 +129,7 @@ export default async function ThemePage({ params }: PageProps) {
           • {theme.downloads} downloads
         </p>
 
-        <Image
-          src={theme.screenshotUrl}
-          alt={theme.name}
-          width={1200}
-          height={240}
-          className="rounded-lg shadow-lg border-2 border-ctp-crust mb-8"
-        />
+        <ThemeScreenshot src={theme.screenshotUrl} alt={theme.name} />
 
         <ApplyCommand author={author.name} theme={theme.slug} />
 

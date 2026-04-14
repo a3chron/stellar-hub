@@ -15,9 +15,10 @@ interface ThemeCardProps {
       name: string;
     } | null;
   };
+  priority?: boolean;
 }
 
-export default function ThemeCard({ theme }: ThemeCardProps) {
+export default function ThemeCard({ theme, priority = false }: ThemeCardProps) {
   return (
     <Link
       href={`/${theme.author.name}/${theme.slug}`}
@@ -30,6 +31,7 @@ export default function ThemeCard({ theme }: ThemeCardProps) {
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
           className="object-cover object-top-left"
+          priority={priority}
         />
       </div>
       <div className="p-4 border-t border-t-ctp-crust flex justify-between items-start">

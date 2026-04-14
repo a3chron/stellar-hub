@@ -1,14 +1,13 @@
-import { and, desc, eq, or, type SQL, sql } from "drizzle-orm";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
+import { HeroVideo } from "@/components/hero-video";
+import { ThemeFiltersWrapper } from "@/components/home/theme-filters-wrapper";
+import { ThemeGridWrapper } from "@/components/home/theme-grid-wrapper";
 import InstallIntruction from "@/components/install-intruction";
-import Pagination from "@/components/pagination";
-import ThemeCard from "@/components/theme-card";
-import ThemeFilters from "@/components/theme-filters";
-import { db } from "@/lib/db";
+import { FiltersSkeleton } from "@/components/skeletons/filters-skeleton";
+import { ThemeGridSkeleton } from "@/components/skeletons/theme-grid-skeleton";
 import type { colorModeEnum } from "@/lib/db/schema";
-import { themes } from "@/lib/db/schema";
 
 export const metadata: Metadata = {
   title: "Stellar - Beautiful Starship Themes",
@@ -26,80 +25,33 @@ interface HomePageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
+function getSortTitle(sort: string): string {
+  switch (sort) {
+    case "latest":
+      return "Latest Themes";
+    case "trending":
+      return "Trending Themes";
+    default:
+      return "Popular Themes";
+  }
+}
+
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
   const sort = (params.sort as string) || "downloads";
-  const colorSchemeId = params.colorScheme as string;
+  const colorSchemeId = params.colorScheme as string | undefined;
   const colorMode = params.colorMode as
     | (typeof colorModeEnum.enumValues)[number]
     | undefined;
   const page = Math.max(1, parseInt((params.page as string) || "1"));
-  const limit = 12;
-  const offset = (page - 1) * limit;
 
-  // Get all color schemes for filter
-  const colorSchemes = await db.query.colorSchemes.findMany({
-    orderBy: (colorSchemes, { asc }) => [asc(colorSchemes.name)],
-  });
-
-  // Build where clause for filters
-  const whereConditions = [];
-  if (colorSchemeId) {
-    whereConditions.push(eq(themes.colorSchemeId, colorSchemeId));
-  }
-  if (colorMode === "dark") {
-    whereConditions.push(
-      or(eq(themes.colorMode, "dark"), eq(themes.colorMode, "both"))!,
-    );
-  } else if (colorMode === "light") {
-    whereConditions.push(
-      or(eq(themes.colorMode, "light"), eq(themes.colorMode, "both"))!,
-    );
-  } else if (colorMode === "both") {
-    whereConditions.push(eq(themes.colorMode, "both"));
-  }
-
-  // Determine order by based on sort parameter
-  let orderBy: SQL[];
-  if (sort === "latest") {
-    orderBy = [desc(themes.createdAt)];
-  } else if (sort === "trending") {
-    // Time-decay score: downloads / (age_in_hours + 2)^1.5
-    orderBy = [
-      desc(
-        sql`${themes.downloads} / POWER(EXTRACT(EPOCH FROM (NOW() - ${themes.createdAt})) / 3600 + 2, 1.5)`,
-      ),
-      desc(themes.createdAt),
-    ];
-  } else {
-    // Default: most downloads
-    orderBy = [desc(themes.downloads)];
-  }
-
-  const whereClause =
-    whereConditions.length > 0 ? and(...whereConditions) : undefined;
-
-  // Get total count for pagination
-  const totalCountResult = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(themes)
-    .where(whereClause);
-  const totalCount = Number(totalCountResult[0]?.count || 0);
-  const totalPages = Math.ceil(totalCount / limit);
-
-  const displayedThemes = await db.query.themes.findMany({
-    where: whereClause,
-    orderBy,
-    limit,
-    offset,
-    with: {
-      author: true,
-      colorScheme: true,
-    },
-  });
+  // Create a unique key for the Suspense boundary based on filter params
+  // This ensures React re-renders the suspense boundary when filters change
+  const gridKey = `${sort}-${colorSchemeId || ""}-${colorMode || ""}-${page}`;
 
   return (
     <main className="container mx-auto px-4 py-12">
+      {/* Hero Section - renders immediately */}
       <section className="mb-16 flex flex-col md:flex-row gap-16 justify-between">
         <div className="mt-10">
           <h1 className="text-5xl font-bold mb-4">stellar</h1>
@@ -117,48 +69,26 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </div>
         </div>
         <div className="relative z-10">
-          <Image
-            src={"/demo.gif"}
-            unoptimized
-            width={600}
-            height={400}
-            alt="Demo Gif"
-            className="rounded-3xl md:absolute top-0 z-10 border-2 border-ctp-surface2"
-          />
-          <div className="rotate-5 bg-ctp-surface0 rounded-3xl w-[600px] h-[400px] hidden md:block" />
+          <HeroVideo />
         </div>
       </section>
 
+      {/* Themes Section */}
       <section>
-        <h2 className="text-3xl font-semibold mb-6">
-          {(() => {
-            switch (sort) {
-              case "latest":
-                return "Latest Themes";
-              case "trending":
-                return "Trending Themes";
-              default:
-                return "Popular Themes";
-            }
-          })()}
-        </h2>
+        <h2 className="text-3xl font-semibold mb-6">{getSortTitle(sort)}</h2>
 
-        <ThemeFilters colorSchemes={colorSchemes} />
+        <Suspense fallback={<FiltersSkeleton />}>
+          <ThemeFiltersWrapper />
+        </Suspense>
 
-        {displayedThemes.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {displayedThemes.map((theme) => (
-                <ThemeCard key={theme.id} theme={theme} />
-              ))}
-            </div>
-            <Pagination currentPage={page} totalPages={totalPages} />
-          </>
-        ) : (
-          <div className="text-center py-12 text-ctp-subtext0">
-            <p>No themes found with the selected filters.</p>
-          </div>
-        )}
+        <Suspense key={gridKey} fallback={<ThemeGridSkeleton />}>
+          <ThemeGridWrapper
+            sort={sort}
+            colorSchemeId={colorSchemeId}
+            colorMode={colorMode}
+            page={page}
+          />
+        </Suspense>
       </section>
     </main>
   );

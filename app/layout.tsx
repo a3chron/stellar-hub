@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import Nav from "@/components/nav";
 
 const geistMono = Geist_Mono({
@@ -14,8 +14,8 @@ export const metadata: Metadata = {
   title: "Stellar",
   description: "Web Hub for starship configs",
   verification: {
-    google: "waG0eqk7cOJVSMbB42gHQIR-bDsRmy5ABoQWNFI8UKQ"
-  }
+    google: "waG0eqk7cOJVSMbB42gHQIR-bDsRmy5ABoQWNFI8UKQ",
+  },
 };
 
 export default function RootLayout({

@@ -74,7 +74,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       </section>
 
       {/* Themes Section */}
-      <section>
+      <section id="themes" className="scroll-mt-24">
         <h2 className="text-3xl font-semibold mb-6">{getSortTitle(sort)}</h2>
 
         <Suspense fallback={<FiltersSkeleton />}>

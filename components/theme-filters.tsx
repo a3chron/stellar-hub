@@ -21,7 +21,7 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
   const handleSortChange = (sort: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("sort", sort);
-    router.push(`/?${params.toString()}`);
+    router.push(`/?${params.toString()}#themes`);
   };
 
   const handleColorSchemeChange = (colorSchemeId: string) => {
@@ -31,7 +31,7 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
     } else {
       params.delete("colorScheme");
     }
-    router.push(`/?${params.toString()}`);
+    router.push(`/?${params.toString()}#themes`);
   };
 
   const handleColorModeChange = (mode: ColorMode | "") => {
@@ -41,7 +41,7 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
     } else {
       params.delete("colorMode");
     }
-    router.push(`/?${params.toString()}`);
+    router.push(`/?${params.toString()}#themes`);
   };
 
   const colorModeOptions: Array<{ value: ColorMode | ""; label: string }> = [

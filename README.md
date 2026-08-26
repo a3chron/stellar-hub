@@ -27,7 +27,8 @@ nix shell nixpkgs#biome --command biome check --write .
 
 ## TODOs
 
-- [ ] fix the dropdowns theme, currently using system / bowser one
+- [x] fix the dropdowns theme, currently using system / bowser one
+- [x] docs section (installing with OS switcher, commands, how it works, troubleshooting)
 - [ ] for author on his own themes page edit & update button as well
 - [ ] add docs for api
 - [ ] Search (author & themes)

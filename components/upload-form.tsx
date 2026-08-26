@@ -2,50 +2,87 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
 import Input from "./input";
+import Select from "./select";
 
 interface UploadFormProps {
   colorSchemes: Array<{ id: string; name: string }>;
 }
 
+// Matches the slug column's own limit (see /api/upload): a longer slug is
+// rejected server-side, and the user can't edit this field to shorten it.
+const MAX_SLUG_LENGTH = 50;
+
 function generateSlug(name: string): string {
   return name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(/^-|-$/g, "")
+    .slice(0, MAX_SLUG_LENGTH)
+    .replace(/-$/, "");
 }
 
 export default function UploadForm({ colorSchemes }: UploadFormProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [themeName, setThemeName] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  // A stray Ctrl+R here costs the user their pasted starship config.
+  useUnsavedChangesWarning(dirty);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     const formData = new FormData(e.currentTarget);
 
     // Auto-set version to 1.0 for new themes
     formData.set("version", "1.0");
 
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (response.ok) {
-      const { slug, author } = await response.json();
-      router.push(`/${author}/${slug}`);
-    } else {
-      const error = await response.json();
-      alert(`Upload failed: ${error.error || "Unknown error"}`);
-      setLoading(false);
+      // An error page from a proxy (a 413 on a large screenshot, say) isn't
+      // JSON, and letting the parse throw would strand the button on
+      // "Publishing...".
+      const body = await response.json().catch(() => null);
+
+      if (response.ok && body?.slug) {
+        // Cleared before navigating, or the leave-confirmation would fire on
+        // our own redirect. Loading stays on so the button can't be
+        // re-submitted while the route transition is in flight.
+        setDirty(false);
+        router.push(`/${body.author}/${body.slug}`);
+        return;
+      }
+
+      setError(
+        body?.details?.[0]?.message ??
+          body?.error ??
+          `Upload failed (${response.status})`,
+      );
+    } catch {
+      setError(
+        "Could not reach the server. Your input is still here - check your connection and try again.",
+      );
     }
+
+    setLoading(false);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      onInput={() => setDirty(true)}
+      className="space-y-6"
+    >
       {/* Theme Name */}
       <div>
         <Input
@@ -90,38 +127,32 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
 
       {/* Color Mode */}
       <div>
-        <label className="flex flex-col">
-          <span className="mb-1.5 text-sm text-ctp-text">Theme Mode</span>
-          <select
-            name="colorMode"
-            defaultValue="dark"
-            className="p-2 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base"
-          >
-            <option value="dark">Dark</option>
-            <option value="light">Light</option>
-            <option value="both">Dark &amp; Light</option>
-          </select>
-        </label>
+        <Select
+          name="colorMode"
+          label="Theme Mode"
+          defaultValue="dark"
+          options={[
+            { value: "dark", label: "Dark" },
+            { value: "light", label: "Light" },
+            { value: "both", label: "Dark & Light" },
+          ]}
+        />
       </div>
 
       {/* Color Scheme */}
       <div>
-        <label className="flex flex-col">
-          <span className="mb-1.5 text-sm text-ctp-text">
-            Color Scheme (optional)
-          </span>
-          <select
-            name="colorSchemeId"
-            className="p-2 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base"
-          >
-            <option value="">None</option>
-            {colorSchemes.map((scheme) => (
-              <option key={scheme.id} value={scheme.id}>
-                {scheme.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          name="colorSchemeId"
+          label="Color Scheme (optional)"
+          defaultValue=""
+          options={[
+            { value: "", label: "None" },
+            ...colorSchemes.map((scheme) => ({
+              value: scheme.id,
+              label: scheme.name,
+            })),
+          ]}
+        />
       </div>
 
       {/* Group */}
@@ -212,6 +243,15 @@ JetBrainsMono Nerd Font`}
           One per line (usually Nerd Fonts)
         </p>
       </div>
+
+      {error && (
+        <p
+          role="alert"
+          className="text-sm text-ctp-red border-2 border-ctp-red/40 bg-ctp-mantle rounded-lg p-3"
+        >
+          {error}
+        </p>
+      )}
 
       {/* Submit Button */}
       <button

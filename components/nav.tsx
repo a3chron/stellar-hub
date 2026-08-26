@@ -23,6 +23,13 @@ export default async function Nav() {
           </Link>
 
           <div className="flex items-center gap-8">
+            <Link
+              href="/docs"
+              className="hidden sm:block text-sm font-medium text-ctp-subtext1 hover:text-ctp-text transition"
+            >
+              Docs
+            </Link>
+
             {/* GitHub Stars */}
             <Link
               href="https://github.com/a3chron/stellar"

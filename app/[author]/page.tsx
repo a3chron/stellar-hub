@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ThemeCard from "@/components/theme-card";
 import { db } from "@/lib/db";
+import { formatCompactNumber } from "@/lib/utils";
 
 interface PageProps {
   params: Promise<{
@@ -94,9 +95,11 @@ export default async function AuthorPage({ params }: PageProps) {
                 </span>{" "}
                 {author.themes.length === 1 ? "theme" : "themes"}
               </div>
-              <div>
+              <div
+                title={`${totalDownloads.toLocaleString("en-US")} downloads`}
+              >
                 <span className="font-semibold text-ctp-subtext1">
-                  {totalDownloads.toLocaleString()}
+                  {formatCompactNumber(totalDownloads)}
                 </span>{" "}
                 total downloads
               </div>

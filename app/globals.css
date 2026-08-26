@@ -109,7 +109,35 @@
 /* =========================
    Global styles
    ========================= */
+/* Smooth in-page anchor scrolling (docs ToC etc.), unless the user
+   prefers reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 body {
   background: var(--ctp-base);
   color: var(--ctp-text);
+}
+
+/* =========================
+   Shiki code blocks
+   ========================= */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+  /* Catppuccin marks some tokens italic; without this the theme's font-style
+     custom properties are emitted but never applied. */
+  font-style: var(--shiki-light-font-style, normal);
+  /* biome-ignore lint/complexity/noImportantStyles: must override Shiki's inline background so the themed wrapper shows through */
+  background-color: transparent !important;
+}
+@media (prefers-color-scheme: dark) {
+  .shiki,
+  .shiki span {
+    color: var(--shiki-dark);
+    font-style: var(--shiki-dark-font-style, normal);
+  }
 }

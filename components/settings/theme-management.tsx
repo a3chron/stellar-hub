@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { formatDownloads } from "@/lib/utils";
 import EditMetadataForm from "../edit-metadata-form";
 import UpdateConfigForm from "../update-config-form";
 
@@ -182,7 +183,11 @@ export default function ThemeManagement({
                     <div className="flex items-center gap-4 mt-3 text-sm text-ctp-subtext0">
                       <div className="flex items-center gap-1">
                         <Download className="w-4 h-4" />
-                        <span>{theme.downloads} downloads</span>
+                        <span
+                          title={`${theme.downloads.toLocaleString("en-US")} downloads`}
+                        >
+                          {formatDownloads(theme.downloads)}
+                        </span>
                       </div>
                       <span>•</span>
                       <span>{theme.versions.length} versions</span>

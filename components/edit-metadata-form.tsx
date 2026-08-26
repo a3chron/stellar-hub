@@ -3,7 +3,9 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
 import Input from "./input";
+import Select from "./select";
 
 type ColorMode = "dark" | "light" | "both";
 
@@ -34,6 +36,10 @@ export default function EditMetadataForm({
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+
+  useUnsavedChangesWarning(dirty);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -49,22 +55,38 @@ export default function EditMetadataForm({
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     const formData = new FormData(e.currentTarget);
 
-    const response = await fetch(`/api/${author}/${theme.slug}`, {
-      method: "PATCH",
-      body: formData,
-    });
+    try {
+      const response = await fetch(`/api/${author}/${theme.slug}`, {
+        method: "PATCH",
+        body: formData,
+      });
 
-    if (response.ok) {
-      router.refresh();
-      onCancel();
-    } else {
-      const error = await response.json();
-      alert(`Update failed: ${error.error || "Unknown error"}`);
-      setLoading(false);
+      if (response.ok) {
+        setDirty(false);
+        router.refresh();
+        onCancel();
+        return;
+      }
+
+      // A proxy error page isn't JSON, and letting the parse throw would
+      // strand the button on "Saving...".
+      const body = await response.json().catch(() => null);
+      setError(
+        body?.details?.[0]?.message ??
+          body?.error ??
+          `Update failed (${response.status})`,
+      );
+    } catch {
+      setError(
+        "Could not reach the server. Your changes are still here - check your connection and try again.",
+      );
     }
+
+    setLoading(false);
   }
 
   return (
@@ -74,7 +96,11 @@ export default function EditMetadataForm({
           Edit Metadata: {theme.name}
         </h3>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          onSubmit={handleSubmit}
+          onInput={() => setDirty(true)}
+          className="space-y-4"
+        >
           {/* Theme Name */}
           <div>
             <Input
@@ -103,37 +129,32 @@ export default function EditMetadataForm({
 
           {/* Color Mode */}
           <div>
-            <label className="flex flex-col">
-              <span className="mb-1.5 text-sm text-ctp-text">Theme Mode</span>
-              <select
-                name="colorMode"
-                defaultValue={theme.colorMode}
-                className="p-2 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
-              >
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-                <option value="both">Dark &amp; Light</option>
-              </select>
-            </label>
+            <Select
+              name="colorMode"
+              label="Theme Mode"
+              defaultValue={theme.colorMode}
+              options={[
+                { value: "dark", label: "Dark" },
+                { value: "light", label: "Light" },
+                { value: "both", label: "Dark & Light" },
+              ]}
+            />
           </div>
 
           {/* Color Scheme */}
           <div>
-            <label className="flex flex-col">
-              <span className="mb-1.5 text-sm text-ctp-text">Color Scheme</span>
-              <select
-                name="colorSchemeId"
-                defaultValue={theme.colorSchemeId || ""}
-                className="p-2 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
-              >
-                <option value="">None</option>
-                {colorSchemes.map((scheme) => (
-                  <option key={scheme.id} value={scheme.id}>
-                    {scheme.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <Select
+              name="colorSchemeId"
+              label="Color Scheme"
+              defaultValue={theme.colorSchemeId || ""}
+              options={[
+                { value: "", label: "None" },
+                ...colorSchemes.map((scheme) => ({
+                  value: scheme.id,
+                  label: scheme.name,
+                })),
+              ]}
+            />
           </div>
 
           {/* Group */}
@@ -175,6 +196,15 @@ export default function EditMetadataForm({
               </div>
             </div>
           </div>
+
+          {error && (
+            <p
+              role="alert"
+              className="text-sm text-ctp-red border-2 border-ctp-red/40 bg-ctp-mantle rounded-lg p-3"
+            >
+              {error}
+            </p>
+          )}
 
           {/* Buttons */}
           <div className="flex gap-3 pt-4">

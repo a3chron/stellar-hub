@@ -1,0 +1,46 @@
+export const metadata = { title: "Troubleshooting" };
+
+# Troubleshooting
+
+## "Theme not found online, using local cache"
+
+This message appears when stellar cannot reach the stellar-hub API.
+Possible reasons:
+
+- **No internet connection** — stellar will use your locally cached
+  version of the theme
+- **Theme was deleted from the hub** — if you previously downloaded it,
+  your local copy still works
+- **Theme was renamed in the hub** — if you previously downloaded it, your
+  local copy still works; you can search for the theme in the hub by going
+  to `/<username>` (usernames cannot be changed yet)
+- **Local-only theme** — if you created the theme manually in
+  `~/.config/stellar/`, this is expected behavior
+
+This is usually not a problem — stellar will use whatever version you have
+cached locally.
+
+## "Theme not found: author/theme (not available online and no local cache)"
+
+This error means the theme doesn't exist anywhere stellar can find it:
+
+- Check that you typed the theme name correctly
+- The theme may have been removed from stellar-hub
+- For local themes, make sure you created the folder at
+  `~/.config/stellar/<author>/<theme>/` with a `.toml` file inside
+
+## Windows notes
+
+A couple of things behave differently on Windows — see
+[how it works](/docs/how-it-works) for the full explanation:
+
+- No hot-reload when editing local theme files, since Windows applies
+  themes by copying instead of symlinking
+- `stellar preview` is not yet supported on Windows
+
+Still stuck? [Open an issue](https://github.com/a3chron/stellar/issues) on
+GitHub.
+
+## Next steps
+
+<NextSteps pages={["how-it-works", "browse"]} />

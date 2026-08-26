@@ -14,6 +14,8 @@ export default function ProfileSettings({ user }: { user: UserType }) {
     website: user.socialLinks?.website || "",
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(user.image);
 
@@ -32,6 +34,8 @@ export default function ProfileSettings({ user }: { user: UserType }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
+    setSaved(false);
 
     const formData = new FormData();
     formData.append("bio", bio);
@@ -40,16 +44,24 @@ export default function ProfileSettings({ user }: { user: UserType }) {
       formData.append("avatar", imageFile);
     }
 
-    const response = await fetch("/api/settings/profile", {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const response = await fetch("/api/settings/profile", {
+        method: "POST",
+        body: formData,
+      });
 
-    if (response.ok) {
-      router.refresh();
+      if (response.ok) {
+        setSaved(true);
+        router.refresh();
+      } else {
+        const data = await response.json().catch(() => null);
+        setError(data?.error ?? "Failed to save changes");
+      }
+    } catch {
+      setError("Failed to save changes - are you offline?");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
@@ -153,7 +165,15 @@ export default function ProfileSettings({ user }: { user: UserType }) {
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-4">
+        <div className="flex items-center justify-end gap-4 pt-4">
+          {error && (
+            <p role="alert" className="text-sm text-ctp-red">
+              {error}
+            </p>
+          )}
+          {saved && !error && (
+            <output className="text-sm text-ctp-green">Changes saved</output>
+          )}
           <button
             type="submit"
             disabled={loading}

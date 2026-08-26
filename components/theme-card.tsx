@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { formatDownloads } from "@/lib/utils";
 
 interface ThemeCardProps {
   theme: {
@@ -40,8 +41,11 @@ export default function ThemeCard({ theme, priority = false }: ThemeCardProps) {
           <p className="text-sm text-ctp-subtext0">by {theme.author.name}</p>
         </div>
         <div className="flex flex-col items-end gap-1 mt-1">
-          <span className="text-sm text-ctp-subtext0">
-            {theme.downloads} downloads
+          <span
+            className="text-sm text-ctp-subtext0"
+            title={`${theme.downloads.toLocaleString("en-US")} downloads`}
+          >
+            {formatDownloads(theme.downloads)}
           </span>
           <div className="flex items-center gap-1.5 text-xs text-ctp-overlay0">
             {theme.colorScheme && <span>{theme.colorScheme.name}</span>}

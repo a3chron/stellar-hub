@@ -1,9 +1,11 @@
+import createMDX from "@next/mdx";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
   allowedDevOrigins: ["127.0.0.1"],
+  pageExtensions: ["ts", "tsx", "md", "mdx"],
   images: {
     minimumCacheTTL: 2678400,
     formats: ["image/webp"],
@@ -28,4 +30,11 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+const withMDX = createMDX({
+  options: {
+    remarkPlugins: [["remark-gfm"]],
+    rehypePlugins: [["rehype-slug"]],
+  },
+});
+
+export default withMDX(nextConfig);

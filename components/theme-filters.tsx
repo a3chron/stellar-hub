@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import Select from "./select";
 
 type ColorMode = "dark" | "light" | "both";
 
@@ -116,18 +117,16 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
         {/* Color Scheme Filter */}
         <div className="flex flex-col gap-1">
           <span className="text-xs text-ctp-overlay0 ml-1">Color scheme:</span>
-          <select
+          <Select
+            options={[
+              { value: "", label: "All" },
+              ...colorSchemes.map((s) => ({ value: s.id, label: s.name })),
+            ]}
             value={currentColorScheme}
-            onChange={(e) => handleColorSchemeChange(e.target.value)}
-            className="px-4 py-2 rounded-lg bg-ctp-mantle text-ctp-text text-sm font-medium border-2 border-ctp-crust focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base"
-          >
-            <option value="">All</option>
-            {colorSchemes.map((scheme) => (
-              <option key={scheme.id} value={scheme.id}>
-                {scheme.name}
-              </option>
-            ))}
-          </select>
+            onChange={handleColorSchemeChange}
+            ariaLabel="Color scheme"
+            className="min-w-36"
+          />
         </div>
       </div>
     </div>

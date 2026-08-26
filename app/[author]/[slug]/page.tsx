@@ -7,6 +7,7 @@ import Markdown from "@/components/markdown";
 import ThemeCard from "@/components/theme-card";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
+import { formatDownloads } from "@/lib/utils";
 import ApplyCommand from "./apply-command";
 import { ThemeScreenshot } from "./theme-screenshot";
 
@@ -126,7 +127,10 @@ export default async function ThemePage({ params }: PageProps) {
           <Link className="text-ctp-text" href={`/${theme.author.name}`}>
             {theme.author.name}
           </Link>{" "}
-          • {theme.downloads} downloads
+          •{" "}
+          <span title={`${theme.downloads.toLocaleString("en-US")} downloads`}>
+            {formatDownloads(theme.downloads)}
+          </span>
         </p>
 
         <ThemeScreenshot src={theme.screenshotUrl} alt={theme.name} />

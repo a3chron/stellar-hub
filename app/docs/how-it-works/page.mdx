@@ -1,0 +1,97 @@
+export const metadata = { title: "How it works" };
+
+# How it works
+
+## Theme cache
+
+Downloaded themes are cached in a folder tree under `~/.config/stellar/`,
+organized by author, theme slug, and version:
+
+```text
+~/.config/stellar/<author>/<slug>/<version>.toml
+~/.config/stellar/config.json
+```
+
+`config.json` tracks which theme is currently applied, along with a
+checksum stellar uses to recognize its own applied file.
+
+## Applying themes
+
+How `stellar apply` puts a config in place depends on the OS:
+
+- **Linux and macOS**: `~/.config/starship.toml` is **symlinked** to the
+  cached config file. Editing a local theme file live-updates your prompt.
+- **Windows**: symlinks need Developer Mode or admin privileges, so
+  stellar **copies** the theme file over `starship.toml` instead.
+
+You can force copy mode on any OS (useful for testing) by setting the
+`STELLAR_APPLY_MODE=copy` environment variable.
+
+<Callout type="note" title="No hot-reload in copy mode">
+
+Since copy mode writes a plain copy rather than a symlink, editing a local
+theme file directly does not live-update `starship.toml`. Re-run
+`stellar apply <author>/<theme>` after editing.
+
+</Callout>
+
+## Automatic backups
+
+The first time you run `stellar apply`, if you have an existing
+`~/.config/starship.toml` that isn't already managed by stellar, it gets
+backed up automatically before stellar creates the symlink (or copy):
+
+```text
+~/.config/stellar/<your-username>/backup/1.0.toml
+```
+
+Backups are versioned — if stellar finds another unmanaged `starship.toml`
+later (for example one you hand-edited or restored), it's backed up as
+`2.0.toml`, then `3.0.toml`, and so on, so an earlier backup is never
+overwritten.
+
+Backups survive `stellar clean` (and `stellar clean --all`) — they're only
+removed if you explicitly run `stellar remove <username>/backup`. Restore
+the newest backup with:
+
+```bash
+stellar apply <username>/backup
+```
+
+Or pin a specific version, for instance your very first original config:
+
+```bash
+stellar apply <username>/backup@1.0
+```
+
+## Local & custom themes
+
+You don't need to download anything from the hub to use stellar. Just
+hand-create a config at:
+
+```text
+~/.config/stellar/<author>/<slug>/1.0.toml
+```
+
+The `<author>` directory name is arbitrary — use `local/`, `dev/`, or
+anything else you like, including an existing username. Then apply it the
+same way as any other theme:
+
+```bash
+stellar apply local/my-custom-theme
+```
+
+You can also copy an existing cached theme into your own folder and tweak
+it from there, or rename/move cached directories directly — stellar
+identifies themes purely by their path under `~/.config/stellar/`.
+
+## Where themes come from
+
+Community themes live on the [stellar hub](https://stellar-hub.vercel.app),
+the web app this documentation is part of. `stellar apply` and
+`stellar preview` fetch theme configs from the hub's API when they're not
+already cached locally.
+
+## Next steps
+
+<NextSteps pages={["commands", "troubleshooting"]} />

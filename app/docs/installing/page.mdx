@@ -1,0 +1,103 @@
+export const metadata = { title: "Installing" };
+
+# Installing stellar
+
+Get the `stellar` binary onto your machine, then point it at a theme from
+the hub.
+
+<OSTabs>
+<OSTab os="linux-macos">
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/a3chron/stellar/main/install.sh | bash
+```
+
+This installs the binary to `~/.local/bin`. Check what the script does
+[here](https://github.com/a3chron/stellar/blob/main/install.sh).
+
+<Callout type="tip" title="Prefer copies over symlinks?">
+
+stellar applies themes by symlinking `starship.toml` — set
+`STELLAR_APPLY_MODE=copy` if you'd rather have it copy the file instead.
+
+</Callout>
+
+</OSTab>
+<OSTab os="windows">
+
+```powershell
+irm https://raw.githubusercontent.com/a3chron/stellar/main/install.ps1 | iex
+```
+
+This installs the binary to `%LOCALAPPDATA%\stellar\bin` and adds it to
+your PATH. Check what the script does
+[here](https://github.com/a3chron/stellar/blob/main/install.ps1).
+
+<Callout type="note" title="Windows applies themes by copying">
+
+Symlinks on Windows need Developer Mode or admin privileges, so on Windows
+stellar copies the theme file over `starship.toml` instead of symlinking it.
+This means there's no hot-reload while editing local themes — re-run
+`stellar apply` after making changes. See
+[how it works](/docs/how-it-works) for details.
+
+</Callout>
+
+</OSTab>
+</OSTabs>
+
+## Verify the install
+
+```bash
+stellar --version
+```
+
+## Shell completions
+
+stellar can generate completions for its commands as well as the theme
+names in your local cache, for your shell of choice.
+
+<Callout type="tip" title="Completing themes you haven't downloaded yet">
+
+Completion only suggests themes from your local cache, so it's instant and
+works offline. Set `STELLAR_COMPLETION_ONLINE=1` to have it suggest hub
+themes too — that adds up to ~2 seconds of network lookup per completion,
+and falls back to local-only when the hub can't be reached.
+
+</Callout>
+
+### Bash
+
+```bash
+stellar completion bash > ~/.local/share/bash-completion/completions/stellar
+```
+
+Or source it directly from your `.bashrc`:
+
+```bash
+source <(stellar completion bash)
+```
+
+### Zsh
+
+```bash
+stellar completion zsh > "${fpath[1]}/_stellar"
+```
+
+### Fish
+
+```bash
+stellar completion fish > ~/.config/fish/completions/stellar.fish
+```
+
+### PowerShell
+
+Add this to your `$PROFILE`:
+
+```powershell
+stellar completion powershell | Out-String | Invoke-Expression
+```
+
+## Next steps
+
+<NextSteps pages={["browse", "commands"]} />

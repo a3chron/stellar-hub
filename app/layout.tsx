@@ -24,7 +24,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // data-scroll-behavior lets Next.js suppress the CSS smooth scrolling
+    // during route transitions (instant jump to top), while in-page anchor
+    // clicks (docs ToC) stay smooth.
+    <html lang="en" data-scroll-behavior="smooth">
       <body className={`${geistMono.variable} antialiased`}>
         <Analytics />
         <SpeedInsights />

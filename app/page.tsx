@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { HeroVideo } from "@/components/hero-video";
 import { ThemeFiltersWrapper } from "@/components/home/theme-filters-wrapper";
 import { ThemeGridWrapper } from "@/components/home/theme-grid-wrapper";
-import InstallIntruction from "@/components/install-intruction";
 import { FiltersSkeleton } from "@/components/skeletons/filters-skeleton";
 import { ThemeGridSkeleton } from "@/components/skeletons/theme-grid-skeleton";
 import type { colorModeEnum } from "@/lib/db/schema";
@@ -59,7 +58,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             Beautiful Starship themes, one command away
           </p>
           <div className="flex flex-wrap mt-8 gap-10 md:gap-6">
-            <InstallIntruction />
+            <Link
+              href="/docs/installing"
+              className="p-4 px-10 rounded-xl border-2 border-ctp-text bg-ctp-text text-lg font-medium text-ctp-base transition hover:ring-2 hover:ring-ctp-surface1 ring-offset-4 ring-offset-ctp-base"
+            >
+              Install stellar
+            </Link>
             <Link
               href={"/upload"}
               className="p-4 px-6 rounded-xl border-2 border-ctp-crust bg-ctp-mantle text-lg font-medium transition hover:ring-2 hover:ring-ctp-surface0 ring-offset-4 ring-offset-ctp-base"

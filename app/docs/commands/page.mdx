@@ -1,0 +1,162 @@
+export const metadata = { title: "Commands" };
+
+# Commands
+
+Most commands take a theme identifier in the form `author/slug@version`.
+The version is optional — when omitted, stellar uses the latest local
+version if you have one cached, or downloads the latest version from the
+hub.
+
+| Command | Description |
+| --- | --- |
+| `stellar apply` | Apply a theme (downloads it if needed) |
+| `stellar preview` | Preview a theme in a new terminal window |
+| `stellar list` | List cached themes |
+| `stellar current` | Show the currently applied theme |
+| `stellar info` | Show details about a theme |
+| `stellar clean` | Remove cached themes you're not using |
+| `stellar remove` | Remove one or more cached themes |
+| `stellar rollback` | Switch back to the previously applied theme |
+| `stellar update` | Update the stellar CLI itself |
+| `stellar version` | Show the installed version and check for updates |
+| `stellar completion` | Generate shell completions |
+
+## apply
+
+Applies a theme, making it your active starship config.
+
+```bash
+# Uses the latest local version, or downloads the latest version if not cached
+stellar apply a3chron/ctp-blue
+
+# Apply a specific version
+stellar apply a3chron/ctp-blue@1.2
+
+# Check for updates and download if available
+stellar apply a3chron/ctp-blue --update
+
+# Apply without being asked to confirm custom shell commands
+stellar apply a3chron/ctp-blue --force
+```
+
+<Callout type="caution" title="Themes can run shell commands">
+
+Starship configs may contain [`custom`
+commands](https://starship.rs/config/#custom-commands), which run arbitrary
+shell code every time your prompt is drawn. When a theme contains any,
+stellar warns you, links you to the theme's page so you can read the config,
+and asks for confirmation before applying it.
+
+`--force` (or `-f`) skips that confirmation. Only use it for themes you've
+read yourself, or in scripts applying a theme you already trust.
+
+</Callout>
+
+## preview
+
+Opens a new terminal window with the theme applied, without changing your
+active config.
+
+```bash
+stellar preview a3chron/ctp-red
+```
+
+<Callout type="tip" title="Not yet supported on Windows">
+
+`stellar preview` currently only spawns terminals on macOS and Linux.
+
+</Callout>
+
+## list
+
+Lists all themes currently cached locally.
+
+```bash
+stellar list
+```
+
+## current
+
+Shows which theme is currently applied.
+
+```bash
+stellar current
+```
+
+## info
+
+Shows metadata for a theme, such as its description and available
+versions.
+
+```bash
+stellar info a3chron/ctp-green
+```
+
+## clean
+
+Removes cached theme versions you're not currently using, freeing up
+space in `~/.config/stellar/`.
+
+```bash
+stellar clean
+
+# Also remove the currently applied theme's cache entry
+stellar clean --all
+```
+
+## remove
+
+Removes a cached theme, either entirely or a specific version.
+
+```bash
+# Remove all versions of a theme
+stellar remove a3chron/ctp-green
+
+# Remove a specific version only
+stellar remove a3chron/ctp-green@1.0
+
+# Remove multiple themes at once
+stellar remove a3chron/ctp-green a3chron/ctp-red
+
+# Remove a theme even though it's the one currently applied
+stellar remove a3chron/ctp-green --force
+```
+
+By default stellar refuses to remove the theme you're currently using, so
+you don't end up with a `starship.toml` pointing at a file that's gone.
+Pass `--force` (or `-f`) when you mean it.
+
+## rollback
+
+Switches back to whichever theme was applied before the current one.
+
+```bash
+stellar rollback
+```
+
+## update
+
+Updates the stellar CLI binary itself to the latest release.
+
+```bash
+stellar update
+```
+
+## completion
+
+Generates a shell completion script. See [installing](/docs/installing) for
+setup per shell.
+
+```bash
+stellar completion bash
+```
+
+For the full list of flags and subcommands, run:
+
+```bash
+stellar --help
+```
+
+## Next steps
+
+<NextSteps pages={["how-it-works", "troubleshooting"]} />

@@ -2,6 +2,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
+import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
@@ -13,6 +14,33 @@ import { downloadRateLimiter, getClientIP } from "@/lib/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase";
 
 type RouteParams = { params: Promise<{ author: string; slug: string }> };
+
+// Mirrors the limits /api/upload enforces at create time, so a field that
+// can't exceed 500 characters on a new theme can't exceed it on an edit
+// either. Every field is optional: PATCH callers may send a subset, and an
+// omitted or blank one keeps/clears the stored value as before.
+const patchMetadataSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .max(100, "Name must be 100 characters or less")
+    .optional(),
+  description: z
+    .string()
+    .max(500, "Description must be 500 characters or less")
+    .optional(),
+  group: z
+    .string()
+    .trim()
+    .max(100, "Group must be 100 characters or less")
+    .optional(),
+  colorSchemeId: z
+    .string()
+    .uuid("Invalid color scheme")
+    .optional()
+    .or(z.literal("")),
+  colorMode: z.enum(["dark", "light", "both"]).optional(),
+});
 
 /**
  * GET /api/[author]/[slug]
@@ -199,18 +227,56 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const formData = await request.formData();
-    const name = formData.get("name") as string;
-    const description = formData.get("description") as string | null;
-    const colorSchemeId = formData.get("colorSchemeId") as string | null;
-    const colorModeParam = formData.get("colorMode") as string | null;
-    const colorMode =
-      colorModeParam === "dark" ||
-      colorModeParam === "light" ||
-      colorModeParam === "both"
-        ? colorModeParam
-        : null;
-    const group = formData.get("group") as string | null;
     const screenshot = formData.get("screenshot") as File | null;
+
+    // Only forward fields that were actually submitted, so an omitted field
+    // stays absent rather than becoming the string "null".
+    const submitted: Record<string, string> = {};
+    for (const field of [
+      "name",
+      "description",
+      "group",
+      "colorSchemeId",
+      "colorMode",
+    ]) {
+      const value = formData.get(field);
+      if (value !== null) {
+        submitted[field] = String(value);
+      }
+    }
+
+    const parsed = patchMetadataSchema.safeParse(submitted);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: parsed.error.errors[0]?.message ?? "Validation failed",
+          details: parsed.error.errors,
+        },
+        { status: 400 },
+      );
+    }
+
+    // This is a PATCH: a field the caller didn't send keeps its stored value
+    // instead of being cleared. (The edit form always submits every field, so
+    // clearing a description there still works - it sends an empty one.)
+    const updates: Partial<typeof themes.$inferInsert> = {};
+    if (parsed.data.name) {
+      // A blank or whitespace-only name means "leave it alone" rather than
+      // "call the theme nothing".
+      updates.name = parsed.data.name;
+    }
+    if (parsed.data.description !== undefined) {
+      updates.description = parsed.data.description || null;
+    }
+    if (parsed.data.group !== undefined) {
+      updates.group = parsed.data.group || null;
+    }
+    if (parsed.data.colorSchemeId !== undefined) {
+      updates.colorSchemeId = parsed.data.colorSchemeId || null;
+    }
+    if (parsed.data.colorMode !== undefined) {
+      updates.colorMode = parsed.data.colorMode;
+    }
 
     let screenshotUrl = theme.screenshotUrl;
 
@@ -270,11 +336,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     await db
       .update(themes)
       .set({
-        name: name || theme.name,
-        description: description || null,
-        colorSchemeId: colorSchemeId || null,
-        colorMode: colorMode ?? theme.colorMode,
-        group: group || null,
+        ...updates,
         screenshotUrl,
         updatedAt: new Date(),
       })

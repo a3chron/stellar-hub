@@ -12,11 +12,39 @@ import {
 } from "@/lib/file-validation";
 import { supabaseAdmin } from "@/lib/supabase";
 
-// Schema for validating social links
+// GitHub usernames: alphanumeric and hyphens, no leading/trailing hyphen,
+// max 39 chars.
+const githubUsernameRegex = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
+
+// The bio is rendered on the public author page, so it needs a server-side
+// cap - the form's maxLength is a hint to the browser, not a limit anyone
+// posting to this endpoint directly has to respect. Matches the 500 the
+// upload route enforces on theme descriptions.
+const bioSchema = z.string().max(500, "Bio must be 500 characters or less");
+
+// Schema for validating social links. `github` is stored as a plain
+// username (the author page renders it as https://github.com/<username>),
+// but a pasted profile URL is accepted and normalized down to the username.
 const socialLinksSchema = z
   .object({
-    github: z.string().url().optional().or(z.literal("")),
-    website: z.string().url().optional().or(z.literal("")),
+    github: z
+      .string()
+      .trim()
+      .transform((v) =>
+        v
+          .replace(/^(?:https?:\/\/)?(?:www\.)?github\.com\//i, "")
+          .replace(/\/+$/, ""),
+      )
+      .refine((v) => v === "" || githubUsernameRegex.test(v), {
+        message: "GitHub should be just your username, e.g. a3chron",
+      })
+      .optional(),
+    website: z
+      .string()
+      .trim()
+      .url("Website must be a full URL, e.g. https://example.com")
+      .optional()
+      .or(z.literal("")),
   })
   .strict();
 
@@ -32,20 +60,46 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const bio = formData.get("bio") as string;
+    const bioRaw = formData.get("bio");
     const socialLinksJson = formData.get("socialLinks") as string;
     const avatarFile = formData.get("avatar") as File | null;
 
+    // `undefined` means "not submitted", and such a field is left alone
+    // below rather than cleared - a request that only uploads an avatar
+    // shouldn't wipe the user's bio and links.
+    let bio: string | null | undefined;
+    if (bioRaw !== null) {
+      const parsedBio = bioSchema.safeParse(String(bioRaw));
+      if (!parsedBio.success) {
+        return NextResponse.json(
+          { error: parsedBio.error.errors[0]?.message ?? "Invalid bio" },
+          { status: 400 },
+        );
+      }
+      bio = parsedBio.data || null;
+    }
+
     // Parse and validate social links
-    let socialLinks: { github?: string; website?: string } = {};
+    let socialLinks: { github?: string; website?: string } | undefined;
     if (socialLinksJson) {
       try {
         const parsed = JSON.parse(socialLinksJson);
         socialLinks = socialLinksSchema.parse(parsed);
+        // Don't persist empty strings - the author page checks truthiness,
+        // and {} keeps the stored shape clean.
+        if (!socialLinks.github) {
+          delete socialLinks.github;
+        }
+        if (!socialLinks.website) {
+          delete socialLinks.website;
+        }
       } catch (error) {
         if (error instanceof z.ZodError) {
           return NextResponse.json(
-            { error: "Invalid social links format", details: error.errors },
+            {
+              error: error.errors[0]?.message ?? "Invalid social links format",
+              details: error.errors,
+            },
             { status: 400 },
           );
         }
@@ -134,9 +188,9 @@ export async function POST(request: NextRequest) {
     await db
       .update(userTable)
       .set({
-        bio: bio || null,
+        ...(bio !== undefined && { bio }),
         image: avatarUrl,
-        socialLinks,
+        ...(socialLinks !== undefined && { socialLinks }),
         updatedAt: new Date(),
       })
       .where(eq(userTable.id, session.user.id));

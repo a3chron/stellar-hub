@@ -1,16 +1,64 @@
 import { asc, desc, eq, or, type SQL, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { colorModeEnum, themes } from "@/lib/db/schema";
+import { colorModeEnum, themes, user } from "@/lib/db/schema";
+
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Escapes the wildcards ILIKE would otherwise interpret, so a search for
+ * "100%" or "a_c" matches those characters literally instead of everything.
+ */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, "\\$&");
+}
+
+/**
+ * Parses a query-string integer, falling back to `fallback` for anything
+ * unparseable and clamping the rest into [min, max]. This endpoint is public
+ * and unauthenticated, so a junk `?limit=` should be a quiet default rather
+ * than a stack trace in the logs.
+ */
+function clampInt(
+  raw: string | null,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  if (raw === null) {
+    return fallback;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(Math.max(parsed, min), max);
+}
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const search = searchParams.get("search");
     const sort = searchParams.get("sort") || "trending";
-    const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 100);
-    const offset = parseInt(searchParams.get("offset") || "0");
-    const colorScheme = searchParams.get("colorScheme");
+    // parseInt alone would let "abc" through as NaN and "-5" through as a
+    // negative, both of which Postgres rejects outright - a 500 for what is
+    // really a malformed request.
+    const limit = clampInt(searchParams.get("limit"), 20, 1, 100);
+    const offset = clampInt(
+      searchParams.get("offset"),
+      0,
+      0,
+      Number.MAX_SAFE_INTEGER,
+    );
+    const colorSchemeParam = searchParams.get("colorScheme");
+    if (colorSchemeParam && !UUID_REGEX.test(colorSchemeParam)) {
+      return NextResponse.json(
+        { error: "colorScheme must be a UUID" },
+        { status: 400 },
+      );
+    }
+    const colorScheme = colorSchemeParam;
     const colorModeParam = searchParams.get("colorMode");
     const colorMode = colorModeEnum.enumValues.includes(
       colorModeParam as (typeof colorModeEnum.enumValues)[number],
@@ -18,13 +66,15 @@ export async function GET(request: NextRequest) {
       ? (colorModeParam as (typeof colorModeEnum.enumValues)[number])
       : null;
     const author = searchParams.get("author");
+    const authorName = searchParams.get("authorName");
 
     // Apply filters
     const conditions = [];
 
     if (search) {
+      const term = `%${escapeLike(search)}%`;
       conditions.push(
-        sql`(${themes.name} ILIKE ${`%${search}%`} OR ${themes.description} ILIKE ${`%${search}%`})`,
+        sql`(${themes.name} ILIKE ${term} OR ${themes.description} ILIKE ${term})`,
       );
     }
 
@@ -46,6 +96,14 @@ export async function GET(request: NextRequest) {
 
     if (author) {
       conditions.push(eq(themes.authorId, author));
+    }
+
+    if (authorName) {
+      // Prefix match on author name (used by CLI tab completion).
+      const prefix = escapeLike(authorName);
+      conditions.push(
+        sql`${themes.authorId} IN (SELECT ${user.id} FROM ${user} WHERE ${user.name} ILIKE ${`${prefix}%`})`,
+      );
     }
 
     // Apply sorting

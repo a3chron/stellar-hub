@@ -36,6 +36,13 @@
       "when": 1772807722399,
       "tag": "0004_common_warbound",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1788989137540,
+      "tag": "0005_secret_betty_brant",
+      "breakpoints": true
     }
   ]
 }

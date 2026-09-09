@@ -114,3 +114,15 @@ export function getClientIP(request: Request): string {
 
   return createHash("sha256").update(ip).digest("hex");
 }
+
+/**
+ * Rate limiter for the CLI's install reports (POST /api/cli/ping).
+ * Keyed by the install id rather than IP: one install reports a handful of
+ * times in its whole life, so 10 per 10 minutes is generous for a retry loop
+ * and still stops a script from inflating the count from one id.
+ */
+export const pingRateLimiter = new RateLimiter({
+  maxEntries: 10000,
+  windowMs: 10 * 60 * 1000, // 10 minutes
+  maxRequests: 10,
+});

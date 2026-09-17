@@ -108,6 +108,40 @@ export const themes = pgTable(
   }),
 );
 
+// CLI installs
+//
+// One row per stellar CLI install, keyed by the random id the CLI generates on
+// its first run and keeps in ~/.config/stellar/config.json. The CLI reports on
+// first run, after a version change and on uninstall — never periodically — so
+// `version` is "the last version this install was seen running", and
+// `uninstalled_at` is what makes the install count go down again. Nothing that
+// could identify a machine or a person is stored: no IP, no hostname, no paths.
+export const cliInstalls = pgTable(
+  "cli_installs",
+  {
+    // Client-generated (UUID v4), so deliberately no defaultRandom().
+    id: uuid("id").primaryKey(),
+    // "install": config.json did not exist on first run (a clean install).
+    // "existing": the install predates reporting and adopted an id later.
+    kind: text("kind").notNull(),
+    os: text("os"),
+    arch: text("arch"),
+    firstVersion: text("first_version").notNull(),
+    version: text("version").notNull(),
+    // Version changes seen, i.e. `stellar update` runs plus re-installs.
+    updates: integer("updates").default(0).notNull(),
+    firstSeenAt: timestamp("first_seen_at").defaultNow().notNull(),
+    lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+    uninstalledAt: timestamp("uninstalled_at"),
+  },
+  (table) => ({
+    versionIdx: index("idx_cli_installs_version").on(table.version),
+    uninstalledAtIdx: index("idx_cli_installs_uninstalled_at").on(
+      table.uninstalledAt,
+    ),
+  }),
+);
+
 // Theme Versions
 export const themeVersions = pgTable(
   "theme_versions",

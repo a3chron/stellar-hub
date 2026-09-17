@@ -19,6 +19,7 @@ hub.
 | `stellar rollback` | Switch back to the previously applied theme |
 | `stellar update` | Update the stellar CLI itself |
 | `stellar version` | Show the installed version and check for updates |
+| `stellar uninstall` | Remove stellar, keeping your current prompt as a plain file |
 | `stellar completion` | Generate shell completions |
 
 ## apply
@@ -141,6 +142,26 @@ Updates the stellar CLI binary itself to the latest release.
 ```bash
 stellar update
 ```
+
+## uninstall
+
+Removes stellar itself: the binary and `~/.config/stellar`, after telling the
+hub there is one install less. If your `starship.toml` is a symlink into
+stellar's cache it is first replaced by a plain copy of the current theme,
+so your prompt looks the same afterwards.
+
+```bash
+stellar uninstall
+
+# Keep ~/.config/stellar (cache, backups and config) around
+stellar uninstall --keep-config
+
+# Don't ask for confirmation
+stellar uninstall --yes
+```
+
+See [installing](/docs/installing#uninstalling) for the script versions and
+for what stellar reports to the hub.
 
 ## completion
 

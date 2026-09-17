@@ -98,6 +98,52 @@ Add this to your `$PROFILE`:
 stellar completion powershell | Out-String | Invoke-Expression
 ```
 
+## Uninstalling
+
+The uninstall scripts mirror the install ones: they remove the binary and
+stellar's config directory, and let the hub know there is one install less.
+
+<OSTabs>
+<OSTab os="linux-macos">
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/a3chron/stellar/main/uninstall.sh | bash
+```
+
+</OSTab>
+<OSTab os="windows">
+
+```powershell
+irm https://raw.githubusercontent.com/a3chron/stellar/main/uninstall.ps1 | iex
+```
+
+This also removes `%LOCALAPPDATA%\stellar\bin` from your PATH again.
+
+</OSTab>
+</OSTabs>
+
+From an installed binary, `stellar uninstall` does the same thing. Your
+prompt keeps working: if `starship.toml` is a symlink into stellar's cache,
+it is turned into a plain file with the current theme's content first. Then
+`~/.config/stellar` is removed — including your backups — unless you pass
+`--keep-config`. Pass `--yes` to skip the confirmation.
+
+```bash
+# Remove stellar but keep ~/.config/stellar (cache, backups, config)
+stellar uninstall --keep-config
+```
+
+<Callout type="note" title="What stellar reports">
+
+On its first run, after a version change and on uninstall, stellar sends one
+anonymous request to the hub: a random install id, whether it was a clean
+install or an existing one, the CLI version, the previously reported version,
+your OS and CPU architecture. Nothing else — no theme names, paths, user
+names or IP addresses are stored. Set `STELLAR_NO_TELEMETRY=1` or
+`DO_NOT_TRACK=1` to switch it off entirely; dev builds never report.
+
+</Callout>
+
 ## Next steps
 
 <NextSteps pages={["browse", "commands"]} />

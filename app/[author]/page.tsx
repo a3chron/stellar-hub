@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ThemeCard from "@/components/theme-card";
 import { db } from "@/lib/db";
+import { usernameEquals } from "@/lib/username";
 import { formatCompactNumber } from "@/lib/utils";
 
 interface PageProps {
@@ -17,7 +18,7 @@ export default async function AuthorPage({ params }: PageProps) {
 
   // Find author by name
   const author = await db.query.user.findFirst({
-    where: (user, { eq }) => eq(user.name, authorName),
+    where: (user) => usernameEquals(user.username, authorName),
     with: {
       themes: {
         with: {
@@ -67,7 +68,10 @@ export default async function AuthorPage({ params }: PageProps) {
           {/* Profile Info */}
           <div className="flex-1">
             <div className="flex items-center gap-8">
-              <h1 className="text-4xl font-bold mb-2">{author.name}</h1>
+              <div className="mb-2">
+                <h1 className="text-4xl font-bold">{author.name}</h1>
+                <p className="text-ctp-subtext0">@{author.username}</p>
+              </div>
               <div className="flex gap-4">
                 {author.socialLinks?.github && (
                   <Link
@@ -143,6 +147,7 @@ export default async function AuthorPage({ params }: PageProps) {
                     colorMode: theme.colorMode,
                     author: {
                       name: author.name,
+                      username: author.username,
                     },
                     colorScheme: theme.colorScheme || null,
                   }}
@@ -161,7 +166,7 @@ export async function generateMetadata({ params }: PageProps) {
   const { author: authorName } = await params;
 
   const author = await db.query.user.findFirst({
-    where: (user, { eq }) => eq(user.name, authorName),
+    where: (user) => usernameEquals(user.username, authorName),
   });
 
   if (!author) {
@@ -170,12 +175,22 @@ export async function generateMetadata({ params }: PageProps) {
     };
   }
 
+  const description = author.bio || `Starship themes by ${author.name}`;
+
   return {
-    title: `${author.name} - Stellar`,
-    description: author.bio || `Starship themes by ${author.name}`,
+    // The root layout's title.template appends " - Stellar" automatically.
+    title: author.name,
+    description,
     openGraph: {
       title: `${author.name} - Stellar`,
-      description: author.bio || `Starship themes by ${author.name}`,
+      description,
+      images: author.image ? [author.image] : [],
+      type: "profile",
+    },
+    twitter: {
+      card: "summary",
+      title: `${author.name} - Stellar`,
+      description,
       images: author.image ? [author.image] : [],
     },
   };

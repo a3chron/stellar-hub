@@ -8,10 +8,13 @@ import { useEffect, useRef, useState } from "react";
 export default function ProfileDropdown({
   userImage,
   userName,
+  username,
   handleSignout,
 }: {
   userImage?: string | null;
   userName: string;
+  /** The author handle - what /[author] resolves by, unlike the display name. */
+  username?: string | null;
   handleSignout: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -78,14 +81,16 @@ export default function ProfileDropdown({
             <span>Publish</span>
           </Link>
 
-          <Link
-            href={`/${userName}`}
-            className="flex items-center gap-3 px-4 py-3 text-sm text-ctp-text hover:bg-ctp-surface0 transition-colors"
-            onClick={() => setIsOpen(false)}
-          >
-            <User size={16} className="text-ctp-subtext0" />
-            <span>Profile</span>
-          </Link>
+          {username && (
+            <Link
+              href={`/${username}`}
+              className="flex items-center gap-3 px-4 py-3 text-sm text-ctp-text hover:bg-ctp-surface0 transition-colors"
+              onClick={() => setIsOpen(false)}
+            >
+              <User size={16} className="text-ctp-subtext0" />
+              <span>Profile</span>
+            </Link>
+          )}
 
           <Link
             href="/settings"

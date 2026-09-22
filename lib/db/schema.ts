@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -14,20 +14,46 @@ import {
 
 export const colorModeEnum = pgEnum("color_mode", ["dark", "light", "both"]);
 
-export const user = pgTable("user", {
-  id: text("id").primaryKey(),
-  name: text("name").notNull(),
-  email: text("email").notNull().unique(),
-  emailVerified: boolean("emailVerified").notNull().default(false),
-  image: text("image"),
-  bio: text("bio"),
-  socialLinks: jsonb("social_links").$type<{
-    github?: string;
-    website?: string;
-  }>(),
-  createdAt: timestamp("createdAt").notNull(),
-  updatedAt: timestamp("updatedAt").notNull(),
-});
+export const user = pgTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    // Display name. Free-form: a GitHub login, or the full name Google hands
+    // over. Not an identifier - see `username`.
+    name: text("name").notNull(),
+    // The public author handle: the `/[author]` URL segment and the `author`
+    // half of the CLI's `stellar apply <author>/<theme>`. Constrained to the
+    // CLI's identifier charset and unique case-insensitively (see the index
+    // below and lib/username.ts). Backfilled from `name` for the GitHub-only
+    // accounts that predate it, so existing profile URLs keep resolving.
+    username: text("username")
+      .notNull()
+      // A DB-level default so a row can never be written without a handle.
+      // The app always supplies one; this exists so that running the migration
+      // ahead of the deploy does not break user creation in the gap, and so a
+      // future insert that forgets the column degrades to a usable random
+      // handle instead of a 500.
+      .default(sql`('user-' || substr(md5(random()::text), 1, 12))`),
+    email: text("email").notNull().unique(),
+    emailVerified: boolean("emailVerified").notNull().default(false),
+    image: text("image"),
+    bio: text("bio"),
+    socialLinks: jsonb("social_links").$type<{
+      github?: string;
+      website?: string;
+    }>(),
+    createdAt: timestamp("createdAt").notNull(),
+    updatedAt: timestamp("updatedAt").notNull(),
+  },
+  (table) => ({
+    // Lookups are case-insensitive (`/A3chron` has to resolve to `a3chron`),
+    // so the uniqueness guarantee has to be too - a plain unique index would
+    // let "Bob" and "bob" both exist and make the route ambiguous again.
+    uniqueUsernameLower: uniqueIndex("unique_username_lower").on(
+      sql`lower(${table.username})`,
+    ),
+  }),
+);
 
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
@@ -35,6 +61,9 @@ export const session = pgTable("session", {
   token: text("token").notNull().unique(),
   createdAt: timestamp("createdAt").notNull(),
   updatedAt: timestamp("updatedAt").notNull(),
+  // Not a raw address: lib/auth.ts replaces it with an HMAC under
+  // BETTER_AUTH_SECRET before the row is written, so the value is a stable
+  // pseudonym that cannot be reversed from the database alone.
   ipAddress: text("ipAddress"),
   userAgent: text("userAgent"),
   userId: text("userId")

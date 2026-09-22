@@ -6,6 +6,8 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { themes, themeVersions } from "@/lib/db/schema";
 import type { ThemeVersion } from "@/lib/db/types";
+import { hasCustomSections } from "@/lib/toml-custom-detect";
+import { usernameEquals } from "@/lib/username";
 
 type RouteParams = {
   params: Promise<{ author: string; slug: string; version: string }>;
@@ -24,7 +26,7 @@ const newVersionSchema = z.object({
  */
 async function findThemeByAuthorAndSlug(authorName: string, themeSlug: string) {
   const author = await db.query.user.findFirst({
-    where: (user, { eq }) => eq(user.name, authorName),
+    where: (user) => usernameEquals(user.username, authorName),
   });
 
   if (!author) {
@@ -93,8 +95,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Preview mode returns JSON with config content and metadata
     if (preview) {
-      // Check for custom commands to warn in UI
-      const hasCustomCommands = version.configContent.includes("[custom.");
+      // Check for custom commands to warn in UI. Shares one detector with the
+      // versions list, so a config can never be flagged in one place and look
+      // clean in another - see lib/toml-custom-detect.ts.
+      const hasCustomCommands = hasCustomSections(version.configContent);
 
       return NextResponse.json({
         version: version.version,
@@ -201,7 +205,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (data.config.includes("[custom.")) {
+    if (hasCustomSections(data.config)) {
       console.warn("Theme contains custom commands:", themeSlug);
     }
 

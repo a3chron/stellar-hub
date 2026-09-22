@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { themes, themeVersions } from "@/lib/db/schema";
 import { supabaseAdmin } from "@/lib/supabase";
+import { hasCustomSections } from "@/lib/toml-custom-detect";
 
 // Validation schema
 const uploadSchema = z.object({
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Check for custom commands (security warning)
-      if (data.config.includes("[custom.")) {
+      if (hasCustomSections(data.config)) {
         console.warn("Theme contains custom commands:", data.slug);
       }
     } catch (_error) {
@@ -186,7 +187,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: !!version,
       slug: data.slug,
-      author: session.user.name,
+      author: session.user.username,
       version: normalizedVersion,
     });
   } catch (error) {

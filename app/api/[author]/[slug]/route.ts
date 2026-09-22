@@ -12,6 +12,7 @@ import {
 } from "@/lib/file-validation";
 import { downloadRateLimiter, getClientIP } from "@/lib/rate-limit";
 import { supabaseAdmin } from "@/lib/supabase";
+import { usernameEquals } from "@/lib/username";
 
 type RouteParams = { params: Promise<{ author: string; slug: string }> };
 
@@ -51,7 +52,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     const { author: authorName, slug: themeSlug } = await params;
 
     const author = await db.query.user.findFirst({
-      where: (user, { eq }) => eq(user.name, authorName),
+      where: (user) => usernameEquals(user.username, authorName),
     });
 
     if (!author) {
@@ -65,6 +66,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
           columns: {
             id: true,
             name: true,
+            username: true,
             image: true,
             bio: true,
           },
@@ -84,7 +86,15 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       id: theme.id,
       author: {
         id: theme.author.id,
-        name: theme.author.name,
+        // `name` is the author *handle*, not the display name. Released CLI
+        // versions read this field as the author half of
+        // `stellar apply <author>/<theme>` (see internal/completion), so it has
+        // to keep meaning what it has always meant. `displayName` carries the
+        // free-form name for anything that wants to show a person rather than
+        // address them.
+        name: theme.author.username,
+        username: theme.author.username,
+        displayName: theme.author.name,
         image: theme.author.image,
         bio: theme.author.bio,
       },
@@ -130,7 +140,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     }
 
     const author = await db.query.user.findFirst({
-      where: (user, { eq }) => eq(user.name, authorName),
+      where: (user) => usernameEquals(user.username, authorName),
     });
 
     if (!author) {
@@ -204,7 +214,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const author = await db.query.user.findFirst({
-      where: (user, { eq }) => eq(user.name, authorName),
+      where: (user) => usernameEquals(user.username, authorName),
     });
 
     if (!author) {
@@ -379,7 +389,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const author = await db.query.user.findFirst({
-      where: (user, { eq }) => eq(user.name, authorName),
+      where: (user) => usernameEquals(user.username, authorName),
     });
 
     if (!author) {

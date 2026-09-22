@@ -11,6 +11,7 @@ interface ThemeCardProps {
     colorMode: "dark" | "light" | "both";
     author: {
       name: string;
+      username: string;
     };
     colorScheme: {
       name: string;
@@ -22,7 +23,7 @@ interface ThemeCardProps {
 export default function ThemeCard({ theme, priority = false }: ThemeCardProps) {
   return (
     <Link
-      href={`/${theme.author.name}/${theme.slug}`}
+      href={`/${theme.author.username}/${theme.slug}`}
       className="group block bg-ctp-mantle rounded-lg border-2 border-ctp-crust"
     >
       <div className="overflow-hidden rounded-t-lg relative h-36">

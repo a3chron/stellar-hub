@@ -99,10 +99,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (authorName) {
-      // Prefix match on author name (used by CLI tab completion).
+      // Prefix match on the author handle (used by CLI tab completion) -
+      // the handle is what `stellar apply <author>/<theme>` takes, so
+      // completing against the display name would suggest unusable values.
       const prefix = escapeLike(authorName);
       conditions.push(
-        sql`${themes.authorId} IN (SELECT ${user.id} FROM ${user} WHERE ${user.name} ILIKE ${`${prefix}%`})`,
+        sql`${themes.authorId} IN (SELECT ${user.id} FROM ${user} WHERE ${user.username} ILIKE ${`${prefix}%`})`,
       );
     }
 
@@ -142,6 +144,7 @@ export async function GET(request: NextRequest) {
           columns: {
             id: true,
             name: true,
+            username: true,
             image: true,
           },
         },
@@ -161,7 +164,15 @@ export async function GET(request: NextRequest) {
       id: theme.id,
       author: {
         id: theme.author.id,
-        name: theme.author.name,
+        // `name` is the author *handle*, not the display name. Released CLI
+        // versions read this field as the author half of
+        // `stellar apply <author>/<theme>` (see internal/completion), so it has
+        // to keep meaning what it has always meant. `displayName` carries the
+        // free-form name for anything that wants to show a person rather than
+        // address them.
+        name: theme.author.username,
+        username: theme.author.username,
+        displayName: theme.author.name,
         image: theme.author.image,
       },
       name: theme.name,

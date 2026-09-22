@@ -2,10 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DOCS_CARD_KEYS, DOCS_PAGES } from "@/components/docs/pages";
 
-// Spelled out rather than relying on the layout's title template: Next does
-// not apply a template to a page in the same segment as the layout that
+// Spelled out rather than relying on the docs layout's title template: Next
+// does not apply a template to a page in the same segment as the layout that
 // declares it, so this would otherwise render as a bare "Overview".
-export const metadata: Metadata = { title: "Overview | stellar docs" };
+//
+// "absolute" because the ROOT layout's "%s - Stellar" template still applies
+// to a plain string here, which rendered "Overview | stellar docs - Stellar".
+export const metadata: Metadata = {
+  title: { absolute: "Overview | stellar docs" },
+};
 
 const CARDS = DOCS_CARD_KEYS.map((key) => DOCS_PAGES[key]);
 

@@ -19,7 +19,7 @@ export default async function UploadPage() {
   });
 
   return (
-    <main className="min-h-screen bg-ctp-base">
+    <main className="bg-ctp-base">
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-2xl mx-auto">
           <h1 className="text-4xl font-bold text-ctp-text mb-2">
@@ -36,6 +36,7 @@ export default async function UploadPage() {
 }
 
 export const metadata = {
-  title: "Upload Theme - Stellar",
+  // The root layout's title.template appends " - Stellar" automatically.
+  title: "Upload Theme",
   description: "Share your Starship theme with the community",
 };

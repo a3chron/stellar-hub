@@ -10,7 +10,9 @@ import { ThemeGridSkeleton } from "@/components/skeletons/theme-grid-skeleton";
 import type { colorModeEnum } from "@/lib/db/schema";
 
 export const metadata: Metadata = {
-  title: "Stellar - Beautiful Starship Themes",
+  // Absolute: bypasses the root layout's `%s - Stellar` template so this
+  // doesn't render as "Stellar - Beautiful Starship Themes - Stellar".
+  title: { absolute: "Stellar - Beautiful Starship Themes" },
   description:
     "Discover and install beautiful Starship shell prompt themes with a single command. Browse community-created themes and customize your terminal.",
   openGraph: {

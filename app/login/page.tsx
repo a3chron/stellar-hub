@@ -46,9 +46,25 @@ function LoginContent() {
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
+  // Seconds left before the resend button re-enables. The endpoint sends real
+  // mail to whatever address it is given, so a button that can be held down is
+  // a way to mail-bomb someone; the server caps it too, but the client should
+  // not be firing requests it knows will be refused.
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">(
+    "idle",
+  );
   const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>({
     state: "idle",
   });
+
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      return;
+    }
+    const timer = setTimeout(() => setResendCooldown((n) => n - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const usernameId = useId();
   const emailId = useId();
@@ -91,6 +107,18 @@ function LoginContent() {
       clearTimeout(timer);
     };
   }, [username, mode]);
+
+  async function handleResend() {
+    setResendState("sending");
+    // Deliberately not reporting whether it succeeded beyond "sent": the
+    // failure modes here are a rate-limit refusal or a provider error, and
+    // neither is something the reader can act on differently.
+    await authClient
+      .sendVerificationEmail({ email, callbackURL: callbackUrl })
+      .catch(() => undefined);
+    setResendState("sent");
+    setResendCooldown(30);
+  }
 
   const handleSocial = useCallback(
     async (provider: SocialProvider) => {
@@ -173,7 +201,26 @@ function LoginContent() {
           you can publish themes.
         </p>
         <p className="mt-6 text-sm leading-relaxed text-ctp-subtext0">
-          Nothing arrived? Check your spam folder, or{" "}
+          Nothing arrived? Check your spam folder first - then send it again.
+        </p>
+
+        <button
+          type="button"
+          onClick={handleResend}
+          disabled={resendState === "sending" || resendCooldown > 0}
+          className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-ctp-surface0 bg-ctp-mantle px-4 py-3 text-sm font-medium text-ctp-text transition-colors hover:bg-ctp-surface0 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {resendState === "sending" && (
+            <Loader2 size={16} className="animate-spin" />
+          )}
+          {resendCooldown > 0 && `Sent - resend in ${resendCooldown}s`}
+          {resendCooldown === 0 && resendState === "sending" && "Sending..."}
+          {resendCooldown === 0 &&
+            resendState !== "sending" &&
+            "Resend confirmation email"}
+        </button>
+
+        <p className="mt-6 text-sm text-ctp-subtext0">
           <button
             type="button"
             onClick={() => {
@@ -182,9 +229,8 @@ function LoginContent() {
             }}
             className="cursor-pointer text-ctp-lavender underline underline-offset-4"
           >
-            sign in again
-          </button>{" "}
-          to have a new link sent.
+            Back to sign in
+          </button>
         </p>
       </AuthShell>
     );

@@ -62,14 +62,18 @@ if (process.env.NODE_ENV === "production" && !isEmailConfigured()) {
 }
 
 export const auth = betterAuth({
-  // Enumeration and mail-bombing guard.
+  // Mail-bombing guard, keyed on IP + path by better-auth.
   //
-  // /forget-password is deliberately neutral about whether an account exists,
-  // but better-auth's /send-verification-email answers plainly (400 for an
-  // unknown address, 200 for a known one) and cannot be made neutral without
-  // reimplementing it - and each 200 also sends real mail. Rate limiting does
-  // not close either oracle; it stops them being usable at scale, which for a
-  // small hub is the practical difference.
+  // /send-verification-email and /forget-password both send real mail to an
+  // address the caller names, with no session required - so without a cap they
+  // are a way to use this project's sending reputation to repeatedly mail
+  // someone else. That is the reason for the limit.
+  //
+  // It is deliberately NOT an anti-enumeration measure. These endpoints do
+  // reveal whether an address has an account (as does /sign-up/email, by
+  // design - telling someone they already have an account is worth more than
+  // hiding it on a public theme gallery), and a rate limit would not change
+  // that: it caps how fast the question can be asked, not whether it answers.
   rateLimit: {
     enabled: true,
     customRules: {

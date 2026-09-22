@@ -42,10 +42,10 @@ function phaseAt(x: number, y: number): number {
  * server component.
  */
 function DotWave() {
-  const buckets: React.ReactNode[][] = Array.from(
-    { length: PHASE_BUCKETS },
-    () => [],
-  );
+  const buckets = Array.from({ length: PHASE_BUCKETS }, (_, phase) => ({
+    phase,
+    dots: [] as React.ReactNode[],
+  }));
 
   for (let column = 0; column < COLUMNS; column++) {
     for (let row = 0; row < ROWS; row++) {
@@ -61,7 +61,7 @@ function DotWave() {
       // instead of stopping at a hard edge.
       const depth = 1 - Math.abs(row / (ROWS - 1) - 0.5) * 2;
 
-      buckets[bucket].push(
+      buckets[bucket].dots.push(
         <circle
           key={`${column}-${row}`}
           cx={x}
@@ -82,12 +82,12 @@ function DotWave() {
       preserveAspectRatio="xMidYMid slice"
     >
       <title>Decorative background</title>
-      {buckets.map((dots, bucket) => (
+      {buckets.map(({ phase, dots }) => (
         <g
-          key={bucket}
+          key={phase}
           className="auth-wave-column"
           style={{
-            animationDelay: `${(-(bucket / PHASE_BUCKETS) * WAVE_DURATION_SECONDS).toFixed(2)}s`,
+            animationDelay: `${(-(phase / PHASE_BUCKETS) * WAVE_DURATION_SECONDS).toFixed(2)}s`,
           }}
         >
           {dots}

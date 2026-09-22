@@ -2,13 +2,15 @@
 
 import {
   CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   CopyIcon,
-  ShieldAlertIcon,
-  TextSearchIcon,
   TriangleAlertIcon,
   XIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { findCustomSections } from "@/lib/toml-custom-sections";
+import { cn } from "@/lib/utils";
 
 interface ConfigPreviewData {
   version: string;
@@ -28,6 +30,84 @@ interface ConfigPreviewModalProps {
   onClose: () => void;
 }
 
+// Renders a config's lines, wrapping every `[custom.*]` section (header
+// through its last body line) in a highlighted block so a stellar review
+// link can draw the eye straight to the parts that run shell commands. Runs
+// entirely off line indices - it never touches the underlying string, so the
+// text stays exactly as fetched (the copy button still copies the original).
+function HighlightedConfig({
+  configContent,
+  sections,
+  activeSectionIndex,
+  sectionRefs,
+}: {
+  configContent: string;
+  sections: ReturnType<typeof findCustomSections>;
+  activeSectionIndex: number;
+  sectionRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
+}) {
+  const lines = configContent.split("\n");
+  const nodes: React.ReactNode[] = [];
+
+  let lineIndex = 0;
+  let sectionIndex = 0;
+
+  while (lineIndex < lines.length) {
+    const section = sections[sectionIndex];
+
+    if (section && lineIndex === section.startLine) {
+      const isActive = sectionIndex === activeSectionIndex;
+      const sectionLines = lines.slice(section.startLine, section.endLine);
+      const capturedIndex = sectionIndex;
+
+      nodes.push(
+        <div
+          key={`section-${section.startLine}`}
+          ref={(el) => {
+            sectionRefs.current[capturedIndex] = el;
+          }}
+          data-section-index={capturedIndex}
+          className={cn(
+            "whitespace-pre -ml-2 border-l-4 pl-1.5 transition-colors",
+            isActive
+              ? "border-ctp-peach bg-ctp-peach/20"
+              : "border-ctp-peach/50 bg-ctp-peach/10",
+          )}
+        >
+          {sectionLines.map((text, offset) => (
+            <div key={`${section.startLine}-${offset}`}>{text}</div>
+          ))}
+        </div>,
+      );
+
+      lineIndex = section.endLine;
+      sectionIndex += 1;
+      continue;
+    }
+
+    nodes.push(
+      <div className="whitespace-pre" key={`line-${lineIndex}`}>
+        {lines[lineIndex]}
+      </div>,
+    );
+    lineIndex += 1;
+  }
+
+  // The wrapper - not the individual sections - is what gets sized to the
+  // content. A block element inside a horizontally scrolling <pre> is sized by
+  // its container, so without this the highlights would stop at the visible
+  // right edge and leave the rest of a long command unhighlighted once
+  // scrolled. Sizing each section to its own widest line instead would fix
+  // that but leave every highlight ending at a different place; sizing the
+  // wrapper once makes them all run to the same full width.
+  return <div className="w-max min-w-full">{nodes}</div>;
+}
+
+// When a single modal instance is reused to view different versions (e.g.
+// deep-linking between them), render it with `key={version}` at the call
+// site. That forces React to remount - rather than patch - the component on
+// a version switch, so fetched data and stepper state reset for free instead
+// of needing manual effects to invalidate them.
 export function ConfigPreviewModal({
   author,
   slug,
@@ -39,26 +119,292 @@ export function ConfigPreviewModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  // Set while an arrow-click or the initial deep-link jump is smooth-scrolling
+  // the container, and cleared once that scroll settles. The IntersectionObserver
+  // scroll-spy checks this and ignores intersection changes while it's set, so a
+  // programmatic scroll from section 2 to section 4 doesn't get its counter
+  // clobbered by the observer briefly reporting section 3 mid-flight.
+  const isProgrammaticScrollRef = useRef(false);
+  const scrollEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  // Sections currently intersecting the observer's (top-biased) viewport.
+  const visibleSectionsRef = useRef<Set<number>>(new Set());
+  // Guards the one-time "jump to the first custom section" effect so it only
+  // fires once per modal instance (the component remounts per version via
+  // `key={version}`, so this resets naturally on a version change).
+  const hasScrolledToFirstSectionRef = useRef(false);
+
+  // Tracks that a fetch was attempted for this modal instance. A plain
+  // `!loading` guard is not enough: the catch clears `loading`, which is in the
+  // dependency list, so any 404 or offline error re-triggered the effect and
+  // hammered the endpoint in a spinner/error flicker loop. The parent remounts
+  // this component per version (`key={openVersion}`), so the ref resets
+  // naturally when a different version is opened.
+  const hasFetched = useRef(false);
 
   useEffect(() => {
-    if (isOpen && !data) {
-      setLoading(true);
-      setError(null);
-      fetch(`/api/${author}/${slug}/${version}?preview=true`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to fetch config");
-          return res.json();
-        })
-        .then((json) => {
-          setData(json);
-          setLoading(false);
-        })
-        .catch((err) => {
-          setError(err.message);
-          setLoading(false);
-        });
+    if (!isOpen || hasFetched.current) {
+      return;
     }
-  }, [isOpen, author, slug, version, data]);
+    hasFetched.current = true;
+    setLoading(true);
+    setError(null);
+
+    fetch(`/api/${author}/${slug}/${version}?preview=true`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch config");
+        return res.json();
+      })
+      .then((json) => {
+        setData(json);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, [isOpen, author, slug, version]);
+
+  const customSections = useMemo(
+    () => (data ? findCustomSections(data.configContent) : []),
+    [data],
+  );
+
+  // Rebuilds the visible-section set from geometry.
+  //
+  // The observer callback ignores everything that fires during a programmatic
+  // scroll, and those entries are gone for good - IntersectionObserver reports
+  // *changes*, so once the scroll settles nothing fires again and the set stays
+  // stale forever. Without this, stepping 0 -> 1 and then scrolling by hand to
+  // 2 leaves the set as {0, 2}: section 1 is centred on screen but is not even
+  // a candidate, and the counter reads "3 / 3" while the user looks at the
+  // second command.
+  const recomputeVisibleSections = useCallback((preserveActive = false) => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    visibleSectionsRef.current.clear();
+
+    sectionRefs.current.forEach((el, index) => {
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const isVisible =
+        rect.bottom > containerRect.top && rect.top < containerRect.bottom;
+      if (isVisible) {
+        visibleSectionsRef.current.add(index);
+      }
+    });
+
+    // After a programmatic scroll the active section is already known - it is
+    // the one we just scrolled to. Re-deciding here would override it, and for
+    // a section taller than the viewport it reliably picks the *previous* one
+    // (the target cannot be centred, so its midpoint sits far below the
+    // middle while its predecessor's bottom edge still clips the top). That
+    // snapped the counter backwards and then deadlocked the stepper: clicking
+    // "next" again recomputed the same scroll offset, so nothing moved, no
+    // scrollend fired, and the timeout put it back. Same effect at the bottom
+    // clamp, and on the deep-link jump when the first section is already at
+    // the top - the modal would open reading "2 / N".
+    if (preserveActive || visibleSectionsRef.current.size === 0) return;
+
+    const viewportMiddle = containerRect.top + container.clientHeight / 2;
+    let nearest = -1;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (const index of visibleSectionsRef.current) {
+      const el = sectionRefs.current[index];
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      const distance = Math.abs(rect.top + rect.height / 2 - viewportMiddle);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = index;
+      }
+    }
+    if (nearest !== -1) {
+      setActiveSectionIndex(nearest);
+    }
+  }, []);
+
+  const scrollToSection = useCallback(
+    (index: number) => {
+      const container = scrollContainerRef.current;
+      const target = sectionRefs.current[index];
+      if (!container || !target) return;
+
+      isProgrammaticScrollRef.current = true;
+      if (scrollEndTimeoutRef.current) {
+        clearTimeout(scrollEndTimeoutRef.current);
+      }
+      // Safety net: `scrollend` isn't supported everywhere (older Safari) and
+      // won't fire at all if the computed offset matches the current scroll
+      // position (nothing actually scrolls). Without this, the programmatic
+      // flag could stay stuck forever and permanently freeze the scroll-spy.
+      scrollEndTimeoutRef.current = setTimeout(() => {
+        isProgrammaticScrollRef.current = false;
+        scrollEndTimeoutRef.current = null;
+        // Only ever armed by scrollToSection, so this is always programmatic.
+        recomputeVisibleSections(true);
+      }, 700);
+
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const relativeTop =
+        targetRect.top - containerRect.top + container.scrollTop;
+
+      // Centre the section so there is context visible above and below it. A
+      // section taller than the viewport cannot be centred - aligning its top
+      // just inside the edge is the useful thing there, since scrolling past its
+      // beginning is exactly what we are trying to avoid.
+      const spare = container.clientHeight - targetRect.height;
+      const offset = spare > 48 ? relativeTop - spare / 2 : relativeTop - 16;
+
+      container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
+    },
+    [recomputeVisibleSections],
+  );
+
+  const stepSection = useCallback(
+    (direction: 1 | -1) => {
+      const next = activeSectionIndex + direction;
+      if (next < 0 || next >= customSections.length) return;
+
+      setActiveSectionIndex(next);
+      // Deferred to the next frame so the newly-active section has re-rendered
+      // with its "active" styling before we measure it. Kept outside the state
+      // updater: updaters must be pure, and React 19 StrictMode double-invokes
+      // them in development.
+      requestAnimationFrame(() => scrollToSection(next));
+    },
+    [activeSectionIndex, customSections.length, scrollToSection],
+  );
+
+  // Clears the "programmatic scroll in progress" flag once the browser
+  // reports the smooth-scroll actually settled, rather than relying solely
+  // on the fixed timeout in `scrollToSection`. `scrollend` fires on the
+  // element that was scrolled, so it's attached directly to the scroll
+  // container (it doesn't bubble to the document the way `scroll` events on
+  // window do).
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScrollEnd = () => {
+      // Read before clearing: this listener fires for user scrolls as well,
+      // and only a programmatic one should keep its active section pinned.
+      const wasProgrammatic = isProgrammaticScrollRef.current;
+      isProgrammaticScrollRef.current = false;
+      recomputeVisibleSections(wasProgrammatic);
+      if (scrollEndTimeoutRef.current) {
+        clearTimeout(scrollEndTimeoutRef.current);
+        scrollEndTimeoutRef.current = null;
+      }
+    };
+
+    container.addEventListener("scrollend", handleScrollEnd);
+    return () => {
+      container.removeEventListener("scrollend", handleScrollEnd);
+      if (scrollEndTimeoutRef.current) {
+        clearTimeout(scrollEndTimeoutRef.current);
+        scrollEndTimeoutRef.current = null;
+      }
+    };
+  }, [recomputeVisibleSections]);
+
+  // Problem 1: on arrival via the deep link, jump the container to the first
+  // custom section once the config has actually rendered (refs need to
+  // exist), instead of leaving the view at the top while the counter reads
+  // "1 / N". Keyed on `data`/`customSections`, not `isOpen`, and guarded so
+  // it only runs once per modal instance.
+  useEffect(() => {
+    if (
+      !data ||
+      customSections.length === 0 ||
+      hasScrolledToFirstSectionRef.current
+    ) {
+      return;
+    }
+    hasScrolledToFirstSectionRef.current = true;
+    scrollToSection(0);
+  }, [data, customSections, scrollToSection]);
+
+  // Problem 3: scroll-spy. As the user manually scrolls the container,
+  // update `activeSectionIndex` to whichever custom section is currently
+  // nearest the top of the viewport, using IntersectionObserver (cheaper and
+  // less jittery than computing positions on every scroll event).
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || customSections.length === 0) return;
+
+    visibleSectionsRef.current.clear();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Ignore intersection changes caused by our own smooth-scroll (arrow
+        // click or the initial deep-link jump) so the counter doesn't
+        // flicker through sections it's merely passing over mid-flight.
+        if (isProgrammaticScrollRef.current) return;
+
+        for (const entry of entries) {
+          const indexAttr = entry.target.getAttribute("data-section-index");
+          if (indexAttr === null) continue;
+          const index = Number(indexAttr);
+          if (entry.isIntersecting) {
+            visibleSectionsRef.current.add(index);
+          } else {
+            visibleSectionsRef.current.delete(index);
+          }
+        }
+
+        // Several sections can be visible at once. Pick the one nearest the
+        // middle of the viewport, which is both what "the section you are
+        // looking at" means while scrolling and where scrollToSection puts its
+        // target - a top-biased rule would report the *previous* section right
+        // after a centred jump and snap the counter backwards.
+        if (visibleSectionsRef.current.size > 0) {
+          const viewportMiddle =
+            container.getBoundingClientRect().top + container.clientHeight / 2;
+
+          let nearest = -1;
+          let nearestDistance = Number.POSITIVE_INFINITY;
+          for (const index of visibleSectionsRef.current) {
+            const el = sectionRefs.current[index];
+            if (!el) continue;
+            const rect = el.getBoundingClientRect();
+            const distance = Math.abs(
+              rect.top + rect.height / 2 - viewportMiddle,
+            );
+            if (distance < nearestDistance) {
+              nearestDistance = distance;
+              nearest = index;
+            }
+          }
+          if (nearest !== -1) {
+            setActiveSectionIndex(nearest);
+          }
+        }
+      },
+      {
+        root: container,
+        // Full viewport: the nearest-to-middle rule above does the selecting,
+        // so cropping the observed area would only hide candidates from it.
+        rootMargin: "0px",
+        threshold: 0,
+      },
+    );
+
+    for (const el of sectionRefs.current) {
+      if (el) observer.observe(el);
+    }
+
+    return () => observer.disconnect();
+  }, [customSections]);
 
   const handleCopy = useCallback(() => {
     if (data?.configContent) {
@@ -75,18 +421,36 @@ export function ConfigPreviewModal({
   };
 
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (customSections.length === 0) return;
+
+      if (e.key === "ArrowDown" || e.key === "ArrowRight" || e.key === "j") {
+        e.preventDefault();
+        stepSection(1);
+      } else if (
+        e.key === "ArrowUp" ||
+        e.key === "ArrowLeft" ||
+        e.key === "k"
+      ) {
+        e.preventDefault();
+        stepSection(-1);
+      }
     };
+
     if (isOpen) {
-      document.addEventListener("keydown", handleEsc);
+      document.addEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "hidden";
     }
     return () => {
-      document.removeEventListener("keydown", handleEsc);
+      document.removeEventListener("keydown", handleKeyDown);
       document.body.style.overflow = "";
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, customSections.length, stepSection]);
 
   if (!isOpen) return null;
 
@@ -114,8 +478,51 @@ export function ConfigPreviewModal({
           </button>
         </div>
 
+        {/* Review stepper. Deliberately part of the modal chrome rather than
+            the scrolling config: it is always visible without a sticky element
+            overlapping the first lines of the file, and the scroll container's
+            top edge stays clean. */}
+        {data && customSections.length > 0 && (
+          <div className="border-b border-ctp-surface0 px-6 py-3">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-ctp-peach/30 bg-ctp-peach/5 px-4 py-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <span
+                  aria-live="polite"
+                  className="whitespace-nowrap text-sm font-medium text-ctp-peach"
+                >
+                  Reviewing custom command {activeSectionIndex + 1} /{" "}
+                  {customSections.length}
+                </span>
+                <code className="truncate rounded bg-ctp-surface0 px-1.5 py-0.5 text-xs text-ctp-subtext1">
+                  {customSections[activeSectionIndex].name}
+                </code>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => stepSection(-1)}
+                  disabled={activeSectionIndex === 0}
+                  aria-label="Previous custom command"
+                  className="cursor-pointer rounded p-1 text-ctp-peach transition-colors hover:bg-ctp-peach/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <ChevronLeftIcon size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => stepSection(1)}
+                  disabled={activeSectionIndex === customSections.length - 1}
+                  aria-label="Next custom command"
+                  className="cursor-pointer rounded p-1 text-ctp-peach transition-colors hover:bg-ctp-peach/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <ChevronRightIcon size={18} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
+        <div ref={scrollContainerRef} className="flex-1 overflow-auto p-6">
           {loading && (
             <div className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ctp-text" />
@@ -147,6 +554,18 @@ export function ConfigPreviewModal({
                         your system. Review the config carefully before
                         applying.
                       </p>
+                      {customSections.length === 0 && (
+                        <p className="text-ctp-subtext1 text-sm mt-2">
+                          They are declared in a form this viewer cannot point
+                          at directly (an inline table or a dotted key rather
+                          than a{" "}
+                          <code className="bg-ctp-surface0 px-1 rounded">
+                            [custom.*]
+                          </code>{" "}
+                          heading), so nothing is highlighted below - read the
+                          whole config.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -154,7 +573,12 @@ export function ConfigPreviewModal({
 
               <div className="relative">
                 <pre className="bg-ctp-base rounded-lg p-4 overflow-x-auto text-sm font-mono text-ctp-text border border-ctp-surface0">
-                  {data.configContent}
+                  <HighlightedConfig
+                    configContent={data.configContent}
+                    sections={customSections}
+                    activeSectionIndex={activeSectionIndex}
+                    sectionRefs={sectionRefs}
+                  />
                 </pre>
               </div>
             </>
@@ -192,44 +616,5 @@ export function ConfigPreviewModal({
         )}
       </div>
     </div>
-  );
-}
-
-interface ViewConfigButtonProps {
-  author: string;
-  slug: string;
-  version: string;
-  customCommand: boolean;
-}
-
-export function ViewConfigButton({
-  author,
-  slug,
-  version,
-  customCommand,
-}: ViewConfigButtonProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className="text-xs cursor-pointer"
-      >
-        {customCommand ? (
-          <ShieldAlertIcon size={20} className="text-ctp-peach" />
-        ) : (
-          <TextSearchIcon size={20} className="text-ctp-subtext0" />
-        )}
-      </button>
-      <ConfigPreviewModal
-        author={author}
-        slug={slug}
-        version={version}
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-      />
-    </>
   );
 }

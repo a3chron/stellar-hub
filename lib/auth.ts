@@ -5,7 +5,12 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { APIError } from "better-auth/api";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
-import { resetPasswordEmail, sendEmail, verificationEmail } from "@/lib/email";
+import {
+  isEmailConfigured,
+  resetPasswordEmail,
+  sendEmail,
+  verificationEmail,
+} from "@/lib/email";
 import {
   generateUniqueUsername,
   isUsernameTaken,
@@ -43,7 +48,36 @@ function pseudonymiseIp(ipAddress: string): string {
   return createHmac("sha256", pseudonymKey()).update(ipAddress).digest("hex");
 }
 
+// Misconfigured mail is a deploy bug, and swallowing send failures (which the
+// hooks below do, so a Resend blip cannot orphan an account) would otherwise
+// make it completely silent: every sign-up would return 200, every user would
+// be told to check an inbox nothing was sent to, and nobody could ever verify.
+// Said once at boot so it lands in the deploy log rather than nowhere.
+if (process.env.NODE_ENV === "production" && !isEmailConfigured()) {
+  console.error(
+    "[auth] RESEND_API_KEY / EMAIL_FROM are not set. Email verification and " +
+      "password reset will silently do nothing, and no account created from " +
+      "here on will be able to verify.",
+  );
+}
+
 export const auth = betterAuth({
+  // Enumeration and mail-bombing guard.
+  //
+  // /forget-password is deliberately neutral about whether an account exists,
+  // but better-auth's /send-verification-email answers plainly (400 for an
+  // unknown address, 200 for a known one) and cannot be made neutral without
+  // reimplementing it - and each 200 also sends real mail. Rate limiting does
+  // not close either oracle; it stops them being usable at scale, which for a
+  // small hub is the practical difference.
+  rateLimit: {
+    enabled: true,
+    customRules: {
+      "/forget-password": { window: 60, max: 3 },
+      "/send-verification-email": { window: 60, max: 3 },
+      "/sign-up/email": { window: 60, max: 5 },
+    },
+  },
   trustedOrigins: [
     "http://localhost:3000",
     "http://127.0.0.1:3000",

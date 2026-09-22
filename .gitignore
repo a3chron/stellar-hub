@@ -34,3 +34,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# pnpm is the package manager here; an accidental `npm install`
+# would otherwise leave a second, conflicting lockfile behind.
+package-lock.json

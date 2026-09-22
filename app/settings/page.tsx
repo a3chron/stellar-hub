@@ -1,7 +1,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import DeleteAccount from "@/components/settings/delete-account";
 import ProfileSettings from "@/components/settings/profile-settings";
 import ThemeManagement from "@/components/settings/theme-management";
+import UsernameSettings from "@/components/settings/username-settings";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 
@@ -37,7 +39,7 @@ export default async function SettingsPage() {
   });
 
   return (
-    <main className="min-h-screen bg-ctp-base">
+    <main className="bg-ctp-base">
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-bold text-ctp-text mb-2">Settings</h1>
@@ -47,11 +49,16 @@ export default async function SettingsPage() {
 
           <div className="space-y-12">
             <ProfileSettings user={user} />
+            <UsernameSettings
+              user={user}
+              hasPublishedThemes={user.themes.length > 0}
+            />
             <ThemeManagement
-              author={user.name}
+              author={user.username}
               themes={user.themes}
               colorSchemes={colorSchemes}
             />
+            <DeleteAccount user={user} themeCount={user.themes.length} />
           </div>
         </div>
       </div>
@@ -60,6 +67,7 @@ export default async function SettingsPage() {
 }
 
 export const metadata = {
-  title: "Settings - Stellar",
+  // The root layout's title.template appends " - Stellar" automatically.
+  title: "Settings",
   description: "Manage your Stellar profile and themes",
 };

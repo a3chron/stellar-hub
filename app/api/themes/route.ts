@@ -1,4 +1,4 @@
-import { asc, desc, eq, or, type SQL, sql } from "drizzle-orm";
+import { asc, desc, eq, getTableName, or, type SQL, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { colorModeEnum, themes, user } from "@/lib/db/schema";
@@ -102,9 +102,18 @@ export async function GET(request: NextRequest) {
       // Prefix match on the author handle (used by CLI tab completion) -
       // the handle is what `stellar apply <author>/<theme>` takes, so
       // completing against the display name would suggest unusable values.
+      //
+      // The subquery spells its identifiers out with sql.identifier rather
+      // than interpolating `user.id` / `user.username`. The relational query
+      // builder rewrites *every* Column chunk in `where` to the root table's
+      // alias, so interpolated user columns come out as "themes"."id" and
+      // "themes"."username" - the latter does not exist, and the endpoint
+      // 500s for any ?authorName=. The names are read off the schema so a
+      // column rename still carries through.
       const prefix = escapeLike(authorName);
+      const userTable = sql.identifier(getTableName(user));
       conditions.push(
-        sql`${themes.authorId} IN (SELECT ${user.id} FROM ${user} WHERE ${user.username} ILIKE ${`${prefix}%`})`,
+        sql`${themes.authorId} IN (SELECT ${userTable}.${sql.identifier(user.id.name)} FROM ${userTable} WHERE ${userTable}.${sql.identifier(user.username.name)} ILIKE ${`${prefix}%`})`,
       );
     }
 

@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 
 /**
  * Simple in-memory per-theme rate limiter
@@ -97,9 +97,13 @@ export const downloadRateLimiter = new RateLimiter({
 });
 
 /**
- * Get client IP from request headers and return a SHA-256 hash of it.
+ * Get client IP from request headers and return a keyed digest of it.
  * Vercel sets x-forwarded-for, fallback to x-real-ip.
- * The raw IP is never stored — only its hash is used as a rate-limit key.
+ *
+ * The raw IP never leaves this function — only the digest is used as a
+ * rate-limit key. It is an HMAC rather than a bare hash because IPv4 is only
+ * 2^32 addresses wide: a plain SHA-256 of one can be reversed by exhaustive
+ * search, so it would not actually be pseudonymous.
  */
 export function getClientIP(request: Request): string {
   let ip: string;
@@ -112,7 +116,17 @@ export function getClientIP(request: Request): string {
     ip = request.headers.get("x-real-ip") ?? "unknown";
   }
 
-  return createHash("sha256").update(ip).digest("hex");
+  // Empty-string fallback deliberately omitted: an unsalted digest of an
+  // IPv4 address is reversible by exhaustive search, so silently degrading to
+  // one would defeat the point. better-auth does not enforce this variable
+  // (it falls back to a hardcoded default and only warns), so it has to be set
+  // in every environment - preview deploys included.
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    throw new Error("BETTER_AUTH_SECRET is required to hash client IPs");
+  }
+
+  return createHmac("sha256", secret).update(ip).digest("hex");
 }
 
 /**
@@ -125,4 +139,18 @@ export const pingRateLimiter = new RateLimiter({
   maxEntries: 10000,
   windowMs: 10 * 60 * 1000, // 10 minutes
   maxRequests: 10,
+});
+
+/**
+ * Rate limiter for the username availability check (GET /api/settings/username).
+ *
+ * That endpoint has to answer before an account exists, so it cannot require a
+ * session - which leaves it as a yes/no oracle over the whole user table.
+ * Keyed by IP, a budget generous enough to type a handle character by
+ * character but far too small to walk a wordlist through.
+ */
+export const usernameCheckRateLimiter = new RateLimiter({
+  maxEntries: 10000,
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  maxRequests: 60,
 });

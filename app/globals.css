@@ -141,3 +141,34 @@ body {
     font-style: var(--shiki-dark-font-style, normal);
   }
 }
+
+/* =========================
+   Auth panel dot wave
+   ========================= */
+
+/* The dots stay put and brighten instead: each column fades in and out on the
+   same slow cycle, phase-shifted by a negative animation-delay set inline per
+   column, so a band of light drifts sideways across a static field. Group
+   opacity multiplies with each dot's own, so the top-and-bottom falloff
+   survives. Deliberately slow and shallow - it is texture behind a login form,
+   not something to look at. */
+@keyframes auth-wave-glow {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.auth-wave-column {
+  animation: auth-wave-glow 14s ease-in-out infinite;
+}
+
+/* Motion is decorative, so drop it entirely for anyone who asked for less. */
+@media (prefers-reduced-motion: reduce) {
+  .auth-wave-column {
+    animation: none;
+  }
+}

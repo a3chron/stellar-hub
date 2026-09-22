@@ -1,0 +1,89 @@
+name: Checks
+
+# Reusable: called by ci.yaml on pushes and pull requests. Defined once here
+# so every caller runs exactly the same checks.
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  PNPM_VERSION: 9.15.0
+  NODE_VERSION: 22
+
+jobs:
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: tsc --noEmit
+        run: pnpm exec tsc --noEmit
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      # `pnpm lint` runs `biome check --write`, which mutates files - CI must
+      # only report, never fix, so this uses the read-only script instead.
+      - name: biome check
+        run: pnpm lint:check
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: next build
+        run: pnpm build
+        env:
+          # Every route is server-rendered on demand (no prerendered data),
+          # so `next build` never queries these at build time - it only needs
+          # values that are well-formed enough for the client constructors
+          # that run at module load (postgres(), Supabase's createClient(),
+          # betterAuth()). These are placeholders, not real credentials, and
+          # are safe to keep in the workflow rather than as repo secrets.
+          DATABASE_URL: postgres://user:password@localhost:5432/postgres
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: ci-dummy-service-role-key
+          BETTER_AUTH_SECRET: ci-dummy-build-secret-not-used-in-production
+          BETTER_AUTH_URL: http://127.0.0.1:3000
+          GITHUB_CLIENT_ID: ci-dummy-github-client-id
+          GITHUB_CLIENT_SECRET: ci-dummy-github-client-secret
+          GITLAB_CLIENT_ID: ci-dummy-gitlab-client-id
+          GITLAB_CLIENT_SECRET: ci-dummy-gitlab-client-secret
+          GOOGLE_CLIENT_ID: ci-dummy-google-client-id
+          GOOGLE_CLIENT_SECRET: ci-dummy-google-client-secret
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+          RESEND_API_KEY: ci-dummy-resend-key
+          EMAIL_FROM: ci@example.com

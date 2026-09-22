@@ -1,0 +1,21 @@
+name: CI
+
+# A PR from a branch in this repo only fires the pull_request event (its push
+# doesn't match main), so this doesn't double up.
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# A new push to a PR makes the in-flight run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    uses: ./.github/workflows/checks.yaml

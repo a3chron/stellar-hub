@@ -53,6 +53,10 @@ read yourself, or in scripts applying a theme you already trust.
 
 </Callout>
 
+Editing the cached config file after applying it, and what happens when you
+later apply a newer version, is covered in
+[Customizing an applied theme](/docs/how-it-works#customizing-an-applied-theme).
+
 ## preview
 
 Opens a new terminal window with the theme applied, without changing your
@@ -105,6 +109,10 @@ stellar clean
 stellar clean --all
 ```
 
+`clean` only ever removes versions that aren't currently applied, so it's
+safe to run while you have local edits in the active theme's file — see
+[Customizing an applied theme](/docs/how-it-works#customizing-an-applied-theme).
+
 ## remove
 
 Removes a cached theme, either entirely or a specific version.
@@ -124,7 +132,9 @@ stellar remove a3chron/ctp-green --force
 ```
 
 By default stellar refuses to remove the theme you're currently using, so
-you don't end up with a `starship.toml` pointing at a file that's gone.
+you don't end up with a `starship.toml` pointing at a file that's gone —
+that protection covers any local edits you've made to it too, see
+[Customizing an applied theme](/docs/how-it-works#customizing-an-applied-theme).
 Pass `--force` (or `-f`) when you mean it.
 
 ## rollback

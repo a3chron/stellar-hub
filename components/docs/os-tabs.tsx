@@ -9,6 +9,9 @@ import {
   useRef,
   useState,
 } from "react";
+import AppleLogo from "@/components/icons/apple";
+import LinuxLogo from "@/components/icons/linux";
+import WindowsLogo from "@/components/icons/windows";
 import { cn } from "@/lib/utils";
 
 type OS = "linux-macos" | "windows";
@@ -30,6 +33,23 @@ const TAB_LABELS: Record<OS, string> = {
   "linux-macos": "Linux / macOS",
   windows: "Windows",
 };
+
+// Real brand marks (vendored from Simple Icons, CC0) rather than lucide
+// lookalikes. Linux and macOS share the same install instructions, so that
+// tab shows both the Tux and Apple marks side by side; the icons are
+// decorative next to the text label (aria-hidden="true" on each SVG), so
+// they add no redundant screen-reader announcement.
+function TabIcons({ os }: { os: OS }) {
+  if (os === "linux-macos") {
+    return (
+      <span className="flex items-center gap-1">
+        <LinuxLogo width={16} height={16} />
+        <AppleLogo width={16} height={16} />
+      </span>
+    );
+  }
+  return <WindowsLogo width={16} height={16} />;
+}
 
 const TABS: OS[] = ["linux-macos", "windows"];
 
@@ -103,30 +123,33 @@ export function OSTabs({ children }: OSTabsProps) {
         aria-label="Operating system"
         className="flex gap-2 mb-4"
       >
-        {tabs.map((os) => (
-          <button
-            key={os}
-            ref={(el) => {
-              tabRefs.current[os] = el;
-            }}
-            type="button"
-            role="tab"
-            id={tabId(os)}
-            aria-selected={activeTab === os}
-            aria-controls={panelId(os)}
-            tabIndex={activeTab === os ? 0 : -1}
-            onClick={() => setActive(os)}
-            onKeyDown={handleKeyDown}
-            className={cn(
-              "border-2 rounded-lg px-4 py-2 text-sm font-medium transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base",
-              activeTab === os
-                ? "bg-ctp-text text-ctp-base border-ctp-subtext0"
-                : "bg-ctp-mantle text-ctp-text border-ctp-crust hover:ring-2 hover:ring-ctp-surface0",
-            )}
-          >
-            {TAB_LABELS[os]}
-          </button>
-        ))}
+        {tabs.map((os) => {
+          return (
+            <button
+              key={os}
+              ref={(el) => {
+                tabRefs.current[os] = el;
+              }}
+              type="button"
+              role="tab"
+              id={tabId(os)}
+              aria-selected={activeTab === os}
+              aria-controls={panelId(os)}
+              tabIndex={activeTab === os ? 0 : -1}
+              onClick={() => setActive(os)}
+              onKeyDown={handleKeyDown}
+              className={cn(
+                "flex items-center gap-2 border-2 rounded-lg px-4 py-2 text-sm font-medium transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base",
+                activeTab === os
+                  ? "bg-ctp-text text-ctp-base border-ctp-subtext0"
+                  : "bg-ctp-mantle text-ctp-text border-ctp-crust hover:ring-2 hover:ring-ctp-surface0",
+              )}
+            >
+              <TabIcons os={os} />
+              {TAB_LABELS[os]}
+            </button>
+          );
+        })}
       </div>
       {panels.map((panel) => (
         <div

@@ -29,6 +29,51 @@ This error means the theme doesn't exist anywhere stellar can find it:
 - For local themes, make sure you created the folder at
   `~/.config/stellar/<author>/<theme>/` with a `.toml` file inside
 
+## My custom module shows nothing at all
+
+If you're writing a [custom module](https://starship.rs/config/#custom-commands)
+and it renders as an empty string with no error anywhere, check your `shell`
+field.
+
+Starship already appends `-c` to whatever shell you configure. So writing:
+
+```toml
+[custom.mymodule]
+command = "echo hi"
+shell = ["sh", "-c"]
+```
+
+passes `sh` a bare, argument-less `-c`, which fails silently as far as
+starship is concerned — the module just renders empty. The fix is to leave
+`-c` out and let starship add it:
+
+```toml
+[custom.mymodule]
+command = "echo hi"
+shell = ["sh"]
+```
+
+<Callout type="tip" title="Debugging custom modules in general">
+
+This class of bug — a custom module silently rendering nothing — is hard to
+see because starship doesn't surface an error by default. Run starship with
+trace logging to find out what's actually happening:
+
+```bash
+STARSHIP_LOG=trace starship prompt
+```
+
+For the `shell = ['sh', '-c']` case above, this reveals the real error:
+
+```text
+sh: -c: option requires an argument
+```
+
+`STARSHIP_LOG=trace` is worth reaching for any time a custom module behaves
+unexpectedly, not just for this specific bug.
+
+</Callout>
+
 ## Windows notes
 
 A couple of things behave differently on Windows — see

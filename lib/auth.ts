@@ -77,17 +77,39 @@ export const auth = betterAuth({
     autoSignIn: false,
     // An account owns published themes, so losing the password has to be
     // recoverable rather than terminal.
+    //
+    // Never allowed to throw: better-auth returns success immediately for an
+    // address with no account (it never gets here), so surfacing a send
+    // failure would make the two cases distinguishable and turn the
+    // forgot-password form into an account-existence oracle. A failure is
+    // logged and swallowed; the user simply tries again.
     sendResetPassword: async ({ user, url }) => {
-      const { subject, text, html } = resetPasswordEmail(url);
-      await sendEmail({ to: user.email, subject, text, html });
+      try {
+        const { subject, text, html } = resetPasswordEmail(url);
+        await sendEmail({ to: user.email, subject, text, html });
+      } catch (error) {
+        console.error("Failed to send password reset email:", error);
+      }
     },
   },
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
+    // Also never allowed to throw. better-auth awaits this *after* it has
+    // already written the user row and credential account, with no try/catch
+    // of its own - so a Resend outage used to 500 the sign-up while leaving
+    // the account behind: retrying the same address said "user already
+    // exists", a different one said "that username is taken", and
+    // requireEmailVerification meant they could never sign in. Letting sign-up
+    // succeed keeps the account recoverable, because signing in mints and
+    // sends a fresh link.
     sendVerificationEmail: async ({ user, url }) => {
-      const { subject, text, html } = verificationEmail(url);
-      await sendEmail({ to: user.email, subject, text, html });
+      try {
+        const { subject, text, html } = verificationEmail(url);
+        await sendEmail({ to: user.email, subject, text, html });
+      } catch (error) {
+        console.error("Failed to send verification email:", error);
+      }
     },
   },
   socialProviders: {

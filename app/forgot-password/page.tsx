@@ -9,29 +9,21 @@ import { authClient } from "@/lib/auth-client";
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);
 
   const emailId = useId();
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setError(null);
     setPending(true);
 
-    const { error: requestError } = await authClient.forgetPassword({
-      email,
-      redirectTo: "/reset-password",
-    });
-
-    if (requestError) {
-      setError(
-        requestError.message ??
-          "Could not send the reset link. Please try again.",
-      );
-      setPending(false);
-      return;
-    }
+    // The outcome is deliberately not shown. An address with no account and
+    // an address whose mail failed to send must look identical here, or this
+    // form answers "does this email have an account?" for anyone who asks.
+    // Real failures are logged server-side.
+    await authClient
+      .forgetPassword({ email, redirectTo: "/reset-password" })
+      .catch(() => undefined);
 
     setSent(true);
     setPending(false);
@@ -86,12 +78,6 @@ export default function ForgotPasswordPage() {
             className="w-full rounded-lg border-2 border-ctp-crust bg-ctp-mantle p-2 text-ctp-text placeholder:text-ctp-overlay0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
           />
         </div>
-
-        {error && (
-          <p className="rounded-lg border border-ctp-red/40 bg-ctp-red/10 px-3 py-2 text-sm text-ctp-red">
-            {error}
-          </p>
-        )}
 
         <button
           type="submit"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 interface ModalProps {
   /** id of the element (usually the heading) that labels this dialog. */
@@ -105,7 +106,11 @@ export default function Modal({
     }
   }
 
-  return (
+  // Portalled to <body> so the fixed backdrop always spans the viewport:
+  // rendered in place it sits inside the page tree, where any ancestor that
+  // creates a containing block or stacking context can clip it or draw over
+  // it (it left an undimmed strip along the bottom of the settings page).
+  return createPortal(
     // The backdrop itself carries the dialog role (mirroring
     // config-preview-modal.tsx) so the click-to-dismiss handler below sits on
     // an element that is already interactive rather than a bare <div>. Its
@@ -120,7 +125,7 @@ export default function Modal({
       aria-modal="true"
       aria-labelledby={titleId}
       tabIndex={-1}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 outline-none"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[100] outline-none"
       onClick={handleBackdropClick}
     >
       <div
@@ -131,6 +136,7 @@ export default function Modal({
       >
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

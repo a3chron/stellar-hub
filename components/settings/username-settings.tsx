@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import type { User as UserType } from "@/lib/db/types";
 import {
+  usernameAnnouncement,
   usernameError,
   usernameStateClass,
   useUsernameAvailability,
@@ -117,6 +118,8 @@ export default function UsernameSettings({
             <div className="relative">
               <input
                 id={inputId}
+                aria-invalid={problem !== null}
+                aria-describedby={`${inputId}-hint`}
                 value={username}
                 onChange={(event) => {
                   setUsername(event.target.value);
@@ -139,8 +142,14 @@ export default function UsernameSettings({
                 )}
                 {problem && <X className="w-4 h-4 text-ctp-red" />}
               </span>
+              <span className="sr-only" aria-live="polite">
+                {usernameAnnouncement(availability)}
+              </span>
             </div>
-            <p className="text-sm text-ctp-subtext0 mt-2 leading-relaxed">
+            <p
+              id={`${inputId}-hint`}
+              className="text-sm text-ctp-subtext0 mt-2 leading-relaxed"
+            >
               {problem ? (
                 <span className="text-ctp-red">{problem}</span>
               ) : (

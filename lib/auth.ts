@@ -11,6 +11,7 @@ import {
   sendEmail,
   verificationEmail,
 } from "@/lib/email";
+import { PASSWORD_MIN_LENGTH } from "@/lib/password-feedback";
 import {
   generateUniqueUsername,
   isUsernameTaken,
@@ -106,7 +107,7 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 12,
+    minPasswordLength: PASSWORD_MIN_LENGTH,
     // Without these, /sign-up/email signs the user straight in: the "check
     // your inbox" screen would be a lie, an unconfirmed address could publish
     // themes, and registering someone else's address pre-emptively would leave

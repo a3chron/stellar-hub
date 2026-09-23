@@ -14,6 +14,11 @@ import {
   stashResetEmail,
 } from "@/lib/login-hints";
 import {
+  PASSWORD_MIN_LENGTH,
+  passwordLengthFeedback,
+} from "@/lib/password-feedback";
+import {
+  usernameAnnouncement,
   usernameError,
   usernameStateClass,
   useUsernameAvailability,
@@ -226,19 +231,12 @@ function LoginContent() {
     "border-ctp-crust focus:ring-ctp-surface0";
   // Only worth pointing out to someone coming back to log in.
   const markedMethod = isSignUp ? null : lastMethod;
-  const passwordValid = isSignUp && password.length >= 12;
-  const passwordTooShort =
-    isSignUp && password.length > 0 && password.length < 12;
-  const showPasswordTooShort = passwordTooShort && !passwordFocused;
-
-  let passwordStateClass = "border-ctp-crust focus:ring-ctp-surface0";
-  if (passwordValid) {
-    passwordStateClass = "border-ctp-green focus:ring-ctp-green/30";
-  } else if (passwordTooShort) {
-    passwordStateClass = passwordFocused
-      ? "border-ctp-crust focus:ring-ctp-red/30"
-      : "border-ctp-red";
-  }
+  // Signing in checks an existing password, so there is nothing to coach.
+  const passwordFeedback = passwordLengthFeedback(password, passwordFocused);
+  const showPasswordTooShort = isSignUp && passwordFeedback.showTooShort;
+  const passwordStateClass = isSignUp
+    ? passwordFeedback.stateClass
+    : "border-ctp-crust focus:ring-ctp-surface0";
 
   return (
     <AuthShell>
@@ -319,6 +317,8 @@ function LoginContent() {
             <div className="relative">
               <input
                 id={usernameId}
+                aria-invalid={usernameProblem !== null}
+                aria-describedby={`${usernameId}-hint`}
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 required
@@ -340,8 +340,14 @@ function LoginContent() {
                 )}
                 {usernameProblem && <X size={16} className="text-ctp-red" />}
               </span>
+              <span className="sr-only" aria-live="polite">
+                {usernameAnnouncement(usernameStatus)}
+              </span>
             </div>
-            <p className="mt-1.5 text-xs leading-relaxed text-ctp-subtext0">
+            <p
+              id={`${usernameId}-hint`}
+              className="mt-1.5 text-xs leading-relaxed text-ctp-subtext0"
+            >
               {usernameProblem ? (
                 <span className="text-ctp-red">{usernameProblem}</span>
               ) : (
@@ -393,13 +399,15 @@ function LoginContent() {
           <div className="relative">
             <input
               id={passwordId}
+              aria-invalid={showPasswordTooShort}
+              aria-describedby={isSignUp ? `${passwordId}-hint` : undefined}
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               onFocus={() => setPasswordFocused(true)}
               onBlur={() => setPasswordFocused(false)}
               required
-              minLength={isSignUp ? 12 : undefined}
+              minLength={isSignUp ? PASSWORD_MIN_LENGTH : undefined}
               autoComplete={isSignUp ? "new-password" : "current-password"}
               className={`w-full rounded-lg border-2 bg-ctp-mantle p-2 pr-9 text-ctp-text placeholder:text-ctp-overlay0 transition-colors focus:outline-none focus:ring-2 ${passwordStateClass}`}
             />
@@ -414,11 +422,12 @@ function LoginContent() {
           </div>
           {isSignUp && (
             <p
+              id={`${passwordId}-hint`}
               className={`mt-1.5 text-xs transition-colors ${
                 showPasswordTooShort ? "text-ctp-red" : "text-ctp-subtext0"
               }`}
             >
-              At least 12 characters.
+              At least {PASSWORD_MIN_LENGTH} characters.
             </p>
           )}
         </div>

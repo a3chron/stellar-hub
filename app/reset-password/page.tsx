@@ -6,6 +6,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useId, useState } from "react";
 import AuthShell from "@/components/auth/auth-shell";
 import { authClient } from "@/lib/auth-client";
+import {
+  PASSWORD_MIN_LENGTH,
+  passwordConfirmFeedback,
+  passwordLengthFeedback,
+} from "@/lib/password-feedback";
 
 function ResetPasswordContent() {
   const router = useRouter();
@@ -17,6 +22,8 @@ function ResetPasswordContent() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [newFocused, setNewFocused] = useState(false);
+  const [confirmFocused, setConfirmFocused] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -24,12 +31,19 @@ function ResetPasswordContent() {
   const newPasswordId = useId();
   const confirmPasswordId = useId();
 
+  const lengthFeedback = passwordLengthFeedback(newPassword, newFocused);
+  const confirmFeedback = passwordConfirmFeedback(
+    newPassword,
+    confirmPassword,
+    confirmFocused,
+  );
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
 
-    if (newPassword.length < 12) {
-      setError("Password must be at least 12 characters.");
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+      setError(`Password must be at least ${PASSWORD_MIN_LENGTH} characters.`);
       return;
     }
 
@@ -119,10 +133,14 @@ function ResetPasswordContent() {
               type={showNewPassword ? "text" : "password"}
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
+              onFocus={() => setNewFocused(true)}
+              onBlur={() => setNewFocused(false)}
+              aria-invalid={lengthFeedback.showTooShort}
+              aria-describedby={`${newPasswordId}-hint`}
               required
-              minLength={12}
+              minLength={PASSWORD_MIN_LENGTH}
               autoComplete="new-password"
-              className="w-full rounded-lg border-2 border-ctp-crust bg-ctp-mantle p-2 pr-9 text-ctp-text placeholder:text-ctp-overlay0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
+              className={`w-full rounded-lg border-2 bg-ctp-mantle p-2 pr-9 text-ctp-text placeholder:text-ctp-overlay0 transition-colors focus:outline-none focus:ring-2 ${lengthFeedback.stateClass}`}
             />
             <button
               type="button"
@@ -133,8 +151,13 @@ function ResetPasswordContent() {
               {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          <p className="mt-1.5 text-xs text-ctp-subtext0">
-            At least 12 characters.
+          <p
+            id={`${newPasswordId}-hint`}
+            className={`mt-1.5 text-xs transition-colors ${
+              lengthFeedback.showTooShort ? "text-ctp-red" : "text-ctp-subtext0"
+            }`}
+          >
+            At least {PASSWORD_MIN_LENGTH} characters.
           </p>
         </div>
 
@@ -151,10 +174,14 @@ function ResetPasswordContent() {
               type={showConfirmPassword ? "text" : "password"}
               value={confirmPassword}
               onChange={(event) => setConfirmPassword(event.target.value)}
+              onFocus={() => setConfirmFocused(true)}
+              onBlur={() => setConfirmFocused(false)}
+              aria-invalid={confirmFeedback.mismatch}
+              aria-describedby={`${confirmPasswordId}-hint`}
               required
-              minLength={12}
+              minLength={PASSWORD_MIN_LENGTH}
               autoComplete="new-password"
-              className="w-full rounded-lg border-2 border-ctp-crust bg-ctp-mantle p-2 pr-9 text-ctp-text placeholder:text-ctp-overlay0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
+              className={`w-full rounded-lg border-2 bg-ctp-mantle p-2 pr-9 text-ctp-text placeholder:text-ctp-overlay0 transition-colors focus:outline-none focus:ring-2 ${confirmFeedback.stateClass}`}
             />
             <button
               type="button"
@@ -167,6 +194,21 @@ function ResetPasswordContent() {
               {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+          {/* Silent until there is something worth saying: a match, or a
+              confirmation that has already diverged from the password. A
+              correct-so-far prefix is just someone still typing. */}
+          <p
+            id={`${confirmPasswordId}-hint`}
+            aria-live="polite"
+            className="mt-1.5 text-xs"
+          >
+            {confirmFeedback.matches && (
+              <span className="text-ctp-green">Passwords match</span>
+            )}
+            {confirmFeedback.mismatch && (
+              <span className="text-ctp-red">Passwords don't match</span>
+            )}
+          </p>
         </div>
 
         {error && (

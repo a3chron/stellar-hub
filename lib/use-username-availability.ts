@@ -105,3 +105,17 @@ export function usernameStateClass(
       return null;
   }
 }
+
+/**
+ * Text for a screen-reader live region next to the input, so the outcome of
+ * the check is announced rather than only shown as a colour and an icon.
+ * "Checking" is left silent - it would be read on nearly every keystroke.
+ */
+export function usernameAnnouncement(
+  availability: UsernameAvailability,
+): string {
+  if (availability.state === "available") {
+    return "Username is available";
+  }
+  return usernameError(availability) ?? "";
+}

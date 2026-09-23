@@ -122,6 +122,52 @@ function HighlightedConfig({
 // site. That forces React to remount - rather than patch - the component on
 // a version switch, so fetched data and stepper state reset for free instead
 // of needing manual effects to invalidate them.
+// How close to either end of the scroll range still counts as "at" it.
+const SCROLL_EDGE_TOLERANCE = 4;
+
+/**
+ * Which of the visible custom sections the counter should report.
+ *
+ * Normally the one nearest the middle of the viewport - that is where
+ * scrollToSection puts its target. But a section near the start or end of the
+ * config cannot be centred: the scroll clamps, it stays near the edge, and a
+ * short neighbour a couple of lines away ends up closer to the middle. The
+ * counter then read "2 / N" while the view sat on the first section. At
+ * either end of the scroll range the edge section is the answer instead.
+ */
+function pickActiveSection(
+  container: HTMLElement,
+  visible: Set<number>,
+  sections: (HTMLElement | null)[],
+): number {
+  if (visible.size === 0) return -1;
+
+  const indices = [...visible].sort((a, b) => a - b);
+  if (container.scrollTop <= SCROLL_EDGE_TOLERANCE) {
+    return indices[0];
+  }
+  const maxScroll = container.scrollHeight - container.clientHeight;
+  if (container.scrollTop >= maxScroll - SCROLL_EDGE_TOLERANCE) {
+    return indices[indices.length - 1];
+  }
+
+  const viewportMiddle =
+    container.getBoundingClientRect().top + container.clientHeight / 2;
+  let nearest = -1;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (const index of indices) {
+    const el = sections[index];
+    if (!el) continue;
+    const rect = el.getBoundingClientRect();
+    const distance = Math.abs(rect.top + rect.height / 2 - viewportMiddle);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = index;
+    }
+  }
+  return nearest;
+}
+
 export function ConfigPreviewModal({
   author,
   slug,
@@ -229,21 +275,13 @@ export function ConfigPreviewModal({
     // the top - the modal would open reading "2 / N".
     if (preserveActive || visibleSectionsRef.current.size === 0) return;
 
-    const viewportMiddle = containerRect.top + container.clientHeight / 2;
-    let nearest = -1;
-    let nearestDistance = Number.POSITIVE_INFINITY;
-    for (const index of visibleSectionsRef.current) {
-      const el = sectionRefs.current[index];
-      if (!el) continue;
-      const rect = el.getBoundingClientRect();
-      const distance = Math.abs(rect.top + rect.height / 2 - viewportMiddle);
-      if (distance < nearestDistance) {
-        nearestDistance = distance;
-        nearest = index;
-      }
-    }
-    if (nearest !== -1) {
-      setActiveSectionIndex(nearest);
+    const picked = pickActiveSection(
+      container,
+      visibleSectionsRef.current,
+      sectionRefs.current,
+    );
+    if (picked !== -1) {
+      setActiveSectionIndex(picked);
     }
   }, []);
 
@@ -382,27 +420,13 @@ export function ConfigPreviewModal({
         // looking at" means while scrolling and where scrollToSection puts its
         // target - a top-biased rule would report the *previous* section right
         // after a centred jump and snap the counter backwards.
-        if (visibleSectionsRef.current.size > 0) {
-          const viewportMiddle =
-            container.getBoundingClientRect().top + container.clientHeight / 2;
-
-          let nearest = -1;
-          let nearestDistance = Number.POSITIVE_INFINITY;
-          for (const index of visibleSectionsRef.current) {
-            const el = sectionRefs.current[index];
-            if (!el) continue;
-            const rect = el.getBoundingClientRect();
-            const distance = Math.abs(
-              rect.top + rect.height / 2 - viewportMiddle,
-            );
-            if (distance < nearestDistance) {
-              nearestDistance = distance;
-              nearest = index;
-            }
-          }
-          if (nearest !== -1) {
-            setActiveSectionIndex(nearest);
-          }
+        const picked = pickActiveSection(
+          container,
+          visibleSectionsRef.current,
+          sectionRefs.current,
+        );
+        if (picked !== -1) {
+          setActiveSectionIndex(picked);
         }
       },
       {

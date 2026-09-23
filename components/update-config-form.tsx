@@ -109,7 +109,7 @@ export default function UpdateConfigForm({
       config.trim() === latestVersion.configContent.trim();
     const minStarshipVersionUnchanged =
       String(formData.get("minStarshipVersion") ?? "").trim() ===
-      latestVersion.minStarshipVersion.trim();
+      (latestVersion.minStarshipVersion ?? "").trim();
     const dependenciesUnchanged =
       normalizeDependencies(String(formData.get("dependencies") ?? "")) ===
       normalizeDependencies(latestVersion.dependencies?.join("\n") ?? "");
@@ -278,9 +278,8 @@ success_symbol = '[➜](bold green)'
             <Input
               type="text"
               name="minStarshipVersion"
-              label="Minimum Starship Version"
-              defaultValue={latestVersion.minStarshipVersion}
-              required
+              label="Minimum Starship Version (optional)"
+              defaultValue={latestVersion.minStarshipVersion ?? ""}
               pattern="^\d+\.\d+\.\d+$"
               placeholder="1.24.0"
             />

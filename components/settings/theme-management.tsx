@@ -25,7 +25,7 @@ interface Theme {
     version: string;
     configContent: string;
     dependencies: string[] | null;
-    minStarshipVersion: string;
+    minStarshipVersion: string | null;
   }>;
 }
 
@@ -135,7 +135,12 @@ export default function ThemeManagement({
                       src={theme.screenshotUrl}
                       alt={theme.name}
                       fill
-                      sizes="128px"
+                      // Same sizes as ThemeCard on purpose: the browser then picks the
+                      // same srcset width, so this reuses the gallery's already cached
+                      // transformation instead of requesting (and paying for) a new
+                      // one. A literal "128px" fetched a copy smaller than the
+                      // object-cover crop is drawn at, which is what made it blurry.
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                       className="object-cover object-top-left"
                     />
                   </div>

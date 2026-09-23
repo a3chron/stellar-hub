@@ -183,9 +183,9 @@ export const themeVersions = pgTable(
     configContent: text("config_content").notNull(),
     versionNotes: text("version_notes"),
     dependencies: text("dependencies").array(),
-    minStarshipVersion: text("min_starship_version")
-      .notNull()
-      .default("1.24.0"),
+    // Optional: null means the author stated no requirement. Only shown on
+    // the theme page - the CLI does not read it.
+    minStarshipVersion: text("min_starship_version"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({

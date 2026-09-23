@@ -198,6 +198,19 @@ export default function EditMetadataForm({
               required
               placeholder="My Awesome Theme"
             />
+            {/* The PATCH endpoint only ever renames the display name - the slug
+                is the theme's address and `stellar apply` identifier, so
+                changing it would break saved links and installed themes. Say
+                so, rather than leaving it to look like both change. */}
+            <p className="text-xs text-ctp-subtext0 mt-1">
+              Only the display name changes - the address stays{" "}
+              <code className="text-ctp-subtext1">
+                /{author}/{theme.slug}
+              </code>{" "}
+              so existing links and{" "}
+              <code className="text-ctp-subtext1">stellar apply</code> commands
+              keep working.
+            </p>
           </div>
 
           {/* Description */}

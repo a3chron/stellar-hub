@@ -5,6 +5,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CopyIcon,
+  LoaderCircleIcon,
   TriangleAlertIcon,
   XIcon,
 } from "lucide-react";
@@ -21,7 +22,7 @@ interface ConfigPreviewData {
   hasCustomCommands: boolean;
   versionNotes: string | null;
   dependencies: string[] | null;
-  minStarshipVersion: string;
+  minStarshipVersion: string | null;
   createdAt: string;
 }
 
@@ -539,7 +540,11 @@ export function ConfigPreviewModal({
         <div ref={scrollContainerRef} className="flex-1 overflow-auto p-6">
           {loading && (
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-ctp-text" />
+              <LoaderCircleIcon
+                size={28}
+                className="animate-spin text-ctp-subtext0"
+                aria-label="Loading config"
+              />
             </div>
           )}
 

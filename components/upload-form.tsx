@@ -10,7 +10,12 @@ import {
   ACCEPTED_SCREENSHOT_TYPES,
   validateScreenshotFile,
 } from "@/lib/screenshot-validation";
-import { generateSlug } from "@/lib/theme-slug";
+import {
+  finishSlugInput,
+  generateSlug,
+  MAX_SLUG_LENGTH,
+  sanitizeSlugInput,
+} from "@/lib/theme-slug";
 import {
   themeSlugAnnouncement,
   themeSlugError,
@@ -94,7 +99,7 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
   const [loading, setLoading] = useState(false);
   const [themeName, setThemeName] = useState("");
   const [description, setDescription] = useState("");
-  const [minStarshipVersion, setMinStarshipVersion] = useState("1.24.0");
+  const [minStarshipVersion, setMinStarshipVersion] = useState("");
   const [minStarshipVersionTouched, setMinStarshipVersionTouched] =
     useState(false);
   const [screenshotError, setScreenshotError] = useState<string | null>(null);
@@ -107,13 +112,17 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
   // A stray Ctrl+R here costs the user their pasted starship config.
   useUnsavedChangesWarning(dirty);
 
-  const slug = generateSlug(themeName);
+  // The slug follows the name until the user edits it by hand; from then on
+  // it is theirs, and renaming the theme no longer overwrites it. Clearing
+  // the field hands it back to the generator.
+  const [customSlug, setCustomSlug] = useState<string | null>(null);
+  const slug = customSlug ?? generateSlug(themeName);
   const slugId = useId();
   const descriptionId = useId();
   const minStarshipVersionId = useId();
   const slugAvailability = useThemeSlugAvailability(themeName, slug, true);
   const slugProblem = themeSlugError(slugAvailability);
-  const slugClass = themeSlugStateClass(slugAvailability) ?? "focus:ring-0!";
+  const slugClass = themeSlugStateClass(slugAvailability) ?? "";
 
   const minStarshipVersionInvalid =
     minStarshipVersionTouched &&
@@ -164,6 +173,8 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
 
     // Auto-set version to 1.0 for new themes
     formData.set("version", "1.0");
+    // Enter submits without blurring the slug field, so tidy its ends here too.
+    formData.set("slug", finishSlugInput(slug));
 
     try {
       const response = await fetch("/api/upload", {
@@ -226,19 +237,29 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
         />
       </div>
 
-      {/* Slug (auto-generated, read-only) */}
+      {/* Slug (generated from the name, editable) */}
       <div>
         <label htmlFor={slugId} className="flex flex-col">
-          <span className="mb-1.5 text-sm text-ctp-text">
-            Slug (auto-generated)
-          </span>
+          <span className="mb-1.5 text-sm text-ctp-text">Slug</span>
           <div className="relative">
             <input
               id={slugId}
               type="text"
               name="slug"
               value={slug}
-              readOnly
+              onChange={(e) => {
+                const next = sanitizeSlugInput(e.currentTarget.value);
+                setCustomSlug(next === "" ? null : next);
+              }}
+              onBlur={() => {
+                if (customSlug !== null) {
+                  const finished = finishSlugInput(customSlug);
+                  setCustomSlug(finished === "" ? null : finished);
+                }
+              }}
+              maxLength={MAX_SLUG_LENGTH}
+              spellCheck={false}
+              autoComplete="off"
               aria-invalid={slugProblem !== null}
               aria-describedby={`${slugId}-hint`}
               className={`w-full p-2 pr-9 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text placeholder:text-ctp-subtext0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base ${slugClass}`}
@@ -272,7 +293,24 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
               )}
             </span>
           ) : (
-            "Used in URLs. Auto-generated from theme name."
+            <>
+              Your theme's address and{" "}
+              <code className="text-ctp-subtext1">stellar apply</code> name.
+              Generated from the name - edit it if you like, but it can't be
+              changed after publishing.
+              {customSlug !== null && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    onClick={() => setCustomSlug(null)}
+                    className="cursor-pointer text-ctp-lavender underline underline-offset-2"
+                  >
+                    Use generated slug
+                  </button>
+                </>
+              )}
+            </>
           )}
         </p>
       </div>
@@ -350,11 +388,10 @@ export default function UploadForm({ colorSchemes }: UploadFormProps) {
         <Input
           type="text"
           name="minStarshipVersion"
-          label="Minimum Starship Version"
+          label="Minimum Starship Version (optional)"
           value={minStarshipVersion}
           onChange={(e) => setMinStarshipVersion(e.currentTarget.value)}
           onBlur={() => setMinStarshipVersionTouched(true)}
-          required
           pattern="^\d+\.\d+\.\d+$"
           placeholder="1.24.0"
           aria-invalid={minStarshipVersionInvalid}

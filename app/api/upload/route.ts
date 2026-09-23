@@ -22,7 +22,11 @@ const uploadSchema = z.object({
   description: z.string().max(500).optional(),
   config: z.string().min(1).max(100000), // 100KB max
   version: z.string().regex(/^v?\d+\.\d+$/),
-  minStarshipVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
+  // Optional - an empty field means no stated requirement.
+  minStarshipVersion: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .optional(),
   colorSchemeId: z.string().uuid().optional().or(z.literal("")),
   colorMode: z.enum(["dark", "light", "both"]).optional(),
   group: z.string().optional(),
@@ -66,7 +70,7 @@ export async function POST(request: NextRequest) {
       description: formData.get("description") || undefined,
       config: formData.get("config"),
       version: formData.get("version"),
-      minStarshipVersion: formData.get("minStarshipVersion"),
+      minStarshipVersion: formData.get("minStarshipVersion") || undefined,
       colorSchemeId: formData.get("colorSchemeId") || undefined,
       colorMode: formData.get("colorMode") || undefined,
       group: formData.get("group") || undefined,
@@ -171,7 +175,7 @@ export async function POST(request: NextRequest) {
         configContent: data.config,
         versionNotes: data.versionNotes,
         dependencies: dependenciesArray,
-        minStarshipVersion: data.minStarshipVersion,
+        minStarshipVersion: data.minStarshipVersion ?? null,
       })
       .returning();
 

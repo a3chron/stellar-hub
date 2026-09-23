@@ -16,7 +16,11 @@ type RouteParams = {
 const newVersionSchema = z.object({
   version: z.string().regex(/^\d+\.\d+$/),
   config: z.string().min(1).max(100000),
-  minStarshipVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
+  // Optional - an empty field means no stated requirement.
+  minStarshipVersion: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+$/)
+    .optional(),
   dependencies: z.string().optional(),
   versionNotes: z.string().max(500).optional(),
 });
@@ -168,7 +172,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const rawData = {
       version: formData.get("version") || versionParam,
       config: formData.get("config"),
-      minStarshipVersion: formData.get("minStarshipVersion"),
+      minStarshipVersion: formData.get("minStarshipVersion") || undefined,
       dependencies: formData.get("dependencies") || undefined,
       versionNotes: formData.get("versionNotes") || undefined,
     };
@@ -215,7 +219,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       configContent: data.config,
       versionNotes: data.versionNotes,
       dependencies: dependenciesArray,
-      minStarshipVersion: data.minStarshipVersion,
+      minStarshipVersion: data.minStarshipVersion ?? null,
     });
 
     await db

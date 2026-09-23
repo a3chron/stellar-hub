@@ -199,6 +199,11 @@ export function ConfigPreviewModal({
   // fires once per modal instance (the component remounts per version via
   // `key={version}`, so this resets naturally on a version change).
   const hasScrolledToFirstSectionRef = useRef(false);
+  // The section we last jumped to, until the user scrolls by hand. While set,
+  // the counter stays on it and layout changes (a web font swapping in,
+  // highlighting) re-centre it instead of letting a neighbour drift into the
+  // middle and take over the counter.
+  const anchorSectionRef = useRef<number | null>(null);
 
   // Tracks that a fetch was attempted for this modal instance. A plain
   // `!loading` guard is not enough: the catch clears `loading`, which is in the
@@ -273,7 +278,13 @@ export function ConfigPreviewModal({
     // scrollend fired, and the timeout put it back. Same effect at the bottom
     // clamp, and on the deep-link jump when the first section is already at
     // the top - the modal would open reading "2 / N".
-    if (preserveActive || visibleSectionsRef.current.size === 0) return;
+    if (
+      preserveActive ||
+      anchorSectionRef.current !== null ||
+      visibleSectionsRef.current.size === 0
+    ) {
+      return;
+    }
 
     const picked = pickActiveSection(
       container,
@@ -286,11 +297,12 @@ export function ConfigPreviewModal({
   }, []);
 
   const scrollToSection = useCallback(
-    (index: number) => {
+    (index: number, behavior: ScrollBehavior = "smooth") => {
       const container = scrollContainerRef.current;
       const target = sectionRefs.current[index];
       if (!container || !target) return;
 
+      anchorSectionRef.current = index;
       isProgrammaticScrollRef.current = true;
       if (scrollEndTimeoutRef.current) {
         clearTimeout(scrollEndTimeoutRef.current);
@@ -318,7 +330,7 @@ export function ConfigPreviewModal({
       const spare = container.clientHeight - targetRect.height;
       const offset = spare > 48 ? relativeTop - spare / 2 : relativeTop - 16;
 
-      container.scrollTo({ top: Math.max(offset, 0), behavior: "smooth" });
+      container.scrollTo({ top: Math.max(offset, 0), behavior });
     },
     [recomputeVisibleSections],
   );
@@ -384,7 +396,64 @@ export function ConfigPreviewModal({
       return;
     }
     hasScrolledToFirstSectionRef.current = true;
-    scrollToSection(0);
+    // Measure after web fonts have loaded: before that the fallback font's
+    // line height puts every line elsewhere, and the jump lands a section off.
+    document.fonts.ready.then(() => scrollToSection(0));
+  }, [data, customSections, scrollToSection]);
+
+  // Releases the anchor as soon as the user scrolls themselves - from then on
+  // the counter follows what they are looking at.
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const release = () => {
+      anchorSectionRef.current = null;
+    };
+    const releaseOnScrollKey = (event: KeyboardEvent) => {
+      if (
+        [
+          "ArrowUp",
+          "ArrowDown",
+          "PageUp",
+          "PageDown",
+          "Home",
+          "End",
+          " ",
+        ].includes(event.key)
+      ) {
+        release();
+      }
+    };
+
+    // mousedown covers dragging the scrollbar.
+    container.addEventListener("wheel", release, { passive: true });
+    container.addEventListener("touchstart", release, { passive: true });
+    container.addEventListener("mousedown", release);
+    document.addEventListener("keydown", releaseOnScrollKey);
+    return () => {
+      container.removeEventListener("wheel", release);
+      container.removeEventListener("touchstart", release);
+      container.removeEventListener("mousedown", release);
+      document.removeEventListener("keydown", releaseOnScrollKey);
+    };
+  }, []);
+
+  // Keeps the anchored section centred when the content changes size after
+  // the jump (font swap, token colours arriving, images above loading).
+  useEffect(() => {
+    // The wrapper around the config lines (the sections' shared parent), not
+    // the scroll container's first child - that is the loading/error slot.
+    const content = sectionRefs.current[0]?.parentElement;
+    if (!content) return;
+
+    const observer = new ResizeObserver(() => {
+      if (anchorSectionRef.current !== null) {
+        scrollToSection(anchorSectionRef.current, "auto");
+      }
+    });
+    observer.observe(content);
+    return () => observer.disconnect();
   }, [data, customSections, scrollToSection]);
 
   // Problem 3: scroll-spy. As the user manually scrolls the container,
@@ -420,6 +489,10 @@ export function ConfigPreviewModal({
         // looking at" means while scrolling and where scrollToSection puts its
         // target - a top-biased rule would report the *previous* section right
         // after a centred jump and snap the counter backwards.
+        //
+        // Not while anchored: then the visible set is kept current, but the
+        // counter stays on the section the user was sent to.
+        if (anchorSectionRef.current !== null) return;
         const picked = pickActiveSection(
           container,
           visibleSectionsRef.current,

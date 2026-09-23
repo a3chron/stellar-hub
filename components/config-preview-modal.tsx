@@ -56,6 +56,10 @@ function HighlightedConfig({
   tokens: TomlLineTokens[] | null;
 }) {
   const lines = configContent.split("\n");
+  // Every line div gets min-h-lh: a blank line renders no tokens, and an
+  // empty block has no height, which collapsed the blank lines between
+  // modules. (It only worked before for CRLF configs, where a "blank" line
+  // still held an invisible \r.)
   const nodes: React.ReactNode[] = [];
 
   let lineIndex = 0;
@@ -86,7 +90,7 @@ function HighlightedConfig({
           {sectionLines.map((text, offset) => {
             const absoluteLine = section.startLine + offset;
             return (
-              <div key={`${section.startLine}-${offset}`}>
+              <div key={`${section.startLine}-${offset}`} className="min-h-lh">
                 <TomlLineContent text={text} tokens={tokens?.[absoluteLine]} />
               </div>
             );
@@ -100,7 +104,7 @@ function HighlightedConfig({
     }
 
     nodes.push(
-      <div className="whitespace-pre" key={`line-${lineIndex}`}>
+      <div className="whitespace-pre min-h-lh" key={`line-${lineIndex}`}>
         <TomlLineContent text={lines[lineIndex]} tokens={tokens?.[lineIndex]} />
       </div>,
     );

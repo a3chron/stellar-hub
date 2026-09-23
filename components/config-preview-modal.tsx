@@ -11,6 +11,9 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findCustomSections } from "@/lib/toml-custom-sections";
 import { cn } from "@/lib/utils";
+import type { TomlLineTokens } from "./toml/highlighter";
+import { TomlLineContent } from "./toml/toml-line";
+import { useTomlTokens } from "./toml/use-toml-tokens";
 
 interface ConfigPreviewData {
   version: string;
@@ -40,11 +43,16 @@ function HighlightedConfig({
   sections,
   activeSectionIndex,
   sectionRefs,
+  tokens,
 }: {
   configContent: string;
   sections: ReturnType<typeof findCustomSections>;
   activeSectionIndex: number;
   sectionRefs: React.MutableRefObject<(HTMLDivElement | null)[]>;
+  // `null` while the highlighter is still loading (or failed) - lines fall
+  // back to plain text in that case, same as everywhere else that consumes
+  // useTomlTokens.
+  tokens: TomlLineTokens[] | null;
 }) {
   const lines = configContent.split("\n");
   const nodes: React.ReactNode[] = [];
@@ -74,9 +82,14 @@ function HighlightedConfig({
               : "border-ctp-peach/50 bg-ctp-peach/10",
           )}
         >
-          {sectionLines.map((text, offset) => (
-            <div key={`${section.startLine}-${offset}`}>{text}</div>
-          ))}
+          {sectionLines.map((text, offset) => {
+            const absoluteLine = section.startLine + offset;
+            return (
+              <div key={`${section.startLine}-${offset}`}>
+                <TomlLineContent text={text} tokens={tokens?.[absoluteLine]} />
+              </div>
+            );
+          })}
         </div>,
       );
 
@@ -87,7 +100,7 @@ function HighlightedConfig({
 
     nodes.push(
       <div className="whitespace-pre" key={`line-${lineIndex}`}>
-        {lines[lineIndex]}
+        <TomlLineContent text={lines[lineIndex]} tokens={tokens?.[lineIndex]} />
       </div>,
     );
     lineIndex += 1;
@@ -100,7 +113,7 @@ function HighlightedConfig({
   // scrolled. Sizing each section to its own widest line instead would fix
   // that but leave every highlight ending at a different place; sizing the
   // wrapper once makes them all run to the same full width.
-  return <div className="w-max min-w-full">{nodes}</div>;
+  return <div className="shiki w-max min-w-full">{nodes}</div>;
 }
 
 // When a single modal instance is reused to view different versions (e.g.
@@ -175,6 +188,7 @@ export function ConfigPreviewModal({
     () => (data ? findCustomSections(data.configContent) : []),
     [data],
   );
+  const tokens = useTomlTokens(data?.configContent ?? "");
 
   // Rebuilds the visible-section set from geometry.
   //
@@ -578,6 +592,7 @@ export function ConfigPreviewModal({
                     sections={customSections}
                     activeSectionIndex={activeSectionIndex}
                     sectionRefs={sectionRefs}
+                    tokens={tokens}
                   />
                 </pre>
               </div>

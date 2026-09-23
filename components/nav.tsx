@@ -24,6 +24,8 @@ export default async function Nav() {
           </Link>
 
           <div className="flex items-center gap-3 sm:gap-6">
+            <QuickSearch />
+
             {/* Icon-only on mobile so it's still reachable at narrow
                 widths; text-only on sm+ to keep the previous look there. */}
             <Link
@@ -34,8 +36,6 @@ export default async function Nav() {
               <BookOpen size={18} className="sm:hidden" />
               <span className="hidden text-sm font-medium sm:inline">Docs</span>
             </Link>
-
-            <QuickSearch />
 
             {/* GitHub Stars */}
             <Link

@@ -15,8 +15,8 @@ export default function HomeLoading() {
             <Skeleton className="h-14 w-44 rounded-xl" />
           </div>
         </div>
-        <div className="relative z-10">
-          <Skeleton className="rounded-3xl w-[600px] h-[400px]" />
+        <div className="relative z-10 w-full md:w-[600px]">
+          <Skeleton className="rounded-3xl w-full max-w-[600px] aspect-[3/2]" />
         </div>
       </section>
 

@@ -40,9 +40,21 @@ function Section({
   );
 }
 
-function H3({ children }: { children: React.ReactNode }) {
+// Headings get an id from their text ("CLI usage statistics" ->
+// #cli-usage-statistics) so individual clauses can be linked to directly.
+function headingId(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function H3({ children }: { children: string }) {
   return (
-    <h3 className="text-xl font-semibold text-ctp-text mt-8 mb-3">
+    <h3
+      id={headingId(children)}
+      className="text-xl font-semibold text-ctp-text mt-8 mb-3 scroll-mt-24"
+    >
       {children}
     </h3>
   );

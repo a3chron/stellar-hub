@@ -70,8 +70,48 @@ export async function tokenizeToml(code: string): Promise<TomlLineTokens[]> {
   });
 
   return lines.map((line) =>
-    line.map((token) =>
-      flatTokenVariants(token, ["light", "dark"], "--shiki-", false),
+    highlightSectionName(
+      line.map((token) =>
+        flatTokenVariants(token, ["light", "dark"], "--shiki-", false),
+      ),
     ),
   );
+}
+
+// A `[table]` or `[[array-of-tables]]` header line, optionally commented.
+const SECTION_HEADER = /^\s*\[\[?[^\]]+\]\]?\s*(#.*)?$/;
+
+// Catppuccin mauve (latte / mocha). The bundled themes paint section names
+// in the same plain text color as keys, which makes `[nix_shell]` - the
+// line a Starship config is organised around - blend into its own
+// settings.
+const SECTION_NAME_STYLE = {
+  "--shiki-light": "#8839EF",
+  "--shiki-dark": "#CBA6F7",
+};
+
+/**
+ * Recolors the name inside a section header, leaving the brackets and any
+ * trailing comment as the theme drew them.
+ */
+function highlightSectionName(tokens: TomlLineTokens): TomlLineTokens {
+  const text = tokens.map((token) => token.content).join("");
+  if (!SECTION_HEADER.test(text)) {
+    return tokens;
+  }
+
+  let closed = false;
+  return tokens.map((token) => {
+    const content = token.content.trim();
+    if (closed || content === "" || /^[[\]]+$/.test(content)) {
+      if (content.includes("]")) {
+        closed = true;
+      }
+      return token;
+    }
+    return {
+      ...token,
+      htmlStyle: { ...token.htmlStyle, ...SECTION_NAME_STYLE },
+    };
+  });
 }

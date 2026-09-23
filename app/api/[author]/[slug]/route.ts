@@ -11,6 +11,7 @@ import {
   isValidScreenshotFilename,
 } from "@/lib/file-validation";
 import { downloadRateLimiter, getClientIP } from "@/lib/rate-limit";
+import { validateScreenshotFile } from "@/lib/screenshot-validation";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usernameEquals } from "@/lib/username";
 
@@ -291,18 +292,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     let screenshotUrl = theme.screenshotUrl;
 
     if (screenshot && screenshot.size > 0) {
-      if (!screenshot.type.startsWith("image/")) {
-        return NextResponse.json(
-          { error: "Screenshot must be an image" },
-          { status: 400 },
-        );
-      }
-
-      if (screenshot.size > 5 * 1024 * 1024) {
-        return NextResponse.json(
-          { error: "Screenshot must be less than 5MB" },
-          { status: 400 },
-        );
+      // Same rules /api/upload enforces at create time (PNG/JPEG/WebP, 5MB
+      // max) - this previously accepted any image/* type, so a GIF or SVG
+      // slipped past here that /api/upload would have rejected outright.
+      const screenshotError = validateScreenshotFile(screenshot);
+      if (screenshotError) {
+        return NextResponse.json({ error: screenshotError }, { status: 400 });
       }
 
       const buffer = await screenshot.arrayBuffer();

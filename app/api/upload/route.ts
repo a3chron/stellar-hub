@@ -5,7 +5,10 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { themes, themeVersions } from "@/lib/db/schema";
+import { validateScreenshotFile } from "@/lib/screenshot-validation";
 import { supabaseAdmin } from "@/lib/supabase";
+import { themeSlugTaken } from "@/lib/theme-exists";
+import { MAX_SLUG_LENGTH } from "@/lib/theme-slug";
 import { hasCustomSections } from "@/lib/toml-custom-detect";
 
 // Validation schema
@@ -13,7 +16,8 @@ const uploadSchema = z.object({
   name: z.string().min(1).max(100),
   slug: z
     .string()
-    .max(50)
+    .min(1, "is required")
+    .max(MAX_SLUG_LENGTH)
     .regex(/^[a-z0-9-]*$/),
   description: z.string().max(500).optional(),
   config: z.string().min(1).max(100000), // 100KB max
@@ -48,20 +52,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate screenshot
-    if (!screenshot.type.startsWith("image/")) {
-      return NextResponse.json(
-        { error: "Screenshot must be an image" },
-        { status: 400 },
-      );
-    }
-
-    if (screenshot.size > 5 * 1024 * 1024) {
-      // 5MB max
-      return NextResponse.json(
-        { error: "Screenshot must be less than 5MB" },
-        { status: 400 },
-      );
+    // Validate screenshot - same rules the form checks on file selection,
+    // see lib/screenshot-validation.
+    const screenshotError = validateScreenshotFile(screenshot);
+    if (screenshotError) {
+      return NextResponse.json({ error: screenshotError }, { status: 400 });
     }
 
     // 3. Validate other fields
@@ -81,16 +76,12 @@ export async function POST(request: NextRequest) {
 
     const data = uploadSchema.parse(rawData);
 
-    const existingTheme = await db.query.themes.findFirst({
-      where: (themes, { and, eq }) =>
-        and(eq(themes.authorId, session.user.id), eq(themes.slug, data.slug)),
-    });
-
-    if (existingTheme) {
+    if (await themeSlugTaken(session.user.id, data.slug)) {
       return NextResponse.json(
         {
           error:
             "This theme already exists. Update your themes in the settings",
+          code: "duplicate_slug",
         },
         { status: 400 },
       );

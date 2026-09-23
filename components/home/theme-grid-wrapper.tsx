@@ -1,14 +1,17 @@
 import { and, desc, eq, or, type SQL, sql } from "drizzle-orm";
+import Link from "next/link";
 import Pagination from "@/components/pagination";
 import ThemeCard from "@/components/theme-card";
 import { db } from "@/lib/db";
 import type { colorModeEnum } from "@/lib/db/schema";
 import { themes } from "@/lib/db/schema";
+import { buildThemeSearchCondition } from "@/lib/theme-search";
 
 interface ThemeGridWrapperProps {
   sort: string;
   colorSchemeId?: string;
   colorMode?: (typeof colorModeEnum.enumValues)[number];
+  q?: string;
   page: number;
 }
 
@@ -16,10 +19,16 @@ export async function ThemeGridWrapper({
   sort,
   colorSchemeId,
   colorMode,
+  q,
   page,
 }: ThemeGridWrapperProps) {
   const limit = 12;
   const offset = (page - 1) * limit;
+
+  // Whether the current result set was narrowed down at all, as opposed to
+  // just paginated/sorted - drives whether the empty state offers a "Clear
+  // filters" link.
+  const hasActiveFilters = Boolean(colorSchemeId || colorMode || q);
 
   // Build where clause for filters
   const whereConditions = [];
@@ -36,6 +45,9 @@ export async function ThemeGridWrapper({
     );
   } else if (colorMode === "both") {
     whereConditions.push(eq(themes.colorMode, "both"));
+  }
+  if (q) {
+    whereConditions.push(buildThemeSearchCondition(q));
   }
 
   // Determine order by based on sort parameter
@@ -78,9 +90,22 @@ export async function ThemeGridWrapper({
   });
 
   if (displayedThemes.length === 0) {
+    let message = "No themes found.";
+    if (hasActiveFilters) {
+      message = "No themes found with the selected filters.";
+    }
+
     return (
       <div className="text-center py-12 text-ctp-subtext0">
-        <p>No themes found with the selected filters.</p>
+        <p>{message}</p>
+        {hasActiveFilters && (
+          <Link
+            href={`/?sort=${encodeURIComponent(sort)}#themes`}
+            className="mt-2 inline-block text-sm text-ctp-lavender underline underline-offset-4"
+          >
+            Clear filters
+          </Link>
+        )}
       </div>
     );
   }

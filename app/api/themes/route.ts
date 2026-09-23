@@ -2,17 +2,10 @@ import { asc, desc, eq, getTableName, or, type SQL, sql } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { colorModeEnum, themes, user } from "@/lib/db/schema";
+import { buildThemeSearchCondition, escapeLike } from "@/lib/theme-search";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/**
- * Escapes the wildcards ILIKE would otherwise interpret, so a search for
- * "100%" or "a_c" matches those characters literally instead of everything.
- */
-function escapeLike(value: string): string {
-  return value.replace(/[\\%_]/g, "\\$&");
-}
 
 /**
  * Parses a query-string integer, falling back to `fallback` for anything
@@ -72,10 +65,7 @@ export async function GET(request: NextRequest) {
     const conditions = [];
 
     if (search) {
-      const term = `%${escapeLike(search)}%`;
-      conditions.push(
-        sql`(${themes.name} ILIKE ${term} OR ${themes.description} ILIKE ${term})`,
-      );
+      conditions.push(buildThemeSearchCondition(search));
     }
 
     if (colorScheme) {

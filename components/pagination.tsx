@@ -22,7 +22,7 @@ export default function Pagination({
     } else {
       params.set("page", page.toString());
     }
-    router.push(`/?${params.toString()}`);
+    router.push(`/?${params.toString()}#themes`);
   };
 
   if (totalPages <= 1) {

@@ -1,6 +1,7 @@
-import { Github } from "lucide-react";
+import { BookOpen, Github } from "lucide-react";
 import { headers } from "next/headers";
 import Link from "next/link";
+import QuickSearch from "@/components/search/quick-search";
 import { auth } from "@/lib/auth";
 import AuthButton from "./auth-button";
 import AsteriskLogo from "./icons/asterisk";
@@ -22,18 +23,25 @@ export default async function Nav() {
             <AsteriskLogo width={36} height={36} />
           </Link>
 
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-3 sm:gap-6">
+            {/* Icon-only on mobile so it's still reachable at narrow
+                widths; text-only on sm+ to keep the previous look there. */}
             <Link
               href="/docs"
-              className="hidden sm:block text-sm font-medium text-ctp-subtext1 hover:text-ctp-text transition"
+              aria-label="Docs"
+              className="text-ctp-subtext1 transition hover:text-ctp-text"
             >
-              Docs
+              <BookOpen size={18} className="sm:hidden" />
+              <span className="hidden text-sm font-medium sm:inline">Docs</span>
             </Link>
+
+            <QuickSearch />
 
             {/* GitHub Stars */}
             <Link
               href="https://github.com/a3chron/stellar"
               target="_blank"
+              aria-label="View stellar on GitHub"
               className="text-ctp-subtext1"
             >
               <Github size={18} />

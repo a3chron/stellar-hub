@@ -142,6 +142,16 @@ export const pingRateLimiter = new RateLimiter({
 });
 
 /**
+ * Rate limiter for the quick-search palette (GET /api/search), which queries
+ * on every debounced keystroke. Generous for typing, not for scraping.
+ */
+export const searchRateLimiter = new RateLimiter({
+  maxEntries: 10000,
+  windowMs: 60 * 1000, // 1 minute
+  maxRequests: 40,
+});
+
+/**
  * Rate limiter for the username availability check (GET /api/settings/username).
  *
  * That endpoint has to answer before an account exists, so it cannot require a

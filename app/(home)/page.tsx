@@ -8,6 +8,7 @@ import AsteriskLogo from "@/components/icons/asterisk";
 import { FiltersSkeleton } from "@/components/skeletons/filters-skeleton";
 import { ThemeGridSkeleton } from "@/components/skeletons/theme-grid-skeleton";
 import type { colorModeEnum } from "@/lib/db/schema";
+import { MAX_SEARCH_QUERY_LENGTH } from "@/lib/theme-search";
 
 export const metadata: Metadata = {
   // Absolute: bypasses the root layout's `%s - Stellar` template so this
@@ -38,6 +39,16 @@ function getSortTitle(sort: string): string {
   }
 }
 
+// A search takes over the section heading regardless of the current sort -
+// "Results for ..." is what tells the visitor their query is what narrowed
+// the list.
+function getSectionTitle(sort: string, q?: string): string {
+  if (q) {
+    return `Results for "${q}"`;
+  }
+  return getSortTitle(sort);
+}
+
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
   const sort = (params.sort as string) || "downloads";
@@ -45,11 +56,18 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const colorMode = params.colorMode as
     | (typeof colorModeEnum.enumValues)[number]
     | undefined;
+  // `?q=a&q=b` parses as string[], and a bare `as string` cast doesn't catch
+  // that at runtime - it reaches escapeLike()'s `.replace` (via
+  // buildThemeSearchCondition) as an array, which has no such method and
+  // 500s the page. Take the first value, and cap its length the same way the
+  // quick-search API does so a huge query isn't wasted work either.
+  const rawQ = Array.isArray(params.q) ? params.q[0] : params.q;
+  const q = rawQ?.trim().slice(0, MAX_SEARCH_QUERY_LENGTH) || undefined;
   const page = Math.max(1, parseInt((params.page as string) || "1"));
 
   // Create a unique key for the Suspense boundary based on filter params
   // This ensures React re-renders the suspense boundary when filters change
-  const gridKey = `${sort}-${colorSchemeId || ""}-${colorMode || ""}-${page}`;
+  const gridKey = `${sort}-${colorSchemeId || ""}-${colorMode || ""}-${q || ""}-${page}`;
 
   return (
     <main className="container mx-auto px-4 py-12">
@@ -78,14 +96,16 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </Link>
           </div>
         </div>
-        <div className="relative z-10">
+        <div className="relative z-10 w-full md:w-auto">
           <HeroVideo />
         </div>
       </section>
 
       {/* Themes Section */}
       <section id="themes" className="scroll-mt-24">
-        <h2 className="text-3xl font-semibold mb-6">{getSortTitle(sort)}</h2>
+        <h2 className="text-3xl font-semibold mb-6">
+          {getSectionTitle(sort, q)}
+        </h2>
 
         <Suspense fallback={<FiltersSkeleton />}>
           <ThemeFiltersWrapper />
@@ -96,6 +116,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             sort={sort}
             colorSchemeId={colorSchemeId}
             colorMode={colorMode}
+            q={q}
             page={page}
           />
         </Suspense>

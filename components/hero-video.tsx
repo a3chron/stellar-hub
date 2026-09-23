@@ -27,7 +27,7 @@ export function HeroVideo() {
         playsInline
         poster="/demo-poster.png"
         onLoadedData={() => setIsLoading(false)}
-        className={`rounded-3xl md:absolute top-0 z-10 border-2 border-ctp-surface2 w-[600px] h-[400px] object-cover transition-opacity duration-300 ${
+        className={`rounded-3xl md:absolute top-0 z-10 border-2 border-ctp-surface2 w-full aspect-[3/2] md:w-[600px] md:h-[400px] md:aspect-auto object-cover transition-opacity duration-300 ${
           isLoading ? "opacity-0" : "opacity-100"
         }`}
       >

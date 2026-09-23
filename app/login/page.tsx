@@ -7,6 +7,17 @@ import { Suspense, useCallback, useEffect, useId, useState } from "react";
 import AuthShell from "@/components/auth/auth-shell";
 import GoogleLogo from "@/components/icons/google";
 import { authClient } from "@/lib/auth-client";
+import {
+  getLastLoginMethod,
+  type LoginMethod,
+  rememberLoginMethod,
+  stashResetEmail,
+} from "@/lib/login-hints";
+import {
+  usernameError,
+  usernameStateClass,
+  useUsernameAvailability,
+} from "@/lib/use-username-availability";
 
 type Mode = "signin" | "signup";
 
@@ -17,12 +28,6 @@ const SOCIAL_PROVIDERS = [
 ] as const;
 
 type SocialProvider = (typeof SOCIAL_PROVIDERS)[number]["id"];
-
-type UsernameStatus =
-  | { state: "idle" }
-  | { state: "checking" }
-  | { state: "available" }
-  | { state: "unavailable"; error: string };
 
 function LoginContent() {
   const router = useRouter();
@@ -43,6 +48,7 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [verificationSent, setVerificationSent] = useState(false);
@@ -54,9 +60,6 @@ function LoginContent() {
   const [resendState, setResendState] = useState<"idle" | "sending" | "sent">(
     "idle",
   );
-  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>({
-    state: "idle",
-  });
 
   useEffect(() => {
     if (resendCooldown <= 0) {
@@ -73,40 +76,13 @@ function LoginContent() {
   // Availability is checked as they type so the handle is settled before the
   // account exists - it is far harder to change afterwards (see
   // /api/settings/username).
+  const usernameStatus = useUsernameAvailability(username, mode === "signup");
+
+  // Read after mount: localStorage doesn't exist during the server render.
+  const [lastMethod, setLastMethod] = useState<LoginMethod | null>(null);
   useEffect(() => {
-    if (mode !== "signup" || !username) {
-      setUsernameStatus({ state: "idle" });
-      return;
-    }
-
-    setUsernameStatus({ state: "checking" });
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `/api/settings/username?username=${encodeURIComponent(username)}`,
-          { signal: controller.signal },
-        );
-        const data = await response.json();
-        setUsernameStatus(
-          data.available
-            ? { state: "available" }
-            : { state: "unavailable", error: data.error ?? "Not available" },
-        );
-      } catch {
-        // An aborted or failed check shouldn't show a red cross - the server
-        // validates again on submit either way.
-        if (!controller.signal.aborted) {
-          setUsernameStatus({ state: "idle" });
-        }
-      }
-    }, 400);
-
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, [username, mode]);
+    setLastMethod(getLastLoginMethod());
+  }, []);
 
   async function handleResend() {
     setResendState("sending");
@@ -131,7 +107,11 @@ function LoginContent() {
       if (socialError) {
         setError(socialError.message ?? "Could not sign in. Please try again.");
         setPending(null);
+        return;
       }
+      // The client has set the provider redirect in motion by now; recorded
+      // here rather than before the call so a refused start isn't marked.
+      rememberLoginMethod(provider);
     },
     [callbackUrl],
   );
@@ -163,6 +143,7 @@ function LoginContent() {
         setPending(null);
         return;
       }
+      rememberLoginMethod("email");
       router.push(callbackUrl);
       router.refresh();
       return;
@@ -184,6 +165,7 @@ function LoginContent() {
       return;
     }
 
+    rememberLoginMethod("email");
     // The account exists but the address is unconfirmed, so there is nothing
     // to redirect to yet - tell them to go and check their inbox.
     setVerificationSent(true);
@@ -237,7 +219,26 @@ function LoginContent() {
   }
 
   const isSignUp = mode === "signup";
-  const usernameBlocked = isSignUp && usernameStatus.state === "unavailable";
+  const usernameProblem = usernameError(usernameStatus);
+  const usernameBlocked = isSignUp && usernameProblem !== null;
+  const usernameClass =
+    usernameStateClass(usernameStatus) ??
+    "border-ctp-crust focus:ring-ctp-surface0";
+  // Only worth pointing out to someone coming back to log in.
+  const markedMethod = isSignUp ? null : lastMethod;
+  const passwordValid = isSignUp && password.length >= 12;
+  const passwordTooShort =
+    isSignUp && password.length > 0 && password.length < 12;
+  const showPasswordTooShort = passwordTooShort && !passwordFocused;
+
+  let passwordStateClass = "border-ctp-crust focus:ring-ctp-surface0";
+  if (passwordValid) {
+    passwordStateClass = "border-ctp-green focus:ring-ctp-green/30";
+  } else if (passwordTooShort) {
+    passwordStateClass = passwordFocused
+      ? "border-ctp-crust focus:ring-ctp-red/30"
+      : "border-ctp-red";
+  }
 
   return (
     <AuthShell>
@@ -271,7 +272,11 @@ function LoginContent() {
             type="button"
             onClick={() => handleSocial(id)}
             disabled={pending !== null}
-            className="flex w-full cursor-pointer items-center justify-center gap-3 rounded-lg border border-ctp-surface0 bg-ctp-mantle px-4 py-3 text-sm font-medium text-ctp-text transition-colors hover:bg-ctp-surface0 disabled:cursor-not-allowed disabled:opacity-60"
+            className={`relative flex w-full cursor-pointer items-center justify-center gap-3 rounded-lg border bg-ctp-mantle px-4 py-3 text-sm font-medium text-ctp-text transition-colors hover:bg-ctp-surface0 disabled:cursor-not-allowed disabled:opacity-60 ${
+              markedMethod === id
+                ? "border-ctp-green/60 ring-2 ring-ctp-green/20"
+                : "border-ctp-surface0"
+            }`}
           >
             {pending === id ? (
               <Loader2 size={18} className="animate-spin" />
@@ -279,15 +284,26 @@ function LoginContent() {
               <Icon size={18} />
             )}
             Continue with {label}
+            {markedMethod === id && (
+              <span className="absolute right-3 text-xs font-normal text-ctp-green">
+                Last used
+              </span>
+            )}
           </button>
         ))}
       </div>
 
       <div className="my-6 flex items-center gap-4">
         <span className="h-px flex-1 bg-ctp-surface0" />
-        <span className="text-xs uppercase tracking-wider text-ctp-overlay0">
-          or
-        </span>
+        {markedMethod === "email" ? (
+          <span className="text-xs uppercase tracking-wider text-ctp-green">
+            or email · last used
+          </span>
+        ) : (
+          <span className="text-xs uppercase tracking-wider text-ctp-overlay0">
+            or
+          </span>
+        )}
         <span className="h-px flex-1 bg-ctp-surface0" />
       </div>
 
@@ -310,7 +326,7 @@ function LoginContent() {
                 spellCheck={false}
                 maxLength={39}
                 placeholder="your-handle"
-                className="w-full rounded-lg border-2 border-ctp-crust bg-ctp-mantle p-2 pr-9 text-ctp-text placeholder:text-ctp-overlay0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
+                className={`w-full rounded-lg border-2 bg-ctp-mantle p-2 pr-9 text-ctp-text placeholder:text-ctp-overlay0 transition-colors focus:outline-none focus:ring-2 ${usernameClass}`}
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2">
                 {usernameStatus.state === "checking" && (
@@ -322,14 +338,12 @@ function LoginContent() {
                 {usernameStatus.state === "available" && (
                   <Check size={16} className="text-ctp-green" />
                 )}
-                {usernameStatus.state === "unavailable" && (
-                  <X size={16} className="text-ctp-red" />
-                )}
+                {usernameProblem && <X size={16} className="text-ctp-red" />}
               </span>
             </div>
             <p className="mt-1.5 text-xs leading-relaxed text-ctp-subtext0">
-              {usernameStatus.state === "unavailable" ? (
-                <span className="text-ctp-red">{usernameStatus.error}</span>
+              {usernameProblem ? (
+                <span className="text-ctp-red">{usernameProblem}</span>
               ) : (
                 <>
                   Your themes live at{" "}
@@ -369,6 +383,7 @@ function LoginContent() {
             {!isSignUp && (
               <Link
                 href="/forgot-password"
+                onClick={() => stashResetEmail(email)}
                 className="text-xs text-ctp-subtext0 transition-colors hover:text-ctp-text"
               >
                 Forgot?
@@ -381,10 +396,12 @@ function LoginContent() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
               required
               minLength={isSignUp ? 12 : undefined}
               autoComplete={isSignUp ? "new-password" : "current-password"}
-              className="w-full rounded-lg border-2 border-ctp-crust bg-ctp-mantle p-2 pr-9 text-ctp-text placeholder:text-ctp-overlay0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
+              className={`w-full rounded-lg border-2 bg-ctp-mantle p-2 pr-9 text-ctp-text placeholder:text-ctp-overlay0 transition-colors focus:outline-none focus:ring-2 ${passwordStateClass}`}
             />
             <button
               type="button"
@@ -396,7 +413,11 @@ function LoginContent() {
             </button>
           </div>
           {isSignUp && (
-            <p className="mt-1.5 text-xs text-ctp-subtext0">
+            <p
+              className={`mt-1.5 text-xs transition-colors ${
+                showPasswordTooShort ? "text-ctp-red" : "text-ctp-subtext0"
+              }`}
+            >
               At least 12 characters.
             </p>
           )}

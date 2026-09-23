@@ -2,9 +2,10 @@
 
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import AuthShell from "@/components/auth/auth-shell";
 import { authClient } from "@/lib/auth-client";
+import { takeResetEmail } from "@/lib/login-hints";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -12,6 +13,14 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
 
   const emailId = useId();
+
+  // Prefill with whatever was typed on the login page before "Forgot?".
+  useEffect(() => {
+    const stashed = takeResetEmail();
+    if (stashed) {
+      setEmail(stashed);
+    }
+  }, []);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();

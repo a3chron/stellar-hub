@@ -2,14 +2,13 @@
 
 import { AtSign, Check, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import type { User as UserType } from "@/lib/db/types";
-
-type Availability =
-  | { state: "idle" }
-  | { state: "checking" }
-  | { state: "available" }
-  | { state: "unavailable"; error: string };
+import {
+  usernameError,
+  usernameStateClass,
+  useUsernameAvailability,
+} from "@/lib/use-username-availability";
 
 /**
  * The handle is the one profile field that is part of an address rather than a
@@ -27,50 +26,29 @@ export default function UsernameSettings({
   const router = useRouter();
   const inputId = useId();
   const [username, setUsername] = useState(user.username);
-  const [availability, setAvailability] = useState<Availability>({
-    state: "idle",
-  });
+  const [inputFocused, setInputFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   const isUnchanged = username === user.username;
 
-  useEffect(() => {
-    if (hasPublishedThemes || isUnchanged || !username) {
-      setAvailability({ state: "idle" });
-      return;
-    }
-
-    setAvailability({ state: "checking" });
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const response = await fetch(
-          `/api/settings/username?username=${encodeURIComponent(username)}`,
-          { signal: controller.signal },
-        );
-        const data = await response.json();
-        if (data.available) {
-          setAvailability({ state: "available" });
-        } else {
-          setAvailability({
-            state: "unavailable",
-            error: data.error ?? "Not available",
-          });
-        }
-      } catch {
-        if (!controller.signal.aborted) {
-          setAvailability({ state: "idle" });
-        }
-      }
-    }, 400);
-
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, [username, isUnchanged, hasPublishedThemes]);
+  const availability = useUsernameAvailability(
+    username,
+    !hasPublishedThemes && !isUnchanged,
+  );
+  const problem = usernameError(availability);
+  const inputStateClass =
+    usernameStateClass(availability) ??
+    "border-ctp-surface0 focus:border-ctp-overlay1 focus:ring-transparent";
+  // An edited, usable handle that has been left without saving: nudge towards
+  // the button so the change isn't lost by navigating away.
+  const unsavedNudge =
+    !isUnchanged &&
+    !inputFocused &&
+    !loading &&
+    !saved &&
+    availability.state === "available";
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -140,11 +118,17 @@ export default function UsernameSettings({
               <input
                 id={inputId}
                 value={username}
-                onChange={(event) => setUsername(event.target.value)}
+                onChange={(event) => {
+                  setUsername(event.target.value);
+                  setSaved(false);
+                  setError(null);
+                }}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
                 maxLength={39}
                 spellCheck={false}
                 autoComplete="username"
-                className="w-full px-4 py-2 pr-10 bg-ctp-base border border-ctp-surface0 rounded text-ctp-text placeholder-ctp-overlay0 focus:outline-none focus:border-ctp-overlay1"
+                className={`w-full px-4 py-2 pr-10 bg-ctp-base border rounded text-ctp-text placeholder-ctp-overlay0 transition-colors focus:outline-none focus:ring-2 ${inputStateClass}`}
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2">
                 {availability.state === "checking" && (
@@ -153,15 +137,19 @@ export default function UsernameSettings({
                 {availability.state === "available" && (
                   <Check className="w-4 h-4 text-ctp-green" />
                 )}
-                {availability.state === "unavailable" && (
-                  <X className="w-4 h-4 text-ctp-red" />
-                )}
+                {problem && <X className="w-4 h-4 text-ctp-red" />}
               </span>
             </div>
             <p className="text-sm text-ctp-subtext0 mt-2 leading-relaxed">
-              Letters, numbers, hyphens and underscores. You can change this
-              freely until you publish your first theme, after which it is
-              locked.
+              {problem ? (
+                <span className="text-ctp-red">{problem}</span>
+              ) : (
+                <>
+                  Letters, numbers, hyphens and underscores. You can change this
+                  freely until you publish your first theme, after which it is
+                  locked.
+                </>
+              )}
             </p>
           </div>
 
@@ -176,10 +164,12 @@ export default function UsernameSettings({
             )}
             <button
               type="submit"
-              disabled={
-                loading || isUnchanged || availability.state === "unavailable"
-              }
-              className="px-6 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 border-ctp-surface1 transition disabled:opacity-50"
+              disabled={loading || isUnchanged || problem !== null}
+              className={`px-6 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 transition disabled:opacity-50 ${
+                unsavedNudge
+                  ? "border-ctp-peach/70 ring-2 ring-ctp-peach/30"
+                  : "border-ctp-surface1"
+              }`}
             >
               {loading ? "Saving..." : "Change username"}
             </button>

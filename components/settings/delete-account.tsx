@@ -25,6 +25,37 @@ export default function DeleteAccount({
   const confirmed =
     confirmUsername.trim().toLowerCase() === user.username.toLowerCase();
 
+  let themesDescription: React.ReactNode;
+  if (themeCount === 0) {
+    themesDescription = (
+      <>Permanently deletes your profile and your sign-in methods.</>
+    );
+  } else if (themeCount === 1) {
+    themesDescription = (
+      <>
+        Permanently deletes your profile, your sign-in methods and{" "}
+        <span className="text-ctp-text">your 1 published theme</span> with every
+        version. Anyone who has already downloaded it keeps their local copy,
+        but the page and{" "}
+        <code className="text-ctp-subtext1">stellar apply</code> command for it
+        will stop working.
+      </>
+    );
+  } else {
+    themesDescription = (
+      <>
+        Permanently deletes your profile, your sign-in methods and{" "}
+        <span className="text-ctp-text">
+          all {themeCount} of your published themes
+        </span>{" "}
+        with every version. Anyone who has already downloaded a theme keeps
+        their local copy, but the pages and{" "}
+        <code className="text-ctp-subtext1">stellar apply</code> commands for
+        them will stop working.
+      </>
+    );
+  }
+
   async function handleDelete() {
     setLoading(true);
     setError(null);
@@ -58,18 +89,7 @@ export default function DeleteAccount({
         Delete account
       </h2>
       <p className="text-sm text-ctp-subtext0 mb-6 leading-relaxed">
-        Permanently deletes your profile, your sign-in methods and{" "}
-        {themeCount === 1 ? (
-          <span className="text-ctp-text">your 1 published theme</span>
-        ) : (
-          <span className="text-ctp-text">
-            all {themeCount} of your published themes
-          </span>
-        )}{" "}
-        with every version. Anyone who has already downloaded a theme keeps
-        their local copy, but the pages and{" "}
-        <code className="text-ctp-subtext1">stellar apply</code> commands for
-        them will stop working. This cannot be undone.
+        {themesDescription} This cannot be undone.
       </p>
 
       {open ? (

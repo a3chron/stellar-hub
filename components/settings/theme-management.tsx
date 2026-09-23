@@ -1,6 +1,6 @@
 "use client";
 
-import { Download, Pencil, Trash2, Upload, XIcon } from "lucide-react";
+import { Download, Loader2, Pencil, Trash2, Upload, XIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,6 +23,7 @@ interface Theme {
   updatedAt: Date;
   versions: Array<{
     version: string;
+    configContent: string;
     dependencies: string[] | null;
     minStarshipVersion: string;
   }>;
@@ -43,20 +44,38 @@ export default function ThemeManagement({
   const [editingMetadata, setEditingMetadata] = useState<string | null>(null);
   const [updatingConfig, setUpdatingConfig] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleDelete = async (slug: string) => {
     if (deleteConfirm !== slug) {
       setDeleteConfirm(slug);
+      setDeleteError(null);
       return;
     }
 
-    const response = await fetch(`/api/${author}/${slug}`, {
-      method: "DELETE",
-    });
+    setDeletingSlug(slug);
+    setDeleteError(null);
 
-    if (response.ok) {
-      router.refresh();
-      setDeleteConfirm(null);
+    try {
+      const response = await fetch(`/api/${author}/${slug}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        router.refresh();
+        setDeleteConfirm(null);
+        return;
+      }
+
+      const body = await response.json().catch(() => null);
+      setDeleteError(body?.error ?? `Delete failed (${response.status})`);
+    } catch {
+      setDeleteError(
+        "Could not reach the server - check your connection and try again.",
+      );
+    } finally {
+      setDeletingSlug(null);
     }
   };
 
@@ -94,6 +113,15 @@ export default function ThemeManagement({
         <div className="space-y-4">
           {themes.map((theme) => {
             const latestVersion = theme.versions[0];
+
+            let deleteButtonTitle: string;
+            if (deletingSlug === theme.slug) {
+              deleteButtonTitle = "Deleting...";
+            } else if (deleteConfirm === theme.slug) {
+              deleteButtonTitle = "Click again to confirm";
+            } else {
+              deleteButtonTitle = "Delete theme";
+            }
 
             return (
               <div
@@ -152,25 +180,30 @@ export default function ThemeManagement({
                         </button>
                         <button
                           onClick={() => handleDelete(theme.slug)}
-                          type={deleteConfirm ? "submit" : "button"}
-                          className={`p-2 transition cursor-pointer ${
+                          type="button"
+                          disabled={deletingSlug === theme.slug}
+                          className={`p-2 transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${
                             deleteConfirm === theme.slug
                               ? "text-ctp-crust bg-ctp-red rounded-l pr-2.5"
                               : "text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded"
                           }`}
-                          title={
-                            deleteConfirm === theme.slug
-                              ? "Click again to confirm"
-                              : "Delete theme"
-                          }
+                          title={deleteButtonTitle}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          {deletingSlug === theme.slug ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </button>
                         {deleteConfirm === theme.slug && (
                           <button
-                            onClick={() => setDeleteConfirm(null)}
+                            onClick={() => {
+                              setDeleteConfirm(null);
+                              setDeleteError(null);
+                            }}
                             type="button"
-                            className="p-2 pl-2.5 -ml-2 bg-ctp-surface0 rounded-r text-ctp-text cursor-pointer"
+                            disabled={deletingSlug === theme.slug}
+                            className="p-2 pl-2.5 -ml-2 bg-ctp-surface0 rounded-r text-ctp-text cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                             title="Cancel deletion"
                           >
                             <XIcon className="w-4 h-4" />
@@ -199,11 +232,19 @@ export default function ThemeManagement({
 
                     {/* Delete confirmation */}
                     {deleteConfirm === theme.slug && (
-                      <div className="mt-3 p-3 bg-ctp-surface0 border border-ctp-red/20 rounded">
+                      <div className="mt-3 p-3 bg-ctp-surface0 border border-ctp-red/20 rounded space-y-2">
                         <p className="text-sm text-ctp-red">
                           Are you sure? Click delete again to confirm. This
                           cannot be undone.
                         </p>
+                        {deleteError && (
+                          <p
+                            role="alert"
+                            className="text-sm text-ctp-red font-medium"
+                          >
+                            {deleteError}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>

@@ -2,27 +2,33 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import type { Theme } from "@/lib/db/types";
+import {
+  ACCEPTED_SCREENSHOT_TYPES,
+  validateScreenshotFile,
+} from "@/lib/screenshot-validation";
+import { useConfirmClose } from "@/lib/use-confirm-close";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
 import Input from "./input";
+import Modal from "./modal";
 import Select from "./select";
 
-type ColorMode = "dark" | "light" | "both";
-
-interface Theme {
-  id: string;
-  name: string;
-  slug: string;
-  description: string | null;
-  screenshotUrl: string;
-  colorSchemeId: string | null;
-  colorMode: ColorMode;
-  group: string | null;
-}
+type EditableTheme = Pick<
+  Theme,
+  | "id"
+  | "name"
+  | "slug"
+  | "description"
+  | "screenshotUrl"
+  | "colorSchemeId"
+  | "colorMode"
+  | "group"
+>;
 
 interface EditMetadataFormProps {
   author: string;
-  theme: Theme;
+  theme: EditableTheme;
   colorSchemes: Array<{ id: string; name: string }>;
   onCancel: () => void;
 }
@@ -34,22 +40,65 @@ export default function EditMetadataForm({
   onCancel,
 }: EditMetadataFormProps) {
   const router = useRouter();
+  const titleId = useId();
   const [loading, setLoading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [screenshotError, setScreenshotError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
   useUnsavedChangesWarning(dirty);
 
+  // A new screenshot is the only edit worth confirming a discard for here -
+  // text field tweaks close without a prompt.
+  const { confirming, requestClose, confirmDiscard, cancelDiscard } =
+    useConfirmClose(previewImage !== null, onCancel);
+
+  // Moves focus to the confirm view's primary action when it appears, and
+  // back to the control that triggered it once it's dismissed, since the
+  // form below stays mounted (just hidden) rather than being swapped out -
+  // nothing unmounts to carry focus away on its own. Skips the very first
+  // render so mount doesn't fight Modal's own initial-focus effect.
+  const keepEditingButtonRef = useRef<HTMLButtonElement>(null);
+  const cancelButtonRef = useRef<HTMLButtonElement>(null);
+  const isFirstConfirmRenderRef = useRef(true);
+  useEffect(() => {
+    if (isFirstConfirmRenderRef.current) {
+      isFirstConfirmRenderRef.current = false;
+      return;
+    }
+    if (confirming) {
+      keepEditingButtonRef.current?.focus();
+    } else {
+      cancelButtonRef.current?.focus();
+    }
+  }, [confirming]);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    if (!file) {
+      setScreenshotError(null);
+      setPreviewImage(null);
+      return;
     }
+
+    // Same rules the server enforces (see lib/screenshot-validation and
+    // app/api/[author]/[slug]/route.ts) - upload already validated on
+    // selection, this form previously didn't and relied on the server to
+    // reject a bad file after the round trip.
+    const validationError = validateScreenshotFile(file);
+    if (validationError) {
+      setScreenshotError(validationError);
+      setPreviewImage(null);
+      return;
+    }
+
+    setScreenshotError(null);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -90,9 +139,47 @@ export default function EditMetadataForm({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-ctp-base rounded-lg border border-ctp-surface0 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <h3 className="text-2xl font-semibold text-ctp-text mb-6">
+    <Modal
+      titleId={titleId}
+      onRequestClose={confirming ? cancelDiscard : requestClose}
+    >
+      {/* Rendered as a sibling of the form rather than swapped in for it, so
+          the form (and its uncontrolled fields, including the selected
+          screenshot file) stays mounted underneath instead of losing its
+          state when the user backs out of discarding. */}
+      {confirming && (
+        <div>
+          <h3 id={titleId} className="text-xl font-semibold text-ctp-text mb-2">
+            Discard your changes?
+          </h3>
+          <p className="text-sm text-ctp-subtext0 mb-6">
+            You selected a new screenshot that hasn't been saved yet.
+          </p>
+          <div className="flex gap-3">
+            <button
+              ref={keepEditingButtonRef}
+              type="button"
+              onClick={cancelDiscard}
+              className="flex-1 px-4 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 border-ctp-surface1 transition"
+            >
+              Keep editing
+            </button>
+            <button
+              type="button"
+              onClick={confirmDiscard}
+              className="flex-1 px-4 py-2 bg-ctp-red text-ctp-crust rounded-md border-2 border-ctp-red transition hover:opacity-90"
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className={confirming ? "hidden" : undefined}>
+        <h3
+          id={confirming ? undefined : titleId}
+          className="text-2xl font-semibold text-ctp-text mb-6"
+        >
           Edit Metadata: {theme.name}
         </h3>
 
@@ -175,11 +262,15 @@ export default function EditMetadataForm({
               <input
                 type="file"
                 name="screenshot"
-                accept="image/png,image/jpeg,image/webp"
+                accept={ACCEPTED_SCREENSHOT_TYPES.join(",")}
                 onChange={handleImageChange}
+                aria-invalid={screenshotError !== null}
                 className="w-fit bg-ctp-mantle border-2 border-ctp-crust p-2 px-4 rounded-lg mt-1.5 text-ctp-text file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-ctp-surface0 file:text-ctp-text"
               />
             </label>
+            {screenshotError && (
+              <p className="text-xs text-ctp-red mt-1">{screenshotError}</p>
+            )}
 
             {/* Current Screenshot */}
             <div className="mt-2">
@@ -209,15 +300,16 @@ export default function EditMetadataForm({
           {/* Buttons */}
           <div className="flex gap-3 pt-4">
             <button
+              ref={cancelButtonRef}
               type="button"
-              onClick={onCancel}
+              onClick={requestClose}
               className="flex-1 px-4 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 border-ctp-surface1 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || screenshotError !== null}
               className="flex-1 px-4 py-2 bg-ctp-text hover:bg-ctp-subtext1 text-ctp-base rounded-md border-2 border-ctp-subtext0 transition disabled:opacity-50"
             >
               {loading ? "Saving..." : "Save Changes"}
@@ -225,6 +317,6 @@ export default function EditMetadataForm({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 }

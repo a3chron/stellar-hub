@@ -25,7 +25,11 @@ export function TomlLineContent({
   text: string;
   tokens: TomlLineTokens | undefined;
 }) {
-  if (!tokens || tokens.map((token) => token.content).join("") !== text) {
+  // Configs uploaded from Windows keep their CRLF endings, so a line split on
+  // "\n" still ends in "\r" - which shiki's tokens never include. Compare
+  // without it, or every line of such a config would count as stale.
+  const lineText = text.endsWith("\r") ? text.slice(0, -1) : text;
+  if (!tokens || tokens.map((token) => token.content).join("") !== lineText) {
     return <>{text}</>;
   }
 

@@ -101,7 +101,7 @@ stellar completion powershell | Out-String | Invoke-Expression
 ## Uninstalling
 
 The uninstall scripts mirror the install ones: they remove the binary and
-stellar's config directory, and let the hub know there is one install less.
+stellar's config directory.
 
 <OSTabs>
 <OSTab os="linux-macos">
@@ -133,16 +133,12 @@ it is turned into a plain file with the current theme's content first. Then
 stellar uninstall --keep-config
 ```
 
-<Callout type="note" title="What stellar reports">
+## Telemetry
 
-On its first run, after a version change and on uninstall, stellar sends one
-anonymous request to the hub: a random install id, whether it was a clean
-install or an existing one, the CLI version, the previously reported version,
-your OS and CPU architecture. Nothing else — no theme names, paths, user
-names or IP addresses are stored. Set `STELLAR_NO_TELEMETRY=1` or
-`DO_NOT_TRACK=1` to switch it off entirely; dev builds never report.
-
-</Callout>
+stellar sends an anonymous ping on install, update and uninstall (random id,
+CLI version, OS) so the hub can count installs — no themes, paths or IPs.
+Turn it off with `STELLAR_NO_TELEMETRY=1` or `DO_NOT_TRACK=1`. Details are in
+the [privacy policy](/legal#privacy).
 
 ## Next steps
 

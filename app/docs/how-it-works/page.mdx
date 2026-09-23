@@ -42,7 +42,7 @@ Theme descriptions often tell you to just edit the cached config directly at
 edits depends on a few things:
 
 - **Linux and macOS**: since `starship.toml` is a symlink to that cached
-  file, edits live-update your prompt immediately — no need to re-apply.
+  file, edits live-update your prompt immediately - no need to re-apply.
 - **Windows**: `starship.toml` is a copy, not a link (see above), so edits
   to the cached file don't show up until you re-run
   `stellar apply <author>/<theme>`. The same is true anywhere you've set
@@ -58,7 +58,7 @@ edits depends on a few things:
 Applying a newer version of the same theme (`stellar apply <author>/<theme>
 --update`, or pinning a newer `@version`) downloads that version to its own
 file, e.g. `1.1.toml` alongside `1.0.toml`. It does not merge with or
-overwrite your edits in `1.0.toml` — it's simply a different file, and
+overwrite your edits in `1.0.toml` - it's simply a different file, and
 `starship.toml` now points at it instead. Any changes you made only exist in
 the old version's file.
 
@@ -71,7 +71,7 @@ cp ~/.config/stellar/<author>/<slug>/1.0.toml \
 stellar apply <yourname>/<slug>
 ```
 
-An update to the original theme can then never overwrite your copy — see
+An update to the original theme can then never overwrite your copy - see
 [Local & custom themes](#local--custom-themes) below.
 
 </Callout>
@@ -86,12 +86,12 @@ backed up automatically before stellar creates the symlink (or copy):
 ~/.config/stellar/<your-username>/backup/1.0.toml
 ```
 
-Backups are versioned — if stellar finds another unmanaged `starship.toml`
+Backups are versioned - if stellar finds another unmanaged `starship.toml`
 later (for example one you hand-edited or restored), it's backed up as
 `2.0.toml`, then `3.0.toml`, and so on, so an earlier backup is never
 overwritten.
 
-Backups survive `stellar clean` (and `stellar clean --all`) — they're only
+Backups survive `stellar clean` (and `stellar clean --all`) - they're only
 removed if you explicitly run `stellar remove <username>/backup`. Restore
 the newest backup with:
 
@@ -114,7 +114,7 @@ hand-create a config at:
 ~/.config/stellar/<author>/<slug>/1.0.toml
 ```
 
-The `<author>` directory name is arbitrary — use `local/`, `dev/`, or
+The `<author>` directory name is arbitrary - use `local/`, `dev/`, or
 anything else you like, including an existing username. Then apply it the
 same way as any other theme:
 
@@ -123,7 +123,7 @@ stellar apply local/my-custom-theme
 ```
 
 You can also copy an existing cached theme into your own folder and tweak
-it from there, or rename/move cached directories directly — stellar
+it from there, or rename/move cached directories directly - stellar
 identifies themes purely by their path under `~/.config/stellar/`.
 
 ## Where themes come from

@@ -7,17 +7,17 @@ export const metadata = { title: "Troubleshooting" };
 This message appears when stellar cannot reach the stellar-hub API.
 Possible reasons:
 
-- **No internet connection** — stellar will use your locally cached
+- **No internet connection** - stellar will use your locally cached
   version of the theme
-- **Theme was deleted from the hub** — if you previously downloaded it,
+- **Theme was deleted from the hub** - if you previously downloaded it,
   your local copy still works
-- **Theme was renamed in the hub** — if you previously downloaded it, your
+- **Theme was renamed in the hub** - if you previously downloaded it, your
   local copy still works; you can search for the theme in the hub by going
   to `/<username>` (usernames cannot be changed yet)
-- **Local-only theme** — if you created the theme manually in
+- **Local-only theme** - if you created the theme manually in
   `~/.config/stellar/`, this is expected behavior
 
-This is usually not a problem — stellar will use whatever version you have
+This is usually not a problem - stellar will use whatever version you have
 cached locally.
 
 ## "Theme not found: author/theme (not available online and no local cache)"
@@ -44,7 +44,7 @@ shell = ["sh", "-c"]
 ```
 
 passes `sh` a bare, argument-less `-c`, which fails silently as far as
-starship is concerned — the module just renders empty. The fix is to leave
+starship is concerned - the module just renders empty. The fix is to leave
 `-c` out and let starship add it:
 
 ```toml
@@ -55,7 +55,7 @@ shell = ["sh"]
 
 <Callout type="tip" title="Debugging custom modules in general">
 
-This class of bug — a custom module silently rendering nothing — is hard to
+This class of bug - a custom module silently rendering nothing - is hard to
 see because starship doesn't surface an error by default. Run starship with
 trace logging to find out what's actually happening:
 
@@ -76,7 +76,7 @@ unexpectedly, not just for this specific bug.
 
 ## Windows notes
 
-A couple of things behave differently on Windows — see
+A couple of things behave differently on Windows - see
 [how it works](/docs/how-it-works) for the full explanation:
 
 - No hot-reload when editing local theme files, since Windows applies

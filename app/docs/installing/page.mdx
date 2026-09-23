@@ -17,7 +17,7 @@ This installs the binary to `~/.local/bin`. Check what the script does
 
 <Callout type="tip" title="Prefer copies over symlinks?">
 
-stellar applies themes by symlinking `starship.toml` — set
+stellar applies themes by symlinking `starship.toml` - set
 `STELLAR_APPLY_MODE=copy` if you'd rather have it copy the file instead.
 
 </Callout>
@@ -37,7 +37,7 @@ your PATH. Check what the script does
 
 Symlinks on Windows need Developer Mode or admin privileges, so on Windows
 stellar copies the theme file over `starship.toml` instead of symlinking it.
-This means there's no hot-reload while editing local themes — re-run
+This means there's no hot-reload while editing local themes - re-run
 `stellar apply` after making changes. See
 [how it works](/docs/how-it-works) for details.
 
@@ -61,7 +61,7 @@ names in your local cache, for your shell of choice.
 
 Completion only suggests themes from your local cache, so it's instant and
 works offline. Set `STELLAR_COMPLETION_ONLINE=1` to have it suggest hub
-themes too — that adds up to ~2 seconds of network lookup per completion,
+themes too - that adds up to ~2 seconds of network lookup per completion,
 and falls back to local-only when the hub can't be reached.
 
 </Callout>
@@ -125,7 +125,7 @@ This also removes `%LOCALAPPDATA%\stellar\bin` from your PATH again.
 From an installed binary, `stellar uninstall` does the same thing. Your
 prompt keeps working: if `starship.toml` is a symlink into stellar's cache,
 it is turned into a plain file with the current theme's content first. Then
-`~/.config/stellar` is removed — including your backups — unless you pass
+`~/.config/stellar` is removed - including your backups - unless you pass
 `--keep-config`. Pass `--yes` to skip the confirmation.
 
 ```bash

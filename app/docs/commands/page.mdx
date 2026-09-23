@@ -3,7 +3,7 @@ export const metadata = { title: "Commands" };
 # Commands
 
 Most commands take a theme identifier in the form `author/slug@version`.
-The version is optional — when omitted, stellar uses the latest local
+The version is optional - when omitted, stellar uses the latest local
 version if you have one cached, or downloads the latest version from the
 hub.
 
@@ -110,7 +110,7 @@ stellar clean --all
 ```
 
 `clean` only ever removes versions that aren't currently applied, so it's
-safe to run while you have local edits in the active theme's file — see
+safe to run while you have local edits in the active theme's file - see
 [Customizing an applied theme](/docs/how-it-works#customizing-an-applied-theme).
 
 ## remove
@@ -132,7 +132,7 @@ stellar remove a3chron/ctp-green --force
 ```
 
 By default stellar refuses to remove the theme you're currently using, so
-you don't end up with a `starship.toml` pointing at a file that's gone —
+you don't end up with a `starship.toml` pointing at a file that's gone -
 that protection covers any local edits you've made to it too, see
 [Customizing an applied theme](/docs/how-it-works#customizing-an-applied-theme).
 Pass `--force` (or `-f`) when you mean it.

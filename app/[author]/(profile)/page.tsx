@@ -46,7 +46,7 @@ export default async function AuthorPage({ params }: PageProps) {
     <main className="container mx-auto px-4 py-12">
       <div className="max-w-6xl mx-auto">
         {/* Author Profile Header */}
-        <div className="flex items-start gap-8 mb-12">
+        <div className="flex flex-col items-center text-center sm:flex-row sm:items-start sm:text-left gap-8 mb-12">
           {/* Profile Image */}
           <div className="shrink-0">
             {author.image ? (
@@ -67,7 +67,7 @@ export default async function AuthorPage({ params }: PageProps) {
 
           {/* Profile Info */}
           <div className="flex-1">
-            <div className="flex items-center gap-8">
+            <div className="flex flex-col items-center sm:flex-row sm:items-center gap-4 sm:gap-8">
               <div className="mb-2">
                 <h1 className="text-4xl font-bold">{author.name}</h1>
                 <p className="text-ctp-subtext0">@{author.username}</p>
@@ -76,6 +76,9 @@ export default async function AuthorPage({ params }: PageProps) {
                 {author.socialLinks?.github && (
                   <Link
                     href={`https://github.com/${author.socialLinks.github}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${author.name}'s GitHub profile`}
                     className="bg-ctp-crust rounded-full p-2 ring-2 ring-ctp-surface0 hover:ring-offset-2 ring-offset-ctp-base duration-300"
                   >
                     <GithubIcon size={16} />
@@ -84,6 +87,9 @@ export default async function AuthorPage({ params }: PageProps) {
                 {author.socialLinks?.website && (
                   <Link
                     href={author.socialLinks.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`${author.name}'s website`}
                     className="bg-ctp-crust rounded-full p-2 ring-2 ring-ctp-surface0 hover:ring-offset-2 ring-offset-ctp-base duration-300"
                   >
                     <GlobeIcon size={16} />
@@ -92,7 +98,7 @@ export default async function AuthorPage({ params }: PageProps) {
               </div>
             </div>
 
-            <div className="flex items-center gap-6 text-ctp-subtext0">
+            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-6 gap-y-1 text-ctp-subtext0">
               <div>
                 <span className="font-semibold text-ctp-subtext1">
                   {author.themes.length}

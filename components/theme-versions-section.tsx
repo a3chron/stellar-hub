@@ -4,6 +4,7 @@ import { ShieldAlertIcon, TextSearchIcon } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useState } from "react";
 import { ConfigPreviewModal } from "@/components/config-preview-modal";
+import Tooltip from "@/components/tooltip";
 import type { ThemeVersion } from "@/lib/db/types";
 
 interface ThemeVersionsSectionProps {
@@ -36,15 +37,41 @@ function VersionRows({
               <button
                 type="button"
                 onClick={() => onView(version.version)}
-                className="text-xs cursor-pointer"
-                aria-label={`View config for version ${version.version}`}
+                className="flex items-center gap-1.5 text-xs cursor-pointer text-ctp-subtext0 hover:text-ctp-text transition-colors"
+                aria-label={
+                  hasCustomByVersion[version.version]
+                    ? `View config for version ${version.version} (contains custom commands)`
+                    : `View config for version ${version.version}`
+                }
               >
                 {hasCustomByVersion[version.version] ? (
-                  <ShieldAlertIcon size={20} className="text-ctp-peach" />
+                  <ShieldAlertIcon size={16} className="text-ctp-peach" />
                 ) : (
-                  <TextSearchIcon size={20} className="text-ctp-subtext0" />
+                  <TextSearchIcon size={16} />
                 )}
+                View config
               </button>
+              {hasCustomByVersion[version.version] && (
+                <Tooltip
+                  content="Runs shell commands defined in this config - review before applying"
+                  contentClassName="max-w-xs whitespace-normal"
+                >
+                  {/* Not a <button> - it doesn't do anything on click, so a
+                      real button would be a dead control for screen reader
+                      and keyboard users. The explanation is always available
+                      as visible-on-hover (via Tooltip) and permanent sr-only
+                      text, rather than gated behind a focus this element
+                      can't receive. */}
+                  <span className="flex items-center gap-1 rounded-full bg-ctp-peach/10 px-2 py-0.5 text-xs font-medium text-ctp-peach">
+                    <ShieldAlertIcon size={12} aria-hidden="true" />
+                    Custom commands
+                    <span className="sr-only">
+                      : runs shell commands defined in this config - review
+                      before applying
+                    </span>
+                  </span>
+                </Tooltip>
+              )}
             </div>
             {version.minStarshipVersion && (
               <span>

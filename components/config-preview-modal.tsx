@@ -448,6 +448,7 @@ export function ConfigPreviewModal({
   useEffect(() => {
     // The wrapper around the config lines (the sections' shared parent), not
     // the scroll container's first child - that is the loading/error slot.
+    if (!data || customSections.length === 0) return;
     const content = sectionRefs.current[0]?.parentElement;
     if (!content) return;
 

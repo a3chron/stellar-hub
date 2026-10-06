@@ -19,7 +19,7 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentSort = searchParams.get("sort") || "downloads";
+  const currentSort = searchParams.get("sort") || "trending";
   const currentColorScheme = searchParams.get("colorScheme") || "";
   const currentColorMode = (searchParams.get("colorMode") || "") as
     | ColorMode
@@ -182,6 +182,17 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
+            onClick={() => handleSortChange("trending")}
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition border-2 hover:ring-2 ring-offset-2 ring-offset-ctp-base cursor-pointer ${
+              currentSort === "trending"
+                ? "bg-ctp-text text-ctp-base border-ctp-subtext0 hover:ring-ctp-surface1"
+                : "bg-ctp-mantle text-ctp-text hover:ring-ctp-surface0 border-ctp-crust"
+            }`}
+          >
+            Trending
+          </button>
+          <button
+            type="button"
             onClick={() => handleSortChange("downloads")}
             className={`px-5 py-3 rounded-xl font-medium transition border-2 hover:ring-2 ring-offset-2 ring-offset-ctp-base cursor-pointer ${
               currentSort === "downloads"
@@ -201,17 +212,6 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
             }`}
           >
             Latest
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSortChange("trending")}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition border-2 hover:ring-2 ring-offset-2 ring-offset-ctp-base cursor-pointer ${
-              currentSort === "trending"
-                ? "bg-ctp-text text-ctp-base border-ctp-subtext0 hover:ring-ctp-surface1"
-                : "bg-ctp-mantle text-ctp-text hover:ring-ctp-surface0 border-ctp-crust"
-            }`}
-          >
-            Trending
           </button>
         </div>
 

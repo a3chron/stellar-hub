@@ -51,7 +51,7 @@ function getSectionTitle(sort: string, q?: string): string {
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const params = await searchParams;
-  const sort = (params.sort as string) || "downloads";
+  const sort = (params.sort as string) || "trending";
   const colorSchemeId = params.colorScheme as string | undefined;
   const colorMode = params.colorMode as
     | (typeof colorModeEnum.enumValues)[number]

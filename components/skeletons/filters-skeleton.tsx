@@ -9,9 +9,9 @@ export function FiltersSkeleton() {
       <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Sort Options */}
         <div className="flex flex-wrap items-center gap-3">
+          <Skeleton className="h-12 w-24 rounded-xl" />
           <Skeleton className="h-12 w-36 rounded-xl" />
           <Skeleton className="h-12 w-20 rounded-xl" />
-          <Skeleton className="h-12 w-24 rounded-xl" />
         </div>
 
         {/* Right-side filters */}

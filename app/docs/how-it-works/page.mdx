@@ -48,8 +48,8 @@ edits depends on a few things:
   `stellar apply <author>/<theme>`. The same is true anywhere you've set
   `STELLAR_APPLY_MODE=copy`.
 - **`stellar clean`** only removes versions that aren't currently applied,
-  so it never touches the file you've been editing (except `--all`, duh -
-  that one removes the applied theme and your edits with it).
+  so it never touches the file you've been editing, except `--all` (duh),
+  that removes the applied theme as well.
 - **`stellar remove`** refuses to delete the currently active theme (unless
   you pass `--force`), so it won't take your edits out from under you
   either.

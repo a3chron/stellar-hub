@@ -28,12 +28,16 @@ export default function DeleteAccount({
   let themesDescription: React.ReactNode;
   if (themeCount === 0) {
     themesDescription = (
-      <>Permanently deletes your profile and your sign-in methods.</>
+      <>
+        Permanently deletes your profile, your sign-in methods, your drafts and
+        your CLI logins.
+      </>
     );
   } else if (themeCount === 1) {
     themesDescription = (
       <>
-        Permanently deletes your profile, your sign-in methods and{" "}
+        Permanently deletes your profile, your sign-in methods, your drafts,
+        your CLI logins and{" "}
         <span className="text-ctp-text">your 1 published theme</span> with every
         version. Anyone who has already downloaded it keeps their local copy,
         but the page and{" "}
@@ -44,7 +48,8 @@ export default function DeleteAccount({
   } else {
     themesDescription = (
       <>
-        Permanently deletes your profile, your sign-in methods and{" "}
+        Permanently deletes your profile, your sign-in methods, your drafts,
+        your CLI logins and{" "}
         <span className="text-ctp-text">
           all {themeCount} of your published themes
         </span>{" "}

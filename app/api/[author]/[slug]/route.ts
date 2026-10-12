@@ -292,9 +292,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     let screenshotUrl = theme.screenshotUrl;
 
     if (screenshot && screenshot.size > 0) {
-      // Same rules /api/upload enforces at create time (PNG/JPEG/WebP, 5MB
+      // Same rules the draft screenshot upload enforces (PNG/JPEG/WebP, 4MB
       // max) - this previously accepted any image/* type, so a GIF or SVG
-      // slipped past here that /api/upload would have rejected outright.
+      // slipped past here that the upload would have rejected outright.
       const screenshotError = validateScreenshotFile(screenshot);
       if (screenshotError) {
         return NextResponse.json({ error: screenshotError }, { status: 400 });

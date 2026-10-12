@@ -33,6 +33,7 @@ const RESERVED_USERNAMES = new Set([
   "docs",
   "download",
   "downloads",
+  "drafts",
   "edit",
   "explore",
   "favicon",

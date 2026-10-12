@@ -1,10 +1,17 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { account, session, themes, user as userTable } from "@/lib/db/schema";
+import {
+  account,
+  session,
+  themeDrafts,
+  themes,
+  user as userTable,
+} from "@/lib/db/schema";
+import { removeScreenshotObjects } from "@/lib/drafts";
 import {
   extractValidFilename,
   isValidAvatarFilename,
@@ -22,9 +29,10 @@ const deleteAccountSchema = z.object({
  * DELETE /api/settings/account
  *
  * Deletes the signed-in user's account: their profile, every theme they
- * published and all of its versions, their sessions and their linked sign-in
- * providers. This is what makes the right to erasure (GDPR Art. 17) something
- * a user can exercise themselves rather than by emailing and waiting.
+ * published and all of its versions, their drafts, their CLI logins, their
+ * sessions and their linked sign-in providers. This is what makes the right
+ * to erasure (GDPR Art. 17) something a user can exercise themselves rather
+ * than by emailing and waiting.
  *
  * Irreversible, and it breaks every published link to that author's themes -
  * hence the typed confirmation.
@@ -60,12 +68,24 @@ export async function DELETE(request: NextRequest) {
       .from(themes)
       .where(eq(themes.authorId, userId));
 
+    // Same for draft screenshots: the draft rows cascade with the user.
+    const draftScreenshots = await db
+      .select({ screenshotPath: themeDrafts.screenshotPath })
+      .from(themeDrafts)
+      .where(
+        and(
+          eq(themeDrafts.userId, userId),
+          isNotNull(themeDrafts.screenshotPath),
+        ),
+      );
+
     const avatarUrl = authSession.user.image;
 
     // `session` and `account` reference `user` WITHOUT `onDelete: cascade`
     // (see lib/db/schema.ts), so they have to be cleared explicitly and in
     // this order or the final delete fails on a foreign key. `themes` does
-    // cascade, and `theme_versions` cascades from `themes`.
+    // cascade, and `theme_versions` cascades from `themes`. `theme_drafts`,
+    // `cli_tokens` and `cli_auth_requests` cascade from `user` too.
     await db.transaction(async (tx) => {
       await tx.delete(session).where(eq(session.userId, userId));
       await tx.delete(account).where(eq(account.userId, userId));
@@ -100,6 +120,10 @@ export async function DELETE(request: NextRequest) {
         (name) => name,
       );
     }
+
+    await removeScreenshotObjects(
+      draftScreenshots.map((draft) => draft.screenshotPath),
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

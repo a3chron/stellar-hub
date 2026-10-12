@@ -31,3 +31,63 @@ export function formatDownloads(value: number): string {
   const suffix = value === 1 ? "download" : "downloads";
   return `${formatCompactNumber(value)} ${suffix}`;
 }
+
+// Dates are always shown the European way - 12.10.2026, 17:45 - regardless of
+// the browser's locale, which would turn them into 10/12/2026, 5:45 PM in an
+// English browser. de-DE is used for the pattern only; the words around the
+// dates stay English.
+function dateFormat(timeZone?: string) {
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone,
+  });
+}
+
+function dateTimeFormat(timeZone?: string) {
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+    timeZone,
+  });
+}
+
+/** "12.10.2026". */
+export function formatDate(date: Date, timeZone?: string): string {
+  return dateFormat(timeZone).format(date);
+}
+
+/** "12.10.2026, 17:45". */
+export function formatDateTime(date: Date, timeZone?: string): string {
+  return dateTimeFormat(timeZone).format(date);
+}
+
+/** "just now", "3 min ago", "5 h ago", "2 days ago", then the date. */
+export function formatTimeAgo(
+  date: Date,
+  now: Date = new Date(),
+  timeZone?: string,
+): string {
+  const seconds = Math.max(0, (now.getTime() - date.getTime()) / 1000);
+  if (seconds < 60) {
+    return "just now";
+  }
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes} min ago`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours} h ago`;
+  }
+  const days = Math.floor(hours / 24);
+  if (days < 30) {
+    return days === 1 ? "1 day ago" : `${days} days ago`;
+  }
+  return formatDate(date, timeZone);
+}

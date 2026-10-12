@@ -106,14 +106,22 @@ export const downloadRateLimiter = new RateLimiter({
  * search, so it would not actually be pseudonymous.
  */
 export function getClientIP(request: Request): string {
+  return getClientIPFromHeaders(request.headers);
+}
+
+/**
+ * getClientIP for callers that only have the headers - a server component
+ * reading `headers()`, like the CLI login approval page.
+ */
+export function getClientIPFromHeaders(headers: Pick<Headers, "get">): string {
   let ip: string;
 
-  const forwardedFor = request.headers.get("x-forwarded-for");
+  const forwardedFor = headers.get("x-forwarded-for");
   if (forwardedFor) {
     // x-forwarded-for can contain multiple IPs, get the first one
     ip = forwardedFor.split(",")[0].trim();
   } else {
-    ip = request.headers.get("x-real-ip") ?? "unknown";
+    ip = headers.get("x-real-ip") ?? "unknown";
   }
 
   // Empty-string fallback deliberately omitted: an unsalted digest of an

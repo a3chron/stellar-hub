@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { z } from "zod";
 
 /**
  * The error body the CLI-facing routes (/api/cli/auth/**, /api/drafts/**)
@@ -31,4 +32,25 @@ export function isUniqueViolation(error: unknown, constraint?: string) {
       (constraint === undefined || constraint_name === constraint)
     );
   });
+}
+
+/** A JSON body that is an object (not null, not an array). */
+export function isPlainObject(
+  value: unknown,
+): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/**
+ * `{ error, code: "validation_failed", details }`, where `details` is zod's
+ * `flatten().fieldErrors` and `error` repeats the first one for display.
+ */
+export function validationFailed(error: z.ZodError) {
+  const { fieldErrors, formErrors } = error.flatten();
+  const [field, messages] = Object.entries(fieldErrors)[0] ?? [];
+  let summary = formErrors[0] ?? "Invalid request";
+  if (field && messages?.[0]) {
+    summary = `${field}: ${messages[0]}`;
+  }
+  return apiError(400, summary, "validation_failed", { details: fieldErrors });
 }

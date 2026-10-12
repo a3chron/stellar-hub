@@ -1,11 +1,14 @@
+import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import CliSessions from "@/components/settings/cli-sessions";
 import DeleteAccount from "@/components/settings/delete-account";
 import ProfileSettings from "@/components/settings/profile-settings";
 import ThemeManagement from "@/components/settings/theme-management";
 import UsernameSettings from "@/components/settings/username-settings";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { cliTokens } from "@/lib/db/schema";
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -38,6 +41,17 @@ export default async function SettingsPage() {
     orderBy: (colorSchemes, { asc }) => [asc(colorSchemes.name)],
   });
 
+  const cliLogins = await db
+    .select({
+      id: cliTokens.id,
+      label: cliTokens.label,
+      createdAt: cliTokens.createdAt,
+      lastUsedAt: cliTokens.lastUsedAt,
+    })
+    .from(cliTokens)
+    .where(eq(cliTokens.userId, user.id))
+    .orderBy(desc(cliTokens.createdAt));
+
   return (
     <main className="bg-ctp-base">
       <div className="container mx-auto px-4 py-12">
@@ -58,6 +72,7 @@ export default async function SettingsPage() {
               themes={user.themes}
               colorSchemes={colorSchemes}
             />
+            <CliSessions logins={cliLogins} />
             <DeleteAccount user={user} themeCount={user.themes.length} />
           </div>
         </div>

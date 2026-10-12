@@ -228,17 +228,6 @@ export function invalidConfig(message: string) {
   return apiError(400, message, "invalid_config");
 }
 
-/** `{ error, code: "validation_failed", details: fieldErrors }`. */
-export function validationFailed(error: z.ZodError) {
-  const { fieldErrors, formErrors } = error.flatten();
-  const [field, messages] = Object.entries(fieldErrors)[0] ?? [];
-  let summary = formErrors[0] ?? "Invalid request";
-  if (field && messages?.[0]) {
-    summary = `${field}: ${messages[0]}`;
-  }
-  return apiError(400, summary, "validation_failed", { details: fieldErrors });
-}
-
 function emptyToNull(value: unknown) {
   return value === "" ? null : value;
 }
@@ -457,12 +446,6 @@ export const THEME_ONLY_FIELDS = [
   "colorMode",
   "colorSchemeId",
 ] as const;
-
-export function isPlainObject(
-  value: unknown,
-): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 // ---------------------------------------------------------------------------
 // Serialization

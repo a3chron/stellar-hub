@@ -35,23 +35,30 @@ If you're writing a [custom module](https://starship.rs/config/#custom-commands)
 and it renders as an empty string with no error anywhere, check your `shell`
 field.
 
-Starship already appends `-c` to whatever shell you configure. So writing:
+Starship doesn't pass `command` to the shell as an argument, it pipes it in
+on stdin. So writing:
 
 ```toml
 [custom.mymodule]
 command = "echo hi"
+when = true
 shell = ["sh", "-c"]
 ```
 
-passes `sh` a bare, argument-less `-c`, which fails silently as far as
-starship is concerned - the module just renders empty. The fix is to leave
-`-c` out and let starship add it:
+runs `sh -c` with nothing after the `-c`. `sh` expects the command as the
+argument right after `-c`, finds none and errors out, which fails silently as
+far as starship is concerned - the module just renders empty. The fix is to
+leave `-c` out, so `sh` reads the command from stdin:
 
 ```toml
 [custom.mymodule]
 command = "echo hi"
+when = true
 shell = ["sh"]
 ```
+
+If you really want the command passed as an argument instead, set
+`use_stdin = false` - then `shell = ["sh", "-c"]` works.
 
 <Callout type="tip" title="Debugging custom modules in general">
 

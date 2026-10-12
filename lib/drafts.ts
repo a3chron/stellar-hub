@@ -1,11 +1,11 @@
 import { and, eq, gt, inArray, lte } from "drizzle-orm";
 import { parse as parseToml } from "smol-toml";
 import { z } from "zod";
-import { apiError, isUniqueViolation } from "@/lib/api-error";
+import { apiError, isPlainObject, isUniqueViolation } from "@/lib/api-error";
 import { APP_URL } from "@/lib/app-url";
 import { randomCode } from "@/lib/cli-auth";
 import { db } from "@/lib/db";
-import { themeDrafts, themes } from "@/lib/db/schema";
+import { colorSchemes, themeDrafts, themes } from "@/lib/db/schema";
 import type { ThemeDraft, ThemeVersion } from "@/lib/db/types";
 import {
   CONFIG_MAX_LENGTH,
@@ -629,4 +629,40 @@ export async function serializeOne(
 ): Promise<Draft> {
   const [draft] = await serializeDrafts([row], options);
   return draft;
+}
+
+// ---------------------------------------------------------------------------
+// Request helpers
+// ---------------------------------------------------------------------------
+
+/** The JSON object body, or null when it is missing or not an object. */
+export async function readJsonObject(
+  request: Request,
+): Promise<Record<string, unknown> | null> {
+  const body = await request.json().catch(() => null);
+  return isPlainObject(body) ? body : null;
+}
+
+export function notAnObject() {
+  return apiError(
+    400,
+    "The request body must be a JSON object",
+    "validation_failed",
+    { details: {} },
+  );
+}
+
+export function fieldError(field: string, message: string) {
+  return apiError(400, `${field}: ${message}`, "validation_failed", {
+    details: { [field]: [message] },
+  });
+}
+
+export async function colorSchemeExists(id: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: colorSchemes.id })
+    .from(colorSchemes)
+    .where(eq(colorSchemes.id, id))
+    .limit(1);
+  return !!row;
 }

@@ -13,9 +13,9 @@ const cached = globalThis as typeof globalThis & {
   stellarDbClient?: ReturnType<typeof postgres>;
 };
 
-// Disable prefetch for Supabase pooler compatibility
-const client = (cached.stellarDbClient ??= postgres(connectionString, {
-  prepare: false,
-}));
+if (!cached.stellarDbClient) {
+  // Disable prefetch for Supabase pooler compatibility
+  cached.stellarDbClient = postgres(connectionString, { prepare: false });
+}
 
-export const db = drizzle(client, { schema });
+export const db = drizzle(cached.stellarDbClient, { schema });

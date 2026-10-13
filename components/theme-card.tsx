@@ -36,14 +36,14 @@ export default function ThemeCard({ theme, priority = false }: ThemeCardProps) {
           priority={priority}
         />
       </div>
-      <div className="p-4 border-t border-t-ctp-crust flex justify-between items-start">
-        <div>
+      <div className="p-4 border-t border-t-ctp-crust flex justify-between items-start gap-2">
+        <div className="min-w-0 flex-1">
           <h3 className="font-semibold text-lg">{theme.name}</h3>
           <p className="text-sm text-ctp-subtext0">by {theme.author.name}</p>
         </div>
-        <div className="flex flex-col items-end gap-1 mt-1">
+        <div className="flex flex-col items-end gap-1 mt-1 shrink-0">
           <span
-            className="text-sm text-ctp-subtext0"
+            className="text-sm text-ctp-subtext0 whitespace-nowrap"
             title={`${theme.downloads.toLocaleString("en-US")} downloads`}
           >
             {formatDownloads(theme.downloads)}

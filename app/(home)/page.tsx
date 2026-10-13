@@ -72,16 +72,19 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <main className="container mx-auto px-4 py-12">
       {/* Hero Section - renders immediately */}
-      <section className="mb-16 flex flex-col md:flex-row gap-16 justify-between">
-        <div className="mt-10">
+      <section className="mb-16 flex flex-col md:flex-row gap-8 md:gap-16 justify-between">
+        <div className="md:mt-10">
           <h1 className="text-5xl font-bold mb-4">stellar</h1>
           <p className="text-xl text-ctp-subtext0">
             Beautiful Starship themes, one command away
           </p>
-          <div className="flex flex-wrap mt-8 gap-10 md:gap-6">
+          {/* Full-width and stacked on phones, where both labels don't fit
+              side by side. From `sm` up the row wraps rather than squeezes,
+              since the video's fixed width leaves little room at md/lg. */}
+          <div className="flex flex-col sm:flex-row sm:flex-wrap mt-6 sm:mt-8 gap-3 sm:gap-6">
             <Link
               href="/docs/installing"
-              className="p-4 px-8 rounded-xl border-2 border-ctp-text bg-ctp-text text-lg font-medium text-ctp-base transition hover:ring-2 hover:ring-ctp-surface1 ring-offset-4 ring-offset-ctp-base inline-flex items-center gap-2.5"
+              className="p-4 px-8 rounded-xl border-2 border-ctp-text bg-ctp-text text-lg font-medium text-ctp-base transition hover:ring-2 hover:ring-ctp-surface1 ring-offset-4 ring-offset-ctp-base inline-flex items-center justify-center gap-2.5 w-full sm:w-auto"
             >
               {/* Decorative: the label already says "stellar", and the
                   component carries its own <title>. */}
@@ -90,7 +93,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </Link>
             <Link
               href={"/upload"}
-              className="p-4 px-6 rounded-xl border-2 border-ctp-crust bg-ctp-mantle text-lg font-medium transition hover:ring-2 hover:ring-ctp-surface0 ring-offset-4 ring-offset-ctp-base"
+              className="p-4 px-6 rounded-xl border-2 border-ctp-crust bg-ctp-mantle text-lg font-medium transition hover:ring-2 hover:ring-ctp-surface0 ring-offset-4 ring-offset-ctp-base text-center w-full sm:w-auto"
             >
               Publish your theme
             </Link>

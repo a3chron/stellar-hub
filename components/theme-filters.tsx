@@ -178,12 +178,13 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Sort Options */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Sort Options - tighter padding/gap below `sm` so all three fit
+            on one row at 360px; back to the roomier desktop sizing from `sm`. */}
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <button
             type="button"
             onClick={() => handleSortChange("trending")}
-            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-medium transition border-2 hover:ring-2 ring-offset-2 ring-offset-ctp-base cursor-pointer ${
+            className={`flex items-center gap-2 px-2.5 py-2 sm:px-5 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition border-2 hover:ring-2 ring-offset-2 ring-offset-ctp-base cursor-pointer ${
               currentSort === "trending"
                 ? "bg-ctp-text text-ctp-base border-ctp-subtext0 hover:ring-ctp-surface1"
                 : "bg-ctp-mantle text-ctp-text hover:ring-ctp-surface0 border-ctp-crust"
@@ -194,7 +195,7 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
           <button
             type="button"
             onClick={() => handleSortChange("downloads")}
-            className={`px-5 py-3 rounded-xl font-medium transition border-2 hover:ring-2 ring-offset-2 ring-offset-ctp-base cursor-pointer ${
+            className={`px-2.5 py-2 sm:px-5 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition border-2 hover:ring-2 ring-offset-2 ring-offset-ctp-base cursor-pointer ${
               currentSort === "downloads"
                 ? "bg-ctp-text text-ctp-base border-ctp-subtext0 hover:ring-ctp-surface1"
                 : "bg-ctp-mantle text-ctp-text hover:ring-ctp-surface0 border-ctp-crust"
@@ -205,7 +206,7 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
           <button
             type="button"
             onClick={() => handleSortChange("latest")}
-            className={`px-5 py-3 rounded-xl font-medium transition border-2 hover:ring-2 ring-offset-2 ring-offset-ctp-base cursor-pointer ${
+            className={`px-2.5 py-2 sm:px-5 sm:py-3 text-sm sm:text-base rounded-xl font-medium transition border-2 hover:ring-2 ring-offset-2 ring-offset-ctp-base cursor-pointer ${
               currentSort === "latest"
                 ? "bg-ctp-text text-ctp-base border-ctp-subtext0 hover:ring-ctp-surface1"
                 : "bg-ctp-mantle text-ctp-text hover:ring-ctp-surface0 border-ctp-crust"

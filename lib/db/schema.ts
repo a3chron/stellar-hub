@@ -221,7 +221,8 @@ export const cliAuthRequests = pgTable(
     userCode: text("user_code").notNull().unique(),
     // "stellar-cli/1.6.0 (linux; amd64)", or "unknown client".
     client: text("client").notNull(),
-    // getClientIP() of the start request, for the "different network" notice.
+    // getClientNetworkHash() of the start request (an HMAC of the IP, the /64
+    // for IPv6), for the per-network limit and the "different network" notice.
     ipHash: text("ip_hash").notNull(),
     // "pending" | "approved" | "denied"
     status: text("status").notNull().default("pending"),

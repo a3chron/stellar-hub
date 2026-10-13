@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
@@ -68,17 +68,6 @@ export async function DELETE(request: NextRequest) {
       .from(themes)
       .where(eq(themes.authorId, userId));
 
-    // Same for draft screenshots: the draft rows cascade with the user.
-    const draftScreenshots = await db
-      .select({ screenshotPath: themeDrafts.screenshotPath })
-      .from(themeDrafts)
-      .where(
-        and(
-          eq(themeDrafts.userId, userId),
-          isNotNull(themeDrafts.screenshotPath),
-        ),
-      );
-
     const avatarUrl = authSession.user.image;
 
     // `session` and `account` reference `user` WITHOUT `onDelete: cascade`
@@ -86,10 +75,21 @@ export async function DELETE(request: NextRequest) {
     // this order or the final delete fails on a foreign key. `themes` does
     // cascade, and `theme_versions` cascades from `themes`. `theme_drafts`,
     // `cli_tokens` and `cli_auth_requests` cascade from `user` too.
-    await db.transaction(async (tx) => {
+    //
+    // Drafts are deleted explicitly first, though, so their screenshot paths
+    // come back from the same statement that removes them: read beforehand,
+    // a screenshot uploaded in between would be missed and left orphaned. (A
+    // screenshot upload that loses the race removes its own file once it
+    // finds the draft gone.)
+    const draftScreenshots = await db.transaction(async (tx) => {
+      const drafts = await tx
+        .delete(themeDrafts)
+        .where(eq(themeDrafts.userId, userId))
+        .returning({ screenshotPath: themeDrafts.screenshotPath });
       await tx.delete(session).where(eq(session.userId, userId));
       await tx.delete(account).where(eq(account.userId, userId));
       await tx.delete(userTable).where(eq(userTable.id, userId));
+      return drafts;
     });
 
     // Storage cleanup runs only after the database delete has committed. If it

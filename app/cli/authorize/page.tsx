@@ -9,7 +9,7 @@ import { auth } from "@/lib/auth";
 import { formatUserCode, normalizeUserCode } from "@/lib/cli-auth";
 import { db } from "@/lib/db";
 import { cliAuthRequests, user } from "@/lib/db/schema";
-import { getClientIPFromHeaders } from "@/lib/rate-limit";
+import { getClientNetworkHash } from "@/lib/rate-limit";
 import { formatTimeAgo } from "@/lib/utils";
 import AuthorizeForm, { DecisionResult } from "./authorize-form";
 
@@ -64,12 +64,24 @@ export default async function CliAuthorizePage({ searchParams }: PageProps) {
     : undefined;
 
   if (!request) {
+    // Never echo the raw query string - this page is reachable through any
+    // link, so it must not render text someone else chose. A code of the
+    // right shape is shown in its normalised form only.
     return (
       <AuthShell>
         <Heading>Unknown code</Heading>
         <p className="mt-4 text-sm leading-relaxed text-ctp-subtext0">
-          <span className="font-mono text-ctp-text">{codeParam}</span> isn't a
-          pending login. It may be mistyped, or it was already used - run{" "}
+          {userCode ? (
+            <>
+              <span className="font-mono text-ctp-text">
+                {formatUserCode(userCode)}
+              </span>{" "}
+              isn't a pending login.
+            </>
+          ) : (
+            "That isn't a valid login code."
+          )}{" "}
+          It may be mistyped, or it was already used - run{" "}
           <code className="text-ctp-subtext1">stellar auth</code> again for a
           fresh one.
         </p>
@@ -134,7 +146,7 @@ export default async function CliAuthorizePage({ searchParams }: PageProps) {
         client={request.client}
         requestedAgo={formatTimeAgo(request.createdAt)}
         differentNetwork={
-          getClientIPFromHeaders(requestHeaders) !== request.ipHash
+          getClientNetworkHash(requestHeaders) !== request.ipHash
         }
       />
     </AuthShell>

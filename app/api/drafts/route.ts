@@ -1,5 +1,5 @@
-import { and, count, desc, eq } from "drizzle-orm";
-import { type NextRequest, NextResponse } from "next/server";
+import { and, desc, eq } from "drizzle-orm";
+import { after, type NextRequest, NextResponse } from "next/server";
 import { apiError, isUniqueViolation, validationFailed } from "@/lib/api-error";
 import { db } from "@/lib/db";
 import { themeDrafts, themes } from "@/lib/db/schema";
@@ -13,10 +13,11 @@ import {
   fieldError,
   findDraftCodeForSlug,
   findVersionDraftCode,
-  insertDraft,
+  insertDraftWithinLimit,
   invalidConfig,
   notAnObject,
   purgeExpiredDrafts,
+  purgeExpiredDraftsGlobally,
   readJsonObject,
   serializeDrafts,
   serializeOne,
@@ -57,6 +58,17 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Checked last, right before inserting: someone at the limit who tries to
+// start a draft that already exists should be sent to that draft, not told
+// to delete one.
+function tooManyDrafts() {
+  return apiError(
+    409,
+    `You already have ${MAX_LIVE_DRAFTS} drafts - publish or delete one first`,
+    "too_many_drafts",
+  );
+}
+
 /**
  * POST /api/drafts
  *
@@ -91,18 +103,8 @@ export async function POST(request: NextRequest) {
     }
 
     await purgeExpiredDrafts(user.id);
-
-    const [{ live }] = await db
-      .select({ live: count() })
-      .from(themeDrafts)
-      .where(eq(themeDrafts.userId, user.id));
-    if (live >= MAX_LIVE_DRAFTS) {
-      return apiError(
-        409,
-        `You already have ${MAX_LIVE_DRAFTS} drafts - publish or delete one first`,
-        "too_many_drafts",
-      );
-    }
+    // Other users' expired drafts too - after the response, never fatal.
+    after(() => purgeExpiredDraftsGlobally(50));
 
     const now = new Date();
     const timestamps = {
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        const row = await insertDraft({
+        const row = await insertDraftWithinLimit({
           userId: user.id,
           kind: "theme",
           slug: input.slug,
@@ -147,6 +149,9 @@ export async function POST(request: NextRequest) {
           source: input.source ?? null,
           ...timestamps,
         });
+        if (!row) {
+          return tooManyDrafts();
+        }
         return NextResponse.json(
           await serializeOne(row, { includeConfig: true }),
           { status: 201 },
@@ -214,7 +219,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const row = await insertDraft({
+      const row = await insertDraftWithinLimit({
         userId: user.id,
         kind: "version",
         themeId: theme.id,
@@ -228,6 +233,9 @@ export async function POST(request: NextRequest) {
         source: input.source ?? null,
         ...timestamps,
       });
+      if (!row) {
+        return tooManyDrafts();
+      }
       return NextResponse.json(
         await serializeOne(row, { includeConfig: true }),
         { status: 201 },

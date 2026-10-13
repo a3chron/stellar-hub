@@ -8,8 +8,10 @@ export const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
 
 export const CLI_AUTH_EXPIRES_IN_SECONDS = 600;
 export const CLI_AUTH_INTERVAL_SECONDS = 3;
-// Pending (undecided, unexpired) requests allowed per IP hash at once.
+// Pending (undecided, unexpired) requests allowed per network at once.
 export const CLI_AUTH_MAX_PENDING_PER_IP = 5;
+// Pending requests allowed in total, whoever started them.
+export const CLI_AUTH_MAX_PENDING_TOTAL = 500;
 
 // The User-Agent shape the CLI sends; anything else is labelled as unknown
 // rather than shown verbatim on the approval page.

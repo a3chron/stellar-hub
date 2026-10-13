@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto";
+import { isIPv6 } from "node:net";
 
 /**
  * Simple in-memory per-theme rate limiter
@@ -100,30 +101,72 @@ export const downloadRateLimiter = new RateLimiter({
  * Get client IP from request headers and return a keyed digest of it.
  * Vercel sets x-forwarded-for, fallback to x-real-ip.
  *
- * The raw IP never leaves this function — only the digest is used as a
+ * The raw IP never leaves this module — only the digest is used as a
  * rate-limit key. It is an HMAC rather than a bare hash because IPv4 is only
  * 2^32 addresses wide: a plain SHA-256 of one can be reversed by exhaustive
  * search, so it would not actually be pseudonymous.
  */
 export function getClientIP(request: Request): string {
-  return getClientIPFromHeaders(request.headers);
+  return keyedDigest(rawClientIP(request.headers));
 }
 
 /**
- * getClientIP for callers that only have the headers - a server component
- * reading `headers()`, like the CLI login approval page.
+ * Like getClientIP, but an IPv6 address only counts by its /64 network. One
+ * device rotates through privacy addresses inside its /64, and a whole /64 is
+ * what one subscriber usually gets - so for the CLI login (the pending-request
+ * limit and the "different network" notice on /cli/authorize) the network is
+ * the right unit. IPv4 addresses are hashed whole, exactly as getClientIP.
+ * Both sides of that comparison must use this function.
  */
-export function getClientIPFromHeaders(headers: Pick<Headers, "get">): string {
-  let ip: string;
+export function getClientNetworkHash(headers: Pick<Headers, "get">): string {
+  return keyedDigest(networkOf(rawClientIP(headers)));
+}
 
+function rawClientIP(headers: Pick<Headers, "get">): string {
   const forwardedFor = headers.get("x-forwarded-for");
   if (forwardedFor) {
     // x-forwarded-for can contain multiple IPs, get the first one
-    ip = forwardedFor.split(",")[0].trim();
-  } else {
-    ip = headers.get("x-real-ip") ?? "unknown";
+    return forwardedFor.split(",")[0].trim();
+  }
+  return headers.get("x-real-ip") ?? "unknown";
+}
+
+/** The first 64 bits of an IPv6 address ("2001:db8:1:2::/64"), else the input. */
+function networkOf(ip: string): string {
+  const bare = ip.replace(/^\[|\]$/g, "").split("%")[0];
+  if (!isIPv6(bare)) {
+    return ip;
   }
 
+  // An IPv4-mapped address is really IPv4.
+  const mapped = bare.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/i);
+  if (mapped) {
+    return mapped[1];
+  }
+
+  // Expand "::" so the first four groups can be read off. A trailing dotted
+  // IPv4 part counts as two groups.
+  const [head, tail] = bare.split("::");
+  const headGroups = head ? head.split(":") : [];
+  const tailGroups = tail ? tail.split(":") : [];
+  const width = (groups: string[]) =>
+    groups.reduce((sum, group) => sum + (group.includes(".") ? 2 : 1), 0);
+  const zeros =
+    tail === undefined ? 0 : 8 - width(headGroups) - width(tailGroups);
+  const groups = [
+    ...headGroups,
+    ...Array.from({ length: zeros }, () => "0"),
+    ...tailGroups,
+  ];
+
+  const prefix = groups
+    .slice(0, 4)
+    .map((group) => Number.parseInt(group, 16).toString(16))
+    .join(":");
+  return `${prefix}::/64`;
+}
+
+function keyedDigest(value: string): string {
   // Empty-string fallback deliberately omitted: an unsalted digest of an
   // IPv4 address is reversible by exhaustive search, so silently degrading to
   // one would defeat the point. better-auth does not enforce this variable
@@ -134,7 +177,7 @@ export function getClientIPFromHeaders(headers: Pick<Headers, "get">): string {
     throw new Error("BETTER_AUTH_SECRET is required to hash client IPs");
   }
 
-  return createHmac("sha256", secret).update(ip).digest("hex");
+  return createHmac("sha256", secret).update(value).digest("hex");
 }
 
 /**

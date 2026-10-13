@@ -1,11 +1,12 @@
 import { and, eq } from "drizzle-orm";
-import { type NextRequest, NextResponse } from "next/server";
+import { after, type NextRequest, NextResponse } from "next/server";
 import { apiError, isPlainObject } from "@/lib/api-error";
 import {
   CLI_AUTH_INTERVAL_SECONDS,
   generateCliToken,
   hashSecret,
 } from "@/lib/cli-auth";
+import { purgeExpiredLoginRequests } from "@/lib/cli-login-requests";
 import { db } from "@/lib/db";
 import { cliAuthRequests, cliTokens, user } from "@/lib/db/schema";
 import { getCliTokenUser, invalidTokenResponse } from "@/lib/request-auth";
@@ -32,6 +33,13 @@ function invalidGrant() {
  */
 export async function POST(request: NextRequest) {
   try {
+    // Keeps expired requests from lingering when nobody starts a new login.
+    after(() =>
+      purgeExpiredLoginRequests().catch((error) =>
+        console.error("Login request cleanup failed:", error),
+      ),
+    );
+
     const body = await request.json().catch(() => null);
     const deviceCode =
       isPlainObject(body) && typeof body.deviceCode === "string"

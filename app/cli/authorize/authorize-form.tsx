@@ -110,8 +110,9 @@ export default function AuthorizeForm({
       )}
 
       <p className="mt-6 text-xs leading-relaxed text-ctp-subtext0">
-        Approving lets that terminal create and publish theme drafts as you
-        until you revoke it - nothing else on your account.
+        Approving lets that terminal create drafts and publish new themes and
+        new versions of your existing themes as you, until you revoke it. It
+        can't change anything else on your account.
       </p>
       <p className="mt-2 text-xs text-ctp-subtext0">
         Themes published from that terminal are subject to the{" "}

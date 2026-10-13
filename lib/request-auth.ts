@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
 import type { NextResponse } from "next/server";
 import { apiError } from "@/lib/api-error";
+import { APP_URL } from "@/lib/app-url";
 import { auth, trustedOrigins } from "@/lib/auth";
 import { hashSecret } from "@/lib/cli-auth";
 import { db } from "@/lib/db";
@@ -68,6 +69,55 @@ export async function getCliTokenUser(
   return { kind: "valid", user: tokenUser, tokenId };
 }
 
+const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1"]);
+
+function originOf(url: string | undefined): string | null {
+  if (!url) {
+    return null;
+  }
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Where our own pages can be served from: better-auth's trusted origins
+ * (without the local dev servers in production), the configured app and auth
+ * URLs, and the deployment's own Vercel URL so preview deploys work too.
+ * Built once - all of it comes from the environment.
+ */
+const ALLOWED_ORIGINS: ReadonlySet<string> = (() => {
+  const origins = new Set<string>();
+  const production = process.env.NODE_ENV === "production";
+
+  for (const trusted of trustedOrigins) {
+    const origin = originOf(trusted);
+    if (!origin) {
+      continue;
+    }
+    if (production && LOCAL_HOSTNAMES.has(new URL(origin).hostname)) {
+      continue;
+    }
+    origins.add(origin);
+  }
+
+  const vercelUrl = process.env.VERCEL_URL;
+  for (const url of [
+    APP_URL,
+    process.env.BETTER_AUTH_URL,
+    vercelUrl ? `https://${vercelUrl}` : undefined,
+  ]) {
+    const origin = originOf(url);
+    if (origin) {
+      origins.add(origin);
+    }
+  }
+
+  return origins;
+})();
+
 /**
  * Whether a session-authenticated, state-changing request came from one of
  * our own pages. These routes have no CSRF token, and the session cookie alone
@@ -76,7 +126,7 @@ export async function getCliTokenUser(
  */
 export function checkOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
-  return origin !== null && trustedOrigins.includes(origin);
+  return origin !== null && ALLOWED_ORIGINS.has(origin);
 }
 
 function isSafeMethod(method: string) {
@@ -130,6 +180,31 @@ export async function getSessionUser(request: Request): Promise<DraftAuth> {
 }
 
 /**
+ * Records that a CLI token was used, so settings shows when each login was
+ * last active. At most every 10 minutes per token - a `stellar publish` makes
+ * several requests in a row, and one write is plenty. Best-effort: a failed
+ * update must not fail the request it rides on.
+ */
+async function touchCliToken(tokenId: string) {
+  try {
+    await db
+      .update(cliTokens)
+      .set({ lastUsedAt: sql`now()` })
+      .where(
+        and(
+          eq(cliTokens.id, tokenId),
+          or(
+            isNull(cliTokens.lastUsedAt),
+            lt(cliTokens.lastUsedAt, sql`now() - interval '10 minutes'`),
+          ),
+        ),
+      );
+  } catch (error) {
+    console.error("Failed to record CLI token use:", error);
+  }
+}
+
+/**
  * The user behind a /api/drafts/** request. If an Authorization header is
  * present it alone decides: a bad token is a 401, never a quiet fallback to
  * whatever session cookie the same client might also carry.
@@ -141,6 +216,7 @@ export async function getDraftUser(request: Request): Promise<DraftAuth> {
     return { ok: false, response: invalidTokenResponse() };
   }
   if (bearer.kind === "valid") {
+    await touchCliToken(bearer.tokenId);
     return { ok: true, user: bearer.user, via: "cli" };
   }
 

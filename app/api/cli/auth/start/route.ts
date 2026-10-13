@@ -1,25 +1,23 @@
-import { and, count, eq, gt, lt } from "drizzle-orm";
-import { type NextRequest, NextResponse } from "next/server";
+import { and, count, eq, gt, sql } from "drizzle-orm";
+import { after, type NextRequest, NextResponse } from "next/server";
 import { apiError, isPlainObject, isUniqueViolation } from "@/lib/api-error";
 import { APP_URL } from "@/lib/app-url";
 import {
   CLI_AUTH_EXPIRES_IN_SECONDS,
   CLI_AUTH_INTERVAL_SECONDS,
   CLI_AUTH_MAX_PENDING_PER_IP,
+  CLI_AUTH_MAX_PENDING_TOTAL,
   formatUserCode,
   generateDeviceCode,
   hashSecret,
   parseClientLabel,
   randomCode,
 } from "@/lib/cli-auth";
+import { purgeExpiredLoginRequests } from "@/lib/cli-login-requests";
 import { db } from "@/lib/db";
 import { cliAuthRequests } from "@/lib/db/schema";
-import { getClientIP } from "@/lib/rate-limit";
-
-// Expired requests are kept a little past their expiry before being purged,
-// so a CLI that is still polling gets its one `expired_token` rather than a
-// confusing `invalid_grant`.
-const EXPIRED_GRACE_MS = 10 * 60 * 1000;
+import { purgeExpiredDraftsGlobally } from "@/lib/drafts";
+import { getClientNetworkHash } from "@/lib/rate-limit";
 
 /**
  * POST /api/cli/auth/start
@@ -29,7 +27,8 @@ const EXPIRED_GRACE_MS = 10 * 60 * 1000;
  * approves it at /cli/authorize. Unauthenticated by design.
  *
  * Rate limited in the database rather than in memory, because each Vercel
- * instance has its own memory: at most a few pending requests per IP hash.
+ * instance has its own memory: at most a few pending requests per network,
+ * and a global cap so a flood from many addresses can't fill the table.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -37,33 +36,42 @@ export async function POST(request: NextRequest) {
     const client = parseClientLabel(
       isPlainObject(body) ? body.client : undefined,
     );
-    const ipHash = getClientIP(request);
+    const ipHash = getClientNetworkHash(request.headers);
     const now = new Date();
 
-    await db
-      .delete(cliAuthRequests)
-      .where(
-        lt(
-          cliAuthRequests.expiresAt,
-          new Date(now.getTime() - EXPIRED_GRACE_MS),
-        ),
-      );
+    // Housekeeping with no cron to run it: expired drafts of users who never
+    // come back. Runs after the response and never fails the request.
+    after(() => purgeExpiredDraftsGlobally(50));
 
-    const [{ pending }] = await db
-      .select({ pending: count() })
+    await purgeExpiredLoginRequests(now);
+
+    const [{ total, fromHere }] = await db
+      .select({
+        total: count(),
+        fromHere:
+          sql<number>`count(*) filter (where ${cliAuthRequests.ipHash} = ${ipHash})`.mapWith(
+            Number,
+          ),
+      })
       .from(cliAuthRequests)
       .where(
         and(
-          eq(cliAuthRequests.ipHash, ipHash),
           eq(cliAuthRequests.status, "pending"),
           gt(cliAuthRequests.expiresAt, now),
         ),
       );
 
-    if (pending >= CLI_AUTH_MAX_PENDING_PER_IP) {
+    if (fromHere >= CLI_AUTH_MAX_PENDING_PER_IP) {
       return apiError(
         429,
         "Too many unfinished logins from your network - approve or wait out one of them first",
+        "rate_limited",
+      );
+    }
+    if (total >= CLI_AUTH_MAX_PENDING_TOTAL) {
+      return apiError(
+        429,
+        "Too many logins in progress right now - try again in a few minutes",
         "rate_limited",
       );
     }

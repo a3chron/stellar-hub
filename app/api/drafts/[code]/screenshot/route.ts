@@ -20,8 +20,19 @@ import { supabaseAdmin } from "@/lib/supabase";
 
 type RouteParams = { params: Promise<{ code: string }> };
 
+// Decoding limits, checked from the image header before any decoding.
+const MAX_INPUT_PIXELS = 40_000_000;
+const MAX_DIMENSION = 8000;
+const DECODABLE_FORMATS = new Set(["png", "jpeg", "webp"]);
+
 function invalidScreenshot(message: string) {
   return apiError(400, message, "invalid_screenshot");
+}
+
+function unreadable() {
+  return invalidScreenshot(
+    "That file couldn't be read as an image - try exporting it again as PNG",
+  );
 }
 
 function notApplicable() {
@@ -108,16 +119,44 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return invalidScreenshot(fileProblem);
     }
 
+    const input = Buffer.from(await file.arrayBuffer());
+
+    // The header first: a few kilobytes can claim to be a gigapixel image
+    // that would take seconds and gigabytes to decode. The Content-Type of
+    // the part is only what the client says - this is what the file is.
+    let metadata: sharp.Metadata;
+    try {
+      metadata = await sharp(input, {
+        limitInputPixels: MAX_INPUT_PIXELS,
+      }).metadata();
+    } catch {
+      return unreadable();
+    }
+
+    if (!metadata.format || !DECODABLE_FORMATS.has(metadata.format)) {
+      return invalidScreenshot("Screenshot must be a PNG, JPG, or WebP image.");
+    }
+    const { width, height } = metadata;
+    if (
+      !width ||
+      !height ||
+      width > MAX_DIMENSION ||
+      height > MAX_DIMENSION ||
+      width * height > MAX_INPUT_PIXELS
+    ) {
+      return invalidScreenshot(
+        `Screenshot is too large - keep it within ${MAX_DIMENSION} × ${MAX_DIMENSION} pixels and 40 megapixels.`,
+      );
+    }
+
     let image: Buffer;
     try {
-      image = await sharp(Buffer.from(await file.arrayBuffer()))
+      image = await sharp(input, { limitInputPixels: MAX_INPUT_PIXELS })
         .resize(1200, 800, { fit: "inside", withoutEnlargement: true })
         .webp({ quality: 85 })
         .toBuffer();
     } catch {
-      return invalidScreenshot(
-        "That file couldn't be read as an image - try exporting it again as PNG",
-      );
+      return unreadable();
     }
 
     const path = `${user.id}-${Date.now()}.webp`;

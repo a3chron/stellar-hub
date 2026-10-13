@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, lte } from "drizzle-orm";
+import { and, count, eq, gt, inArray, lte, sql } from "drizzle-orm";
 import { parse as parseToml } from "smol-toml";
 import { z } from "zod";
 import { apiError, isPlainObject, isUniqueViolation } from "@/lib/api-error";
@@ -20,6 +20,7 @@ import {
   type DraftStatus,
   GROUP_MAX_LENGTH,
   MAX_DEPENDENCIES,
+  MAX_LIVE_DRAFTS,
   MIN_STARSHIP_VERSION_PATTERN,
   NAME_MAX_LENGTH,
   SLUG_PATTERN,
@@ -93,6 +94,34 @@ export async function purgeExpiredDrafts(userId: string): Promise<void> {
   await removeScreenshotObjects(expired.map((row) => row.screenshotPath));
 }
 
+/**
+ * Deletes up to `limit` expired drafts of any user, with their screenshots.
+ * The per-user purge only runs when that user comes back; this keeps the
+ * documented 7 days true for everyone else. Opportunistic (there is no
+ * cron), so it never throws - callers run it after their response.
+ */
+export async function purgeExpiredDraftsGlobally(limit = 50): Promise<void> {
+  try {
+    const expired = await db
+      .delete(themeDrafts)
+      .where(
+        inArray(
+          themeDrafts.id,
+          db
+            .select({ id: themeDrafts.id })
+            .from(themeDrafts)
+            .where(lte(themeDrafts.expiresAt, new Date()))
+            .limit(limit),
+        ),
+      )
+      .returning({ screenshotPath: themeDrafts.screenshotPath });
+
+    await removeScreenshotObjects(expired.map((row) => row.screenshotPath));
+  } catch (error) {
+    console.error("Global draft cleanup failed:", error);
+  }
+}
+
 /** Codes are stored uppercase and looked up case-insensitively. */
 export function normalizeDraftCode(code: string): string | null {
   const normalized = code.toUpperCase();
@@ -126,21 +155,28 @@ export function draftNotFound() {
   );
 }
 
+type DbTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type NewDraft = Omit<typeof themeDrafts.$inferInsert, "code">;
+
 /**
  * Inserts a draft under a fresh code. A collision on the code is retried
  * rather than checked up front - with 32^6 codes it is rare enough that the
- * unique index is the cheaper guard.
+ * unique index is the cheaper guard. Each attempt runs in its own savepoint,
+ * so a collision inside a caller's transaction doesn't abort all of it.
  */
-export async function insertDraft(
-  values: Omit<typeof themeDrafts.$inferInsert, "code">,
+async function insertDraft(
+  values: NewDraft,
+  executor: DbTransaction,
 ): Promise<ThemeDraft> {
   for (let attempt = 1; ; attempt++) {
     try {
-      const [row] = await db
-        .insert(themeDrafts)
-        .values({ ...values, code: randomCode(6) })
-        .returning();
-      return row;
+      return await executor.transaction(async (savepoint) => {
+        const [row] = await savepoint
+          .insert(themeDrafts)
+          .values({ ...values, code: randomCode(6) })
+          .returning();
+        return row;
+      });
     } catch (error) {
       if (attempt < 5 && isUniqueViolation(error, "theme_drafts_code_unique")) {
         continue;
@@ -148,6 +184,38 @@ export async function insertDraft(
       throw error;
     }
   }
+}
+
+/**
+ * Inserts a draft unless the user already has MAX_LIVE_DRAFTS live ones, and
+ * returns null in that case. Counting and inserting happen under a per-user
+ * transaction-scoped advisory lock - it also works through Supabase's
+ * transaction pooler, unlike a session lock - so two concurrent creates can't
+ * both pass the count.
+ */
+export async function insertDraftWithinLimit(
+  values: NewDraft,
+): Promise<ThemeDraft | null> {
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${values.userId}))`,
+    );
+
+    const [{ live }] = await tx
+      .select({ live: count() })
+      .from(themeDrafts)
+      .where(
+        and(
+          eq(themeDrafts.userId, values.userId),
+          gt(themeDrafts.expiresAt, new Date()),
+        ),
+      );
+    if (live >= MAX_LIVE_DRAFTS) {
+      return null;
+    }
+
+    return insertDraft(values, tx);
+  });
 }
 
 /** The code of the user's live new-theme draft holding `slug`, if any. */
@@ -232,6 +300,37 @@ function emptyToNull(value: unknown) {
   return value === "" ? null : value;
 }
 
+// Single-line text (names, groups, dependencies) may hold neither control
+// characters nor the bidi and invisible formatting marks that make text
+// render differently from what it is - a name that reads "ctp-blue" on the
+// page but is something else underneath.
+const SINGLE_LINE_FORBIDDEN = /[\p{Cc}‎‏؜‪-‮⁦-⁩]/u;
+const SINGLE_LINE_MESSAGE =
+  "must not contain control characters or invisible text-direction marks";
+
+// Multi-line text (description, version notes) keeps newlines and tabs and
+// nothing else from the control range.
+const MULTI_LINE_FORBIDDEN = /[^\P{Cc}\n\t]/u;
+const MULTI_LINE_MESSAGE =
+  "must not contain control characters other than line breaks and tabs";
+
+function isSingleLineSafe(value: string) {
+  return !SINGLE_LINE_FORBIDDEN.test(value);
+}
+
+function isMultiLineSafe(value: string) {
+  return !MULTI_LINE_FORBIDDEN.test(value);
+}
+
+/** "" -> null, and Windows line endings -> "\n" before anything is checked. */
+function multiLineOrNull(value: unknown) {
+  if (typeof value !== "string") {
+    return value;
+  }
+  const normalized = value.replace(/\r\n/g, "\n");
+  return normalized === "" ? null : normalized;
+}
+
 function trimmedOrNull(value: unknown) {
   if (typeof value !== "string") {
     return value;
@@ -276,10 +375,7 @@ const nameField = z.preprocess(
   z
     .string()
     .max(NAME_MAX_LENGTH, `must be ${NAME_MAX_LENGTH} characters or less`)
-    .refine(
-      (name) => !/\p{Cc}/u.test(name),
-      "must not contain control characters",
-    )
+    .refine(isSingleLineSafe, SINGLE_LINE_MESSAGE)
     .nullable(),
 );
 
@@ -291,13 +387,14 @@ const slugField = z
   .regex(SLUG_PATTERN, "must be 1-50 lowercase letters, digits or hyphens");
 
 const descriptionField = z.preprocess(
-  emptyToNull,
+  multiLineOrNull,
   z
     .string()
     .max(
       DESCRIPTION_MAX_LENGTH,
       `must be ${DESCRIPTION_MAX_LENGTH} characters or less`,
     )
+    .refine(isMultiLineSafe, MULTI_LINE_MESSAGE)
     .nullable(),
 );
 
@@ -306,6 +403,7 @@ const groupField = z.preprocess(
   z
     .string()
     .max(GROUP_MAX_LENGTH, `must be ${GROUP_MAX_LENGTH} characters or less`)
+    .refine(isSingleLineSafe, SINGLE_LINE_MESSAGE)
     .nullable(),
 );
 
@@ -332,13 +430,14 @@ const versionField = z.preprocess(
 );
 
 const versionNotesField = z.preprocess(
-  emptyToNull,
+  multiLineOrNull,
   z
     .string()
     .max(
       VERSION_NOTES_MAX_LENGTH,
       `must be ${VERSION_NOTES_MAX_LENGTH} characters or less`,
     )
+    .refine(isMultiLineSafe, MULTI_LINE_MESSAGE)
     .nullable(),
 );
 
@@ -359,7 +458,8 @@ const dependenciesField = z.preprocess(
         .max(
           DEPENDENCY_MAX_LENGTH,
           `each must be ${DEPENDENCY_MAX_LENGTH} characters or less`,
-        ),
+        )
+        .refine(isSingleLineSafe, `each ${SINGLE_LINE_MESSAGE}`),
     )
     .max(MAX_DEPENDENCIES, `at most ${MAX_DEPENDENCIES} are allowed`),
 );

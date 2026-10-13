@@ -49,6 +49,17 @@ const BAR_CLASS: Record<BarTone, string> = {
   neutral: "bg-ctp-surface0",
 };
 
+// The current step's ring, in its bar's own colour, faded: blue, or red
+// when the step you're on has a problem. Spelled out per tone so Tailwind
+// finds every class name.
+const RING_CLASS: Record<BarTone, string> = {
+  error: "ring-ctp-red/40",
+  current: "ring-ctp-blue/40",
+  done: "ring-ctp-lavender/40",
+  doneOptional: "ring-ctp-lavender/30",
+  neutral: "ring-ctp-overlay0/50",
+};
+
 // Hovering a step you can jump to rings its bar in its own colour, faded.
 // A neutral bar's surface colour would vanish against the page, so it gets a
 // brighter grey. Spelled out in full so Tailwind finds every class name.
@@ -115,9 +126,10 @@ interface StepperProps {
  * The wizard's progress: one rounded bar per step - blue for the current
  * one, lavender once a step is complete (faded for an optional one), red
  * when it needs attention, neutral otherwise (see barTone). The current
- * step's label is bold, and each status is also spelled out for screen
- * readers. Steps already reached are buttons, so you can jump back (or
- * forward again) without paging through every step in between.
+ * step also gets a faded ring in its bar's colour and a bold label, and each
+ * status is spelled out for screen readers. Steps already reached are
+ * buttons, so you can jump back (or forward again) without paging through
+ * every step in between.
  */
 export default function Stepper({
   steps,
@@ -158,6 +170,8 @@ export default function Stepper({
                   className={cn(
                     "block h-1.5 rounded-full transition-colors",
                     BAR_CLASS[tone],
+                    isCurrent &&
+                      `ring-2 ring-offset-2 ring-offset-ctp-base ${RING_CLASS[tone]}`,
                     reachable &&
                       !isCurrent &&
                       `group-hover:ring-1 group-hover:ring-offset-1 group-hover:ring-offset-ctp-base ${HOVER_RING_CLASS[tone]}`,

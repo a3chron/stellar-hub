@@ -103,13 +103,19 @@ export default function LegalPage() {
             </Link>
           </address>
           <p>
-            The source code for both the website and the command-line tool is
-            public at{" "}
+            The source code is public: the command-line tool at{" "}
             <Link
               href="https://github.com/a3chron/stellar"
               className="text-ctp-lavender underline underline-offset-4"
             >
               github.com/a3chron/stellar
+            </Link>{" "}
+            and this website at{" "}
+            <Link
+              href="https://github.com/a3chron/stellar-hub"
+              className="text-ctp-lavender underline underline-offset-4"
+            >
+              github.com/a3chron/stellar-hub
             </Link>
             .
           </p>

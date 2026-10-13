@@ -204,3 +204,34 @@ export function ReviewRow({
 export function Muted({ children }: { children: React.ReactNode }) {
   return <span className="text-ctp-overlay1">{children}</span>;
 }
+
+/**
+ * The field a failed save or publish was about, so the wizard can mark the
+ * step that holds it: the first field of a validation error, or the field a
+ * specific code implies.
+ */
+export function errorField(error: ApiErrorBody | null): string | null {
+  if (!error) {
+    return null;
+  }
+  switch (error.code) {
+    case "draft_exists":
+    case "duplicate_slug":
+      return "slug";
+    case "invalid_config":
+      return "config";
+    case "invalid_screenshot":
+      return "screenshot";
+    case "version_exists":
+    case "version_not_newer":
+      return "version";
+    case "validation_failed": {
+      const [field] = Object.keys(
+        (error.details as Record<string, string[]> | undefined) ?? {},
+      );
+      return field ?? null;
+    }
+    default:
+      return null;
+  }
+}

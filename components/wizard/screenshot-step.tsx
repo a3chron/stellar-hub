@@ -3,6 +3,7 @@
 import { ImageUp, Loader2, Trash2 } from "lucide-react";
 import Image from "next/image";
 import { useId, useState } from "react";
+import ConfirmDialog from "@/components/confirm-dialog";
 import type { Draft } from "@/lib/draft-shared";
 import { apiFetch } from "@/lib/drafts-client";
 import {
@@ -14,63 +15,73 @@ import { cn } from "@/lib/utils";
 /**
  * Uploads the screenshot the moment it is picked (or dropped), so it is part
  * of the draft - and visible to `stellar publish --publish` - right away.
+ *
+ * The error lives in the wizard, which also marks a rejected screenshot on
+ * the step's bar.
  */
 export default function ScreenshotStep({
   draft,
   onDraft,
   onGone,
+  error,
+  onError,
 }: {
   draft: Draft;
   onDraft: (draft: Draft) => void;
   onGone: () => void;
+  error: string | null;
+  onError: (error: string | null) => void;
 }) {
   const inputId = useId();
-  const [busy, setBusy] = useState<"upload" | "remove" | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [dragging, setDragging] = useState(false);
 
   async function upload(file: File) {
     const problem = validateScreenshotFile(file);
     if (problem) {
-      setError(problem);
+      onError(problem);
       return;
     }
 
-    setError(null);
-    setBusy("upload");
+    onError(null);
+    setUploading(true);
     const body = new FormData();
     body.append("screenshot", file);
     const result = await apiFetch<Draft>(
       `/api/drafts/${draft.code}/screenshot`,
       { method: "PUT", body },
     );
-    setBusy(null);
+    setUploading(false);
 
     if (result.ok) {
       onDraft(result.data);
     } else if (result.status === 404) {
       onGone();
     } else {
-      setError(result.error.error);
+      onError(result.error.error);
     }
   }
 
-  async function remove() {
-    setError(null);
-    setBusy("remove");
+  // Resolves with the message to show in the dialog, or null once removed.
+  async function remove(): Promise<string | null> {
     const result = await apiFetch<Draft>(
       `/api/drafts/${draft.code}/screenshot`,
       { method: "DELETE" },
     );
-    setBusy(null);
 
     if (result.ok) {
+      setConfirmingRemove(false);
+      onError(null);
       onDraft(result.data);
-    } else if (result.status === 404) {
-      onGone();
-    } else {
-      setError(result.error.error);
+      return null;
     }
+    if (result.status === 404) {
+      setConfirmingRemove(false);
+      onGone();
+      return null;
+    }
+    return result.error.error;
   }
 
   return (
@@ -93,6 +104,7 @@ export default function ScreenshotStep({
         className={cn(
           "relative flex h-64 w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border-2 border-dashed bg-ctp-mantle text-sm text-ctp-subtext0 transition",
           dragging ? "border-ctp-lavender" : "border-ctp-surface0",
+          !!error && !dragging && "border-ctp-red/60!",
         )}
       >
         {draft.screenshotUrl ? (
@@ -114,7 +126,7 @@ export default function ScreenshotStep({
             </span>
           </>
         )}
-        {busy === "upload" && (
+        {uploading && (
           <span className="absolute inset-0 flex items-center justify-center bg-ctp-base/70">
             <Loader2 className="h-6 w-6 animate-spin text-ctp-text" />
           </span>
@@ -130,7 +142,7 @@ export default function ScreenshotStep({
               upload(file);
             }
           }}
-          disabled={busy !== null}
+          disabled={uploading}
           className="sr-only"
         />
       </label>
@@ -149,19 +161,30 @@ export default function ScreenshotStep({
         {draft.screenshotUrl && (
           <button
             type="button"
-            onClick={remove}
-            disabled={busy !== null}
+            onClick={() => setConfirmingRemove(true)}
+            disabled={uploading}
             className="flex shrink-0 items-center gap-1.5 text-xs text-ctp-subtext0 hover:text-ctp-red transition cursor-pointer disabled:opacity-50"
           >
-            {busy === "remove" ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Trash2 size={14} />
-            )}
+            <Trash2 size={14} />
             Remove
           </button>
         )}
       </div>
+
+      {confirmingRemove && (
+        <ConfirmDialog
+          title="Remove screenshot?"
+          confirmLabel="Remove"
+          busyLabel="Removing..."
+          onConfirm={remove}
+          onCancel={() => setConfirmingRemove(false)}
+        >
+          <p>
+            The uploaded screenshot is deleted from this draft. You'll need to
+            add one again before you can publish.
+          </p>
+        </ConfirmDialog>
+      )}
     </div>
   );
 }

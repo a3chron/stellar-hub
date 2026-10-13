@@ -15,17 +15,22 @@ import {
 import { apiFetch, jsonRequest } from "@/lib/drafts-client";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
 import { cn } from "@/lib/utils";
-import { calculateNextVersion } from "@/lib/versions";
+import { calculateNextVersion, compareVersions } from "@/lib/versions";
 import ConfigStep from "./config-step";
 import {
   DraftStatusLine,
   ErrorBox,
+  errorField,
   GoneBanner,
   Muted,
   ReviewRow,
   WizardNav,
 } from "./parts";
-import Stepper, { type WizardStep } from "./stepper";
+import Stepper, {
+  resolveStepStatus,
+  type StepStatus,
+  type WizardStep,
+} from "./stepper";
 
 interface VersionFields {
   config: string;
@@ -52,6 +57,14 @@ const STEPS: WizardStep[] = [
 ];
 
 const STEP = { config: 0, version: 1, review: 2 } as const;
+
+// Fields on the Version step, to mark it when a save or publish fails on one.
+const VERSION_STEP_FIELDS = [
+  "version",
+  "versionNotes",
+  "dependencies",
+  "minStarshipVersion",
+];
 
 function fieldsFromDraft(draft: Draft): VersionFields {
   return {
@@ -141,6 +154,11 @@ export default function VersionWizard({
   const [configError, setConfigError] = useState<string | null>(null);
   const [gone, setGone] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  // Steps the user has moved on from - from then on, something required
+  // that is still missing there counts as a problem.
+  const [leftSteps, setLeftSteps] = useState<ReadonlySet<number>>(
+    () => new Set(),
+  );
 
   const { fields, saved } = form;
   const dirtyKeys = FIELD_KEYS.filter(
@@ -153,13 +171,12 @@ export default function VersionWizard({
     fields.minStarshipVersion.trim().length > 0 &&
     !MIN_STARSHIP_VERSION_PATTERN.test(fields.minStarshipVersion.trim());
 
-  const missingSteps = new Set<string>();
-  if (!fields.config.trim()) {
-    missingSteps.add("config");
-  }
-  if (!fields.version) {
-    missingSteps.add("version");
-  }
+  // A version stellar-cli set can be older than the latest one; the bumps
+  // never are. Shown inline, and the publish would be refused anyway.
+  const versionNotNewer =
+    fields.version !== "" &&
+    latestVersion !== null &&
+    compareVersions(fields.version, latestVersion) <= 0;
 
   function setField<K extends FieldKey>(key: K, value: VersionFields[K]) {
     setForm((prev) => ({ ...prev, fields: { ...prev.fields, [key]: value } }));
@@ -224,6 +241,9 @@ export default function VersionWizard({
     if (!result) {
       return;
     }
+    if (index !== step) {
+      setLeftSteps((previous) => new Set(previous).add(step));
+    }
     setStep(index);
     setFurthest((previous) => Math.max(previous, index));
   }
@@ -284,7 +304,7 @@ export default function VersionWizard({
     event.preventDefault();
     setError(null);
 
-    if (step === STEP.version && minStarshipInvalid) {
+    if (step === STEP.version && (minStarshipInvalid || versionNotNewer)) {
       return;
     }
     if (step === STEP.review) {
@@ -296,6 +316,58 @@ export default function VersionWizard({
 
   // Shown only once everything is saved - the flag is about the saved draft.
   const unchanged = draft.unchangedFromLatest && dirtyKeys.length === 0;
+
+  // Step statuses for the stepper, built from the same facts that enable
+  // Next and Publish below.
+  const failedField = errorField(error);
+  const passed = (index: number) => leftSteps.has(index) || index < step;
+  const hasConfig = fields.config.trim().length > 0;
+  // Still the untouched copy of the latest version's config.
+  const configIsLatest =
+    draft.configSource === "latest" && !dirtyKeys.includes("config");
+
+  const configStatus = resolveStepStatus({
+    invalid: configError !== null || failedField === "config",
+    complete: hasConfig && !configIsLatest,
+    started: hasConfig,
+    missing: !hasConfig,
+    passed: passed(STEP.config),
+  });
+  const versionStatus = resolveStepStatus({
+    invalid:
+      minStarshipInvalid ||
+      versionNotNewer ||
+      VERSION_STEP_FIELDS.includes(failedField ?? ""),
+    complete: fields.version !== "",
+    started:
+      fields.version !== "" ||
+      fields.versionNotes.trim() !== "" ||
+      fields.dependencies.trim() !== "" ||
+      fields.minStarshipVersion.trim() !== "",
+    missing: fields.version === "",
+    passed: passed(STEP.version),
+  });
+  // A config that is still the latest one is fine to publish as long as
+  // something else changed - `unchanged` is what refuses it.
+  const canPublish =
+    configStatus !== "error" &&
+    hasConfig &&
+    versionStatus === "complete" &&
+    !unchanged;
+
+  const stepStatus: Record<string, StepStatus> = {
+    config: configStatus,
+    version: versionStatus,
+    // Green only once the whole draft could be published.
+    review: canPublish ? "complete" : "empty",
+  };
+
+  let nextDisabled = false;
+  if (step === STEP.version) {
+    nextDisabled = minStarshipInvalid || versionNotNewer;
+  } else if (step === STEP.review) {
+    nextDisabled = !canPublish;
+  }
 
   let nextLabel = "Next";
   if (step === STEP.review) {
@@ -327,7 +399,7 @@ export default function VersionWizard({
         steps={STEPS}
         current={step}
         furthest={gone ? -1 : furthest}
-        missing={missingSteps}
+        status={stepStatus}
         onSelect={(index) => go(index)}
       />
       {!gone && <DraftStatusLine draft={draft} />}
@@ -391,6 +463,12 @@ export default function VersionWizard({
                   For breaking changes, major redesigns, please create a new
                   theme
                 </p>
+                {versionNotNewer && (
+                  <p role="alert" className="text-xs text-ctp-red mt-2">
+                    v{fields.version} isn't newer than the latest v
+                    {latestVersion} - pick one of the bumps instead.
+                  </p>
+                )}
               </fieldset>
 
               <div>
@@ -527,9 +605,7 @@ JetBrainsMono Nerd Font`}
             onBack={step > 0 ? () => go(step - 1) : null}
             nextLabel={nextLabel}
             busy={busy}
-            nextDisabled={
-              step === STEP.review && (missingSteps.size > 0 || unchanged)
-            }
+            nextDisabled={nextDisabled}
           />
         </form>
       )}

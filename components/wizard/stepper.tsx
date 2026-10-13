@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertCircle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface WizardStep {
@@ -8,28 +9,87 @@ export interface WizardStep {
   optional?: boolean;
 }
 
+/**
+ * - empty: nothing entered yet, nothing to complain about.
+ * - partial: something is entered, but not everything the step requires.
+ * - complete: every required field on the step is filled and valid.
+ * - error: a field holds a value that is rejected right now, or something
+ *   required is missing on a step the user has already moved past.
+ */
+export type StepStatus = "empty" | "partial" | "complete" | "error";
+
+const BAR_CLASS: Record<StepStatus, string> = {
+  empty: "bg-ctp-surface0",
+  partial: "bg-ctp-lavender",
+  complete: "bg-ctp-green",
+  error: "bg-ctp-red",
+};
+
+// Colour alone doesn't say anything to a screen reader (or to everyone who
+// can't tell red from green), so every status but "empty" is also spelled out.
+const STATUS_TEXT: Record<StepStatus, string | null> = {
+  empty: null,
+  partial: "in progress",
+  complete: "complete",
+  error: "needs attention",
+};
+
+/**
+ * Folds a step's facts into its status. `invalid` wins at once, even on the
+ * step the user is on - it is what an inline error is showing right now.
+ * Something merely missing only turns red once the user has `passed` the
+ * step (left it, or is on a later one), so typing is never punished.
+ */
+export function resolveStepStatus({
+  invalid = false,
+  complete,
+  started,
+  missing = false,
+  passed,
+}: {
+  invalid?: boolean;
+  complete: boolean;
+  started: boolean;
+  missing?: boolean;
+  passed: boolean;
+}): StepStatus {
+  if (invalid) {
+    return "error";
+  }
+  if (complete) {
+    return "complete";
+  }
+  if (missing && passed) {
+    return "error";
+  }
+  return started ? "partial" : "empty";
+}
+
 interface StepperProps {
   steps: WizardStep[];
   current: number;
   // Highest step index reached so far - everything up to it is clickable.
   furthest: number;
-  // Step ids that still lack something required for publishing.
-  missing: ReadonlySet<string>;
+  // Per step id. The wizards derive it from the same values that enable
+  // their Next and Publish buttons, so the bars never disagree with them.
+  status: Record<string, StepStatus>;
   onSelect: (index: number) => void;
 }
 
 /**
- * The wizard's progress: one rounded bar per step. Done steps are filled
- * lavender, the current one carries the accent and its label, a step that
- * still lacks something required gets a red dot, and optional steps stay
- * muted. Steps already visited are buttons, so you can jump back (or forward
- * again) without paging through every step in between.
+ * The wizard's progress: one rounded bar per step, coloured by the step's
+ * status (see StepStatus) - neutral, lavender for in progress, green for
+ * complete, red when it needs attention. The current step is marked by a
+ * ring around its bar and a bold label instead of a colour of its own, and
+ * complete or failing steps also carry an icon and screen-reader text.
+ * Steps already reached are buttons, so you can jump back (or forward again)
+ * without paging through every step in between.
  */
 export default function Stepper({
   steps,
   current,
   furthest,
-  missing,
+  status,
   onSelect,
 }: StepperProps) {
   return (
@@ -38,19 +98,8 @@ export default function Stepper({
         {steps.map((step, index) => {
           const isCurrent = index === current;
           const reachable = index <= furthest;
-          const isMissing = reachable && missing.has(step.id);
-          const isDone = reachable && !isCurrent && !isMissing;
-
-          let barClass = "bg-ctp-surface0";
-          if (isCurrent) {
-            barClass = "bg-ctp-blue";
-          } else if (isDone && !step.optional) {
-            barClass = "bg-ctp-lavender";
-          } else if (isDone) {
-            barClass = "bg-ctp-lavender/50";
-          } else if (isMissing) {
-            barClass = "bg-ctp-surface1";
-          }
+          const stepStatus = status[step.id] ?? "empty";
+          const statusText = STATUS_TEXT[stepStatus];
 
           let labelClass = "text-ctp-subtext0";
           if (isCurrent) {
@@ -71,18 +120,21 @@ export default function Stepper({
                 <span
                   className={cn(
                     "block h-1.5 rounded-full transition-colors",
-                    barClass,
+                    BAR_CLASS[stepStatus],
+                    isCurrent &&
+                      "ring-2 ring-offset-2 ring-offset-ctp-base ring-ctp-overlay1",
                     reachable &&
                       !isCurrent &&
-                      "group-hover:ring-2 group-hover:ring-ctp-surface1",
+                      "group-hover:ring-1 group-hover:ring-offset-1 group-hover:ring-offset-ctp-base group-hover:ring-ctp-surface2",
                   )}
                 />
                 <span
                   className={cn(
                     "mt-2 items-center gap-1.5 text-xs",
                     labelClass,
-                    // On a phone only the current step is labelled.
-                    isCurrent ? "flex" : "hidden sm:flex",
+                    // On a phone only the current step is labelled visibly;
+                    // the others keep theirs for screen readers.
+                    isCurrent ? "flex" : "sr-only sm:not-sr-only sm:flex",
                   )}
                 >
                   <span className="truncate">{step.label}</span>
@@ -91,13 +143,23 @@ export default function Stepper({
                       (optional)
                     </span>
                   )}
-                  {isMissing && (
-                    <span
-                      className="size-1.5 shrink-0 rounded-full bg-ctp-red"
-                      title="Still needed before publishing"
+                  {stepStatus === "complete" && (
+                    <Check
+                      size={12}
+                      className="shrink-0 text-ctp-green"
+                      aria-hidden="true"
                     />
                   )}
-                  {isMissing && <span className="sr-only">(incomplete)</span>}
+                  {stepStatus === "error" && (
+                    <AlertCircle
+                      size={12}
+                      className="shrink-0 text-ctp-red"
+                      aria-hidden="true"
+                    />
+                  )}
+                  {statusText && (
+                    <span className="sr-only">({statusText})</span>
+                  )}
                 </span>
               </button>
             </li>

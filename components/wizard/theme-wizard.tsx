@@ -22,6 +22,7 @@ import ConfigStep from "./config-step";
 import {
   DraftStatusLine,
   ErrorBox,
+  errorField,
   GoneBanner,
   Muted,
   ReviewRow,
@@ -29,7 +30,11 @@ import {
 } from "./parts";
 import ScreenshotStep from "./screenshot-step";
 import SlugField from "./slug-field";
-import Stepper, { type WizardStep } from "./stepper";
+import Stepper, {
+  resolveStepStatus,
+  type StepStatus,
+  type WizardStep,
+} from "./stepper";
 
 type ColorMode = NonNullable<Draft["colorMode"]>;
 
@@ -91,6 +96,22 @@ const STEP = {
   details: 3,
   review: 4,
 } as const;
+
+// Which step holds each field, to mark the step a failed save was about.
+const FIELD_STEP: Record<string, string> = {
+  name: "basics",
+  slug: "basics",
+  description: "basics",
+  dependencies: "basics",
+  minStarshipVersion: "basics",
+  config: "config",
+  screenshot: "screenshot",
+  colorMode: "details",
+  colorSchemeId: "details",
+  group: "details",
+  version: "details",
+  versionNotes: "details",
+};
 
 const COLOR_MODE_OPTIONS = [
   { value: "dark", label: "Dark" },
@@ -219,6 +240,12 @@ export default function ThemeWizard({
   const [gone, setGone] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [minStarshipTouched, setMinStarshipTouched] = useState(false);
+  const [screenshotError, setScreenshotError] = useState<string | null>(null);
+  // Steps the user has moved on from - from then on, something required
+  // that is still missing there counts as a problem.
+  const [leftSteps, setLeftSteps] = useState<ReadonlySet<number>>(
+    () => new Set(),
+  );
 
   const { fields, saved } = form;
   const slug = customSlug ?? generateSlug(fields.name);
@@ -248,16 +275,67 @@ export default function ThemeWizard({
     !MIN_STARSHIP_VERSION_PATTERN.test(fields.minStarshipVersion.trim());
   const versionInvalid = !VERSION_PATTERN.test(fields.version);
 
-  const missingSteps = new Set<string>();
-  if (!current.name.trim()) {
-    missingSteps.add("basics");
-  }
-  if (!current.config.trim()) {
-    missingSteps.add("config");
-  }
-  if (!draft?.screenshotUrl) {
-    missingSteps.add("screenshot");
-  }
+  // Step statuses for the stepper, built from the same facts that enable
+  // Next and Publish below.
+  const minStarshipShown = minStarshipTouched && minStarshipInvalid;
+  const failedStep = FIELD_STEP[errorField(error) ?? ""] ?? null;
+  const passed = (index: number) => leftSteps.has(index) || index < step;
+  const hasName = current.name.trim().length > 0;
+  const hasConfig = current.config.trim().length > 0;
+  const hasScreenshot = !!draft?.screenshotUrl;
+  const detailsSet =
+    fields.colorMode !== "dark" ||
+    fields.colorSchemeId !== "" ||
+    fields.group.trim() !== "" ||
+    fields.version !== "1.0";
+
+  const basicsStatus = resolveStepStatus({
+    invalid: minStarshipShown || slugBlocked || failedStep === "basics",
+    complete: hasName && !!current.slug && !slugBlocked && !minStarshipInvalid,
+    started:
+      hasName ||
+      customSlug !== null ||
+      fields.description.trim() !== "" ||
+      fields.dependencies.trim() !== "" ||
+      fields.minStarshipVersion.trim() !== "",
+    missing: !hasName,
+    passed: passed(STEP.basics),
+  });
+  const configStatus = resolveStepStatus({
+    invalid: configError !== null || failedStep === "config",
+    complete: hasConfig,
+    started: hasConfig,
+    missing: !hasConfig,
+    passed: passed(STEP.config),
+  });
+  const screenshotStatus = resolveStepStatus({
+    invalid: screenshotError !== null || failedStep === "screenshot",
+    complete: hasScreenshot,
+    started: hasScreenshot,
+    missing: !hasScreenshot,
+    passed: passed(STEP.screenshot),
+  });
+  // Optional: complete once left or anything on it is set, never missing.
+  const detailsStatus = resolveStepStatus({
+    invalid: versionInvalid || failedStep === "details",
+    complete: passed(STEP.details) || detailsSet,
+    started: detailsSet,
+    passed: passed(STEP.details),
+  });
+  const canPublish =
+    basicsStatus === "complete" &&
+    configStatus === "complete" &&
+    screenshotStatus === "complete" &&
+    detailsStatus !== "error";
+
+  const stepStatus: Record<string, StepStatus> = {
+    basics: basicsStatus,
+    config: configStatus,
+    screenshot: screenshotStatus,
+    details: detailsStatus,
+    // Green only once the whole draft could be published.
+    review: canPublish ? "complete" : "empty",
+  };
 
   function setField<K extends FieldKey>(key: K, value: ThemeFields[K]) {
     setForm((prev) => ({ ...prev, fields: { ...prev.fields, [key]: value } }));
@@ -350,6 +428,9 @@ export default function ThemeWizard({
     if (!result) {
       return;
     }
+    if (index !== step) {
+      setLeftSteps((previous) => new Set(previous).add(step));
+    }
     setStep(index);
     setFurthest((previous) => Math.max(previous, index));
   }
@@ -441,11 +522,14 @@ export default function ThemeWizard({
     nextLabel = busy ? "Publishing..." : "Publish Theme";
   }
 
+  // The same facts the step statuses are built from.
   let nextDisabled = false;
   if (step === STEP.basics) {
-    nextDisabled = slugBlocked;
+    nextDisabled = slugBlocked || minStarshipShown;
+  } else if (step === STEP.details) {
+    nextDisabled = versionInvalid;
   } else if (step === STEP.review) {
-    nextDisabled = missingSteps.size > 0;
+    nextDisabled = !canPublish;
   }
 
   const schemeName =
@@ -469,7 +553,7 @@ export default function ThemeWizard({
         steps={STEPS}
         current={step}
         furthest={gone ? -1 : furthest}
-        missing={missingSteps}
+        status={stepStatus}
         onSelect={(index) => go(index)}
       />
       {!gone && <DraftStatusLine draft={draft} />}
@@ -594,6 +678,8 @@ JetBrainsMono Nerd Font`}
               draft={draft}
               onDraft={(next) => adopt(next)}
               onGone={() => setGone(true)}
+              error={screenshotError}
+              onError={setScreenshotError}
             />
           )}
 

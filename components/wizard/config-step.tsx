@@ -18,6 +18,16 @@ import { cn } from "@/lib/utils";
 
 type ConfigTab = "paste" | "upload" | "cli";
 
+// Which `stellar publish` form the From CLI tab shows.
+type CommandKind = "folder" | "file";
+
+const COMMAND_KIND_KEY = "stellar:publish-command";
+
+const COMMAND_KINDS: Array<{ id: CommandKind; label: string }> = [
+  { id: "folder", label: "Theme folder" },
+  { id: "file", label: "Any .toml file" },
+];
+
 const POLL_INTERVAL_MS = 2000;
 
 interface ConfigStepProps {
@@ -172,9 +182,34 @@ export default function ConfigStep({
 }: ConfigStepProps) {
   const editorId = useId();
   const fileInputId = useId();
+  // The terminal is the usual way in, so From CLI opens first - unless the
+  // config was last set right here, which is what Paste shows.
   const [tab, setTab] = useState<ConfigTab>(
-    configSource === "cli" ? "cli" : "paste",
+    configSource === "web" ? "paste" : "cli",
   );
+  const [commandKind, setCommandKind] = useState<CommandKind>("folder");
+
+  // Remembered per browser; read after mount, since localStorage doesn't
+  // exist during the server render.
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(COMMAND_KIND_KEY);
+      if (stored === "folder" || stored === "file") {
+        setCommandKind(stored);
+      }
+    } catch {
+      // Storage blocked (private mode, disabled cookies) - keep the default.
+    }
+  }, []);
+
+  function chooseCommandKind(kind: CommandKind) {
+    setCommandKind(kind);
+    try {
+      window.localStorage.setItem(COMMAND_KIND_KEY, kind);
+    } catch {
+      // Not remembered then - harmless.
+    }
+  }
   const [uploadNote, setUploadNote] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [replacedEdits, setReplacedEdits] = useState(false);
@@ -219,7 +254,7 @@ export default function ConfigStep({
     }
 
     // Same normalisation the CLI applies, so a Windows file compares equal.
-    onConfigChange(text.replace(/^﻿/, "").replace(/\r\n/g, "\n"));
+    onConfigChange(text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n"));
     setUploadNote(`Loaded ${file.name} - review it below.`);
     setReplacedEdits(false);
     setTab("paste");
@@ -313,15 +348,59 @@ export default function ConfigStep({
       )}
 
       {tab === "cli" && (
-        <div className="space-y-4">
-          <p className="text-sm text-ctp-subtext0 leading-relaxed">
-            Run one of these in your terminal - this page updates as soon as the
-            config arrives.
-          </p>
-          <CommandLine command={`stellar publish ${slug} --draft ${code}`} />
-          <CommandLine
-            command={`stellar publish ./starship.toml --draft ${code}`}
-          />
+        <div className="space-y-5">
+          <ol className="space-y-4 text-sm text-ctp-subtext0 leading-relaxed">
+            <li className="flex gap-3">
+              <StepNumber>1</StepNumber>
+              <p>
+                Not logged in yet? Run{" "}
+                <code className="text-ctp-subtext1">stellar auth</code> first.
+              </p>
+            </li>
+            <li className="flex gap-3">
+              <StepNumber>2</StepNumber>
+              <div className="flex-1 min-w-0 space-y-2">
+                <p>
+                  Run this in your terminal - this page updates as soon as the
+                  config arrives.
+                </p>
+                <fieldset className="inline-flex gap-1 rounded-lg border-2 border-ctp-crust bg-ctp-mantle p-1">
+                  <legend className="sr-only">Publish from</legend>
+                  {COMMAND_KINDS.map((kind) => (
+                    <button
+                      key={kind.id}
+                      type="button"
+                      aria-pressed={commandKind === kind.id}
+                      onClick={() => chooseCommandKind(kind.id)}
+                      className={cn(
+                        "rounded-md px-3 py-1 text-xs transition cursor-pointer",
+                        commandKind === kind.id
+                          ? "bg-ctp-surface0 text-ctp-text font-medium"
+                          : "text-ctp-subtext0 hover:text-ctp-text",
+                      )}
+                    >
+                      {kind.label}
+                    </button>
+                  ))}
+                </fieldset>
+                <CommandLine
+                  command={
+                    commandKind === "folder"
+                      ? `stellar publish ${slug} --draft ${code}`
+                      : `stellar publish ./path/to/starship.toml --draft ${code}`
+                  }
+                />
+                {commandKind === "folder" && (
+                  <p className="text-xs">
+                    <code className="text-ctp-subtext1">{slug}</code> stands for
+                    your theme's folder name in{" "}
+                    <code className="text-ctp-subtext1">~/.config/stellar</code>
+                    .
+                  </p>
+                )}
+              </div>
+            </li>
+          </ol>
 
           {receivedFromCli ? (
             <div className="space-y-2">
@@ -351,9 +430,6 @@ export default function ConfigStep({
               Waiting for stellar-cli…
             </output>
           )}
-          <p className="text-xs text-ctp-subtext0">
-            Not logged in yet? <code>stellar auth</code> first.
-          </p>
         </div>
       )}
 
@@ -366,6 +442,17 @@ export default function ConfigStep({
         </pre>
       )}
     </div>
+  );
+}
+
+function StepNumber({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ctp-surface0 text-xs font-semibold text-ctp-text"
+    >
+      {children}
+    </span>
   );
 }
 

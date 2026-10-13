@@ -18,43 +18,81 @@ export function Toc() {
   const linkRefs = useRef<Map<string, HTMLAnchorElement>>(new Map());
 
   // Re-collect headings on every route change: this component lives in the
-  // persistent docs layout, so switching articles doesn't remount it.
+  // persistent docs layout, so switching articles doesn't remount it. The new
+  // article can also arrive after the route change - the docs have a
+  // loading.tsx, so a client navigation first shows the skeleton and streams
+  // the page in afterwards - so the article is watched and the headings are
+  // collected again whenever its content changes.
   // biome-ignore lint/correctness/useExhaustiveDependencies: pathname isn't read in the body - it's the intentional re-run trigger
   useEffect(() => {
-    linkRefs.current.clear();
-    setActiveId(null);
-    setIndicator({ top: 0, height: 0 });
-
-    const elements = Array.from(
-      document.querySelectorAll("article h2[id], article h3[id]"),
-    );
-
-    const items: Heading[] = elements.map((el) => ({
-      id: el.id,
-      text: el.textContent || "",
-      level: el.tagName === "H3" ? 3 : 2,
-    }));
-
-    setHeadings(items);
-
-    if (items.length === 0) {
+    const article = document.querySelector("article");
+    if (!article) {
       return;
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-          }
-        }
-      },
-      { rootMargin: "0px 0px -70% 0px" },
-    );
+    let items: Heading[] = [];
+    let collected = false;
+    let observer: IntersectionObserver | null = null;
+    let frame = 0;
 
-    for (const el of elements) {
-      observer.observe(el);
-    }
+    const collect = () => {
+      frame = 0;
+      const elements = Array.from(article.querySelectorAll("h2[id], h3[id]"));
+      const next: Heading[] = elements.map((el) => ({
+        id: el.id,
+        text: el.textContent || "",
+        level: el.tagName === "H3" ? 3 : 2,
+      }));
+
+      // Most mutations (a copy button, a tab switch) don't touch headings.
+      const unchanged =
+        next.length === items.length &&
+        next.every(
+          (heading, i) =>
+            heading.id === items[i].id && heading.text === items[i].text,
+        );
+      // The first collect for this route always applies, so the previous
+      // article's headings are cleared even if the new one has none.
+      if (collected && unchanged) {
+        return;
+      }
+
+      collected = true;
+      items = next;
+      linkRefs.current.clear();
+      setActiveId(null);
+      setIndicator({ top: 0, height: 0 });
+      setHeadings(next);
+
+      observer?.disconnect();
+      observer = null;
+      if (next.length === 0) {
+        return;
+      }
+
+      observer = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              setActiveId(entry.target.id);
+            }
+          }
+        },
+        { rootMargin: "0px 0px -70% 0px" },
+      );
+      for (const el of elements) {
+        observer.observe(el);
+      }
+    };
+
+    collect();
+
+    const mutations = new MutationObserver(() => {
+      if (!frame) {
+        frame = requestAnimationFrame(collect);
+      }
+    });
+    mutations.observe(article, { childList: true, subtree: true });
 
     const handleScroll = () => {
       const scrolledToBottom =
@@ -71,7 +109,9 @@ export function Toc() {
     window.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
-      observer.disconnect();
+      mutations.disconnect();
+      observer?.disconnect();
+      cancelAnimationFrame(frame);
       window.removeEventListener("scroll", handleScroll);
     };
   }, [pathname]);

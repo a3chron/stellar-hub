@@ -12,10 +12,13 @@ import { useEffect, useRef } from "react";
  *
  * `keys` identifies the rows in display order. Call `removing(key)` once the
  * delete succeeded; give the heading `headingRef` (with tabIndex={-1}) and
- * each row's button `buttonRef(key)`.
+ * each row's button `buttonRef(key)`. A list without a heading of its own
+ * can pass another fallback element type, like the button that expands it.
  */
-export function useFocusAfterRemoval(keys: string[]) {
-  const headingRef = useRef<HTMLHeadingElement>(null);
+export function useFocusAfterRemoval<
+  Fallback extends HTMLElement = HTMLHeadingElement,
+>(keys: string[]) {
+  const headingRef = useRef<Fallback>(null);
   const buttons = useRef(new Map<string, HTMLElement>());
   const pending = useRef<{ removed: string; next: string | null } | null>(null);
   const keyList = keys.join("\n");

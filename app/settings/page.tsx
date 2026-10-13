@@ -1,6 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import ScrollToHash from "@/components/scroll-to-hash";
 import CliSessions from "@/components/settings/cli-sessions";
 import DeleteAccount from "@/components/settings/delete-account";
 import Drafts from "@/components/settings/drafts";
@@ -90,6 +91,8 @@ export default async function SettingsPage() {
           </div>
         </div>
       </div>
+      {/* After the sections, so /settings#cli-logins and #drafts find them. */}
+      <ScrollToHash />
     </main>
   );
 }

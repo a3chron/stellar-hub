@@ -11,13 +11,9 @@ export default function UploadLoading() {
         <div className="max-w-2xl mx-auto">
           <Skeleton className="h-10 w-64 mb-2" />
           <Skeleton className="h-5 w-full max-w-sm mb-8" />
-          {/* The stepper's bars */}
-          <div className="flex gap-2 mb-12">
-            {Array.from({ length: 5 }).map((_, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: Skeleton items are static placeholders with no state or reordering
-              <Skeleton key={i} className="h-1.5 flex-1 rounded-full" />
-            ))}
-          </div>
+          {/* The stepper, as one bar: this also covers /upload/[code], which
+              may be a five-step theme or a three-step version draft. */}
+          <Skeleton className="h-1.5 w-full rounded-full mb-12" />
           <div className="space-y-6">
             {FIELD_HEIGHTS.map((height, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: Skeleton items are static placeholders with no state or reordering

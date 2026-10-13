@@ -113,7 +113,9 @@ export default function ScreenshotStep({
           }
         }}
         className={cn(
-          "relative flex h-64 w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border-2 border-dashed bg-ctp-mantle text-sm text-ctp-subtext0 transition",
+          // The file input inside is visually hidden, so the drop zone shows
+          // its keyboard focus instead.
+          "relative flex h-64 w-full cursor-pointer flex-col items-center justify-center gap-2 overflow-hidden rounded-lg border-2 border-dashed bg-ctp-mantle text-sm text-ctp-subtext0 transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ctp-lavender has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-ctp-base",
           dragging ? "border-ctp-lavender" : "border-ctp-surface0",
           !!error && !dragging && "border-ctp-red/60!",
         )}

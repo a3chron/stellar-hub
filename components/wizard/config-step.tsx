@@ -180,8 +180,12 @@ export default function ConfigStep({
   pasteLabel,
   placeholder,
 }: ConfigStepProps) {
+  const baseId = useId();
   const editorId = useId();
   const fileInputId = useId();
+  const tabRefs = useRef<Partial<Record<ConfigTab, HTMLButtonElement | null>>>(
+    {},
+  );
   // The terminal is the usual way in, so From CLI opens first - unless the
   // config was last set right here, which is what Paste shows.
   const [tab, setTab] = useState<ConfigTab>(
@@ -258,9 +262,45 @@ export default function ConfigStep({
     setUploadNote(`Loaded ${file.name} - review it below.`);
     setReplacedEdits(false);
     setTab("paste");
+    // The file input that had focus is in the panel that just got hidden.
+    tabRefs.current.paste?.focus();
   }
 
   const receivedFromCli = configSource === "cli" && configUpdatedAt !== null;
+
+  const tabId = (id: ConfigTab) => `${baseId}-tab-${id}`;
+  const panelId = (id: ConfigTab) => `${baseId}-panel-${id}`;
+
+  // WAI-ARIA tabs, as in components/docs/os-tabs.tsx: Left/Right and
+  // Home/End move focus and selection together; only the selected tab is in
+  // the Tab order.
+  function handleTabKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    const ids = TABS.map((entry) => entry.id);
+    const currentIndex = ids.indexOf(tab);
+    let nextIndex: number;
+
+    switch (event.key) {
+      case "ArrowRight":
+        nextIndex = (currentIndex + 1) % ids.length;
+        break;
+      case "ArrowLeft":
+        nextIndex = (currentIndex - 1 + ids.length) % ids.length;
+        break;
+      case "Home":
+        nextIndex = 0;
+        break;
+      case "End":
+        nextIndex = ids.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    event.preventDefault();
+    const next = ids[nextIndex];
+    setTab(next);
+    tabRefs.current[next]?.focus();
+  }
 
   return (
     <div className="space-y-4">
@@ -272,18 +312,27 @@ export default function ConfigStep({
         {TABS.map(({ id, icon: Icon }) => (
           <button
             key={id}
+            ref={(element) => {
+              tabRefs.current[id] = element;
+            }}
             type="button"
             role="tab"
+            id={tabId(id)}
             aria-selected={tab === id}
+            aria-controls={panelId(id)}
+            tabIndex={tab === id ? 0 : -1}
             onClick={() => setTab(id)}
+            onKeyDown={handleTabKeyDown}
             className={cn(
-              "flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm transition cursor-pointer",
+              "flex flex-1 min-w-0 items-center justify-center gap-2 rounded-md px-2 sm:px-3 py-2 text-sm transition cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ctp-lavender",
               tab === id
                 ? "bg-ctp-surface0 text-ctp-text font-medium"
                 : "text-ctp-subtext0 hover:text-ctp-text",
             )}
           >
-            <Icon size={16} className="shrink-0" />
+            {/* Icons give way to the text on a phone, where three labels
+                like "Upload .toml" barely fit. */}
+            <Icon size={16} className="hidden sm:block shrink-0" />
             <span className="truncate">{tabLabels[id]}</span>
           </button>
         ))}
@@ -297,7 +346,12 @@ export default function ConfigStep({
         </output>
       )}
 
-      {tab === "paste" && (
+      <div
+        role="tabpanel"
+        id={panelId("paste")}
+        aria-labelledby={tabId("paste")}
+        hidden={tab !== "paste"}
+      >
         <div>
           <label htmlFor={editorId} className="sr-only">
             Starship config (TOML)
@@ -317,24 +371,31 @@ export default function ConfigStep({
             {uploadNote ?? "Your complete starship.toml."}
           </p>
         </div>
-      )}
+      </div>
 
-      {tab === "upload" && (
+      <div
+        role="tabpanel"
+        id={panelId("upload")}
+        aria-labelledby={tabId("upload")}
+        hidden={tab !== "upload"}
+      >
         <div className="rounded-lg border-2 border-dashed border-ctp-surface0 bg-ctp-mantle p-8 text-center">
           <FileUp className="mx-auto mb-3 h-8 w-8 text-ctp-overlay1" />
+          {/* The input sits inside its label so the label can show keyboard
+              focus (the input itself is visually hidden). */}
           <label
             htmlFor={fileInputId}
-            className="inline-block cursor-pointer rounded-md border-2 border-ctp-surface1 bg-ctp-surface0 px-4 py-2 text-sm text-ctp-text transition hover:bg-ctp-surface1"
+            className="inline-block cursor-pointer rounded-md border-2 border-ctp-surface1 bg-ctp-surface0 px-4 py-2 text-sm text-ctp-text transition hover:bg-ctp-surface1 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ctp-lavender has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-ctp-base"
           >
             Choose a .toml file
+            <input
+              id={fileInputId}
+              type="file"
+              accept=".toml,text/plain,application/toml"
+              onChange={handleFile}
+              className="sr-only"
+            />
           </label>
-          <input
-            id={fileInputId}
-            type="file"
-            accept=".toml,text/plain,application/toml"
-            onChange={handleFile}
-            className="sr-only"
-          />
           <p className="mt-3 text-xs text-ctp-subtext0">
             Usually <code>~/.config/starship.toml</code>. It opens in the{" "}
             {pasteLabel} tab so you can check it first.
@@ -345,9 +406,14 @@ export default function ConfigStep({
             </p>
           )}
         </div>
-      )}
+      </div>
 
-      {tab === "cli" && (
+      <div
+        role="tabpanel"
+        id={panelId("cli")}
+        aria-labelledby={tabId("cli")}
+        hidden={tab !== "cli"}
+      >
         <div className="space-y-5">
           <ol className="space-y-4 text-sm text-ctp-subtext0 leading-relaxed">
             <li className="flex gap-3">
@@ -431,7 +497,7 @@ export default function ConfigStep({
             </output>
           )}
         </div>
-      )}
+      </div>
 
       {error && (
         <pre

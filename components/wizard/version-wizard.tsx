@@ -25,6 +25,8 @@ import {
   Muted,
   PublishConsent,
   ReviewRow,
+  StepHeading,
+  useStepFocus,
   WizardNav,
 } from "./parts";
 import Stepper, {
@@ -122,6 +124,7 @@ export default function VersionWizard({
 }) {
   const router = useRouter();
   const notesId = useId();
+  const minStarshipId = useId();
   const dependenciesId = useId();
 
   const theme = initialDraft.theme;
@@ -153,6 +156,10 @@ export default function VersionWizard({
   const [step, setStep] = useState<number>(STEP.config);
   const [furthest, setFurthest] = useState(STEPS.length - 1);
   const [busy, setBusy] = useState(false);
+  const { headingRef, requestFocus } = useStepFocus();
+  // The format error shows once the field is left, then follows every
+  // keystroke - same as in the theme wizard.
+  const [minStarshipTouched, setMinStarshipTouched] = useState(false);
   const [error, setError] = useState<ApiErrorBody | null>(null);
   // What the field a failed save blamed held at the time, so editing it
   // clears that error (and the red step) right away instead of on the next
@@ -183,6 +190,7 @@ export default function VersionWizard({
   const minStarshipInvalid =
     fields.minStarshipVersion.trim().length > 0 &&
     !MIN_STARSHIP_VERSION_PATTERN.test(fields.minStarshipVersion.trim());
+  const minStarshipShown = minStarshipTouched && minStarshipInvalid;
 
   // A version stellar-cli set can be older than the latest one; the bumps
   // never are. Shown inline, and the publish would be refused anyway.
@@ -220,7 +228,10 @@ export default function VersionWizard({
     }
     if (failure.code === "invalid_config") {
       setConfigError(failure.error);
-      setStep(STEP.config);
+      if (step !== STEP.config) {
+        requestFocus();
+        setStep(STEP.config);
+      }
       return;
     }
     setError(failure);
@@ -263,6 +274,7 @@ export default function VersionWizard({
     }
     if (index !== step) {
       setLeftSteps((previous) => new Set(previous).add(step));
+      requestFocus();
     }
     setStep(index);
     setFurthest((previous) => Math.max(previous, index));
@@ -325,8 +337,14 @@ export default function VersionWizard({
     event.preventDefault();
     setError(null);
 
-    if (step === STEP.version && (minStarshipInvalid || versionNotNewer)) {
-      return;
+    if (step === STEP.version) {
+      if (minStarshipInvalid) {
+        setMinStarshipTouched(true);
+        return;
+      }
+      if (versionNotNewer) {
+        return;
+      }
     }
     if (step === STEP.review) {
       publish();
@@ -360,10 +378,10 @@ export default function VersionWizard({
   });
   const versionStatus = resolveStepStatus({
     invalid:
-      minStarshipInvalid ||
+      minStarshipShown ||
       versionNotNewer ||
       VERSION_STEP_FIELDS.includes(failedField ?? ""),
-    complete: fields.version !== "",
+    complete: fields.version !== "" && !minStarshipInvalid,
     started:
       fields.version !== "" ||
       fields.versionNotes.trim() !== "" ||
@@ -389,7 +407,7 @@ export default function VersionWizard({
 
   let nextDisabled = false;
   if (step === STEP.version) {
-    nextDisabled = minStarshipInvalid || versionNotNewer;
+    nextDisabled = minStarshipShown || versionNotNewer;
   } else if (step === STEP.review) {
     nextDisabled = !canPublish;
   }
@@ -433,6 +451,8 @@ export default function VersionWizard({
         <GoneBanner onStartOver={startOver} busy={busy} error={error} />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
+          <StepHeading key={step} step={STEPS[step]} headingRef={headingRef} />
+
           {step === STEP.config && (
             <>
               <p className="text-sm text-ctp-subtext0 leading-relaxed">
@@ -539,22 +559,30 @@ JetBrainsMono Nerd Font`}
 
               <div>
                 <Input
+                  id={minStarshipId}
                   type="text"
                   label="Minimum Starship Version (optional)"
                   value={fields.minStarshipVersion}
                   onChange={(e) =>
                     setField("minStarshipVersion", e.currentTarget.value)
                   }
+                  onBlur={() => setMinStarshipTouched(true)}
                   placeholder="1.24.0"
-                  aria-invalid={minStarshipInvalid}
+                  aria-invalid={minStarshipShown}
+                  aria-describedby={
+                    minStarshipShown ? `${minStarshipId}-error` : undefined
+                  }
                   className={
-                    minStarshipInvalid
+                    minStarshipShown
                       ? "border-ctp-red! focus:ring-ctp-red/30!"
                       : undefined
                   }
                 />
-                {minStarshipInvalid && (
-                  <p className="text-xs text-ctp-red mt-1">
+                {minStarshipShown && (
+                  <p
+                    id={`${minStarshipId}-error`}
+                    className="text-xs text-ctp-red mt-1"
+                  >
                     Expected format: X.Y.Z (e.g. 1.24.0)
                   </p>
                 )}

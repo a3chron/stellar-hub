@@ -30,6 +30,8 @@ import {
   Muted,
   PublishConsent,
   ReviewRow,
+  StepHeading,
+  useStepFocus,
   WizardNav,
 } from "./parts";
 import ScreenshotStep from "./screenshot-step";
@@ -252,6 +254,7 @@ export default function ThemeWizard({
   const [step, setStep] = useState(() => initialStep(initialDraft));
   const [furthest, setFurthest] = useState(initialDraft ? STEPS.length - 1 : 0);
   const [busy, setBusy] = useState(false);
+  const { headingRef, requestFocus } = useStepFocus();
   const [error, setError] = useState<ApiErrorBody | null>(null);
   // What the field a failed save blamed held at the time, so editing it
   // clears that error (and the red step) right away instead of on the next
@@ -411,7 +414,10 @@ export default function ThemeWizard({
     }
     if (failure.code === "invalid_config") {
       setConfigError(failure.error);
-      setStep(STEP.config);
+      if (step !== STEP.config) {
+        requestFocus();
+        setStep(STEP.config);
+      }
       return;
     }
     setError(failure);
@@ -468,6 +474,7 @@ export default function ThemeWizard({
     }
     if (index !== step) {
       setLeftSteps((previous) => new Set(previous).add(step));
+      requestFocus();
     }
     if (step === STEP.screenshot && index !== step) {
       setScreenshotError(null);
@@ -523,6 +530,7 @@ export default function ThemeWizard({
     setGone(false);
     window.history.replaceState(null, "", `/upload/${result.data.code}`);
     // The old screenshot went with the old draft.
+    requestFocus();
     setStep(STEP.screenshot);
   }
 
@@ -604,6 +612,8 @@ export default function ThemeWizard({
         <GoneBanner onStartOver={startOver} busy={busy} error={error} />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
+          <StepHeading key={step} step={STEPS[step]} headingRef={headingRef} />
+
           {step === STEP.basics && (
             <>
               <Input
@@ -682,15 +692,21 @@ JetBrainsMono Nerd Font`}
                   }
                   onBlur={() => setMinStarshipTouched(true)}
                   placeholder="1.24.0"
-                  aria-invalid={minStarshipTouched && minStarshipInvalid}
+                  aria-invalid={minStarshipShown}
+                  aria-describedby={
+                    minStarshipShown ? `${minStarshipId}-error` : undefined
+                  }
                   className={
-                    minStarshipTouched && minStarshipInvalid
+                    minStarshipShown
                       ? "border-ctp-red! focus:ring-ctp-red/30!"
                       : undefined
                   }
                 />
-                {minStarshipTouched && minStarshipInvalid && (
-                  <p className="text-xs text-ctp-red mt-1">
+                {minStarshipShown && (
+                  <p
+                    id={`${minStarshipId}-error`}
+                    className="text-xs text-ctp-red mt-1"
+                  >
                     Expected format: X.Y.Z (e.g. 1.24.0)
                   </p>
                 )}

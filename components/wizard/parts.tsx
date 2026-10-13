@@ -2,10 +2,12 @@
 
 import { ArrowLeft, ArrowRight, Loader2, RotateCcw } from "lucide-react";
 import Link from "next/link";
+import { useCallback, useRef } from "react";
 import LegalLink from "@/components/legal-link";
 import { LocalDate } from "@/components/local-time";
 import type { ApiErrorBody, Draft } from "@/lib/draft-shared";
 import { existingDraftCode } from "@/lib/drafts-client";
+import type { WizardStep } from "./stepper";
 
 // Building blocks shared by the theme and version wizards.
 
@@ -264,5 +266,55 @@ export function PublishConsent() {
       - in particular, no harmful{" "}
       <code className="text-ctp-subtext1">[custom]</code> commands.
     </p>
+  );
+}
+
+/**
+ * Moves focus to the step heading after a step change the user caused (Next,
+ * Back, the stepper), so a screen reader announces the new step - but not on
+ * the first load. Call `requestFocus()` right before changing the step.
+ */
+export function useStepFocus() {
+  const pending = useRef(false);
+
+  // A callback ref on a heading keyed by step runs exactly when the new
+  // step's heading mounts.
+  const headingRef = useCallback((heading: HTMLHeadingElement | null) => {
+    if (heading && pending.current) {
+      pending.current = false;
+      heading.focus();
+    }
+  }, []);
+
+  function requestFocus() {
+    pending.current = true;
+  }
+
+  return { headingRef, requestFocus };
+}
+
+/** The visible name of the current step; render it with `key={step}`. */
+export function StepHeading({
+  step,
+  headingRef,
+}: {
+  step: WizardStep;
+  headingRef: (heading: HTMLHeadingElement | null) => void;
+}) {
+  return (
+    <h2
+      ref={headingRef}
+      // Focus target only (see useStepFocus): the step change itself is what
+      // shows where you are, so no outline.
+      tabIndex={-1}
+      className="text-xl font-semibold text-ctp-text focus:outline-none"
+    >
+      {step.label}
+      {step.optional && (
+        <span className="ml-2 text-sm font-normal text-ctp-overlay1">
+          (optional)
+        </span>
+      )}
+    </h2>
   );
 }

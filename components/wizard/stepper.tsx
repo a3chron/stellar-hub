@@ -127,7 +127,8 @@ interface StepperProps {
  * one, lavender once a step is complete (faded for an optional one), red
  * when it needs attention, neutral otherwise (see barTone). The current
  * step also gets a faded ring in its bar's colour and a bold label, and each
- * status is spelled out for screen readers. Steps already reached are
+ * status is spelled out for screen readers. On a phone, where five labels
+ * don't fit, one line below the bars says "Step 4 of 5 · Details" instead. Steps already reached are
  * buttons, so you can jump back (or forward again) without paging through
  * every step in between.
  */
@@ -138,6 +139,8 @@ export default function Stepper({
   status,
   onSelect,
 }: StepperProps) {
+  const currentStep = steps[current];
+
   return (
     <nav aria-label="Progress" className="mb-8">
       <ol className="flex gap-2">
@@ -179,11 +182,10 @@ export default function Stepper({
                 />
                 <span
                   className={cn(
-                    "items-center gap-1.5 text-xs",
+                    // On a phone the line below the bars says where you are;
+                    // the per-step labels stay for screen readers.
+                    "sr-only sm:not-sr-only sm:flex items-center gap-1.5 text-xs",
                     labelClass,
-                    // On a phone only the current step is labelled visibly;
-                    // the others keep theirs for screen readers.
-                    isCurrent ? "flex" : "sr-only sm:not-sr-only sm:flex",
                   )}
                 >
                   <span className="truncate">{step.label}</span>
@@ -201,6 +203,19 @@ export default function Stepper({
           );
         })}
       </ol>
+      {currentStep && (
+        // Already said by the labels above for screen readers.
+        <p
+          aria-hidden="true"
+          className="mt-2 text-xs text-ctp-subtext0 sm:hidden"
+        >
+          Step {current + 1} of {steps.length} ·{" "}
+          <span className="font-semibold text-ctp-text">
+            {currentStep.label}
+          </span>
+          {currentStep.optional && " (optional)"}
+        </p>
+      )}
     </nav>
   );
 }

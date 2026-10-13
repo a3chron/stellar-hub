@@ -122,9 +122,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      if (avatarFile.size > 5 * 1024 * 1024) {
+      // 4 MB, like draft screenshots: Vercel refuses request bodies over
+      // ~4.5 MB before this handler ever runs.
+      if (avatarFile.size > 4 * 1024 * 1024) {
         return NextResponse.json(
-          { error: "Avatar must be less than 5MB" },
+          { error: "Avatar must be 4 MB or smaller" },
           { status: 400 },
         );
       }

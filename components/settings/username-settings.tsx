@@ -1,6 +1,6 @@
 "use client";
 
-import { AtSign, Check, Loader2, X } from "lucide-react";
+import { AtSign, Check, Loader2, Lock, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 import type { User as UserType } from "@/lib/db/types";
@@ -10,6 +10,8 @@ import {
   usernameStateClass,
   useUsernameAvailability,
 } from "@/lib/use-username-availability";
+import { cn } from "@/lib/utils";
+import SettingsSection, { buttonClass } from "./settings-section";
 
 /**
  * The handle is the one profile field that is part of an address rather than a
@@ -78,113 +80,149 @@ export default function UsernameSettings({
     }
   }
 
-  return (
-    <section className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8">
-      <h2 className="text-2xl font-semibold text-ctp-text mb-2">Username</h2>
-      <p className="text-sm text-ctp-subtext0 mb-6 leading-relaxed">
-        Your themes are published at{" "}
-        <span className="text-ctp-subtext1">
-          stellar.a3chron.dev/{user.username}/&lt;theme&gt;
-        </span>{" "}
-        and applied with{" "}
-        <span className="text-ctp-subtext1">
-          stellar apply {user.username}/&lt;theme&gt;
-        </span>
-        .
-      </p>
+  const description = (
+    <>
+      Your themes are published at{" "}
+      <span className="break-words text-ctp-subtext1">
+        stellar.a3chron.dev/{user.username}/&lt;theme&gt;
+      </span>{" "}
+      and applied with{" "}
+      <code className="break-words text-ctp-subtext1">
+        stellar apply {user.username}/&lt;theme&gt;
+      </code>
+      .
+    </>
+  );
 
-      {hasPublishedThemes ? (
-        <div>
-          <div className="flex items-center gap-3 px-4 py-3 bg-ctp-base border border-ctp-surface0 rounded text-ctp-subtext1">
-            <AtSign className="w-4 h-4 text-ctp-overlay1 shrink-0" />
-            {user.username}
-          </div>
-          <p className="text-sm text-ctp-subtext0 mt-2 leading-relaxed">
-            Your username is locked because you've published a theme. Changing
-            it now would break every saved link to your themes and every
-            <code className="text-ctp-subtext1"> stellar apply </code>
-            command people already have. Get in touch if you need it changed.
-          </p>
+  if (hasPublishedThemes) {
+    return (
+      <SettingsSection id="username" title="Username" description={description}>
+        <label
+          htmlFor={inputId}
+          className="mb-1.5 block text-sm font-medium text-ctp-text"
+        >
+          Username
+        </label>
+        <div className="relative max-w-md">
+          <AtSign
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ctp-overlay1"
+          />
+          <input
+            id={inputId}
+            value={user.username}
+            readOnly
+            aria-describedby={`${inputId}-hint`}
+            className="w-full cursor-default rounded-lg border-2 border-ctp-surface0 bg-ctp-crust/40 py-2 pr-10 pl-9 text-ctp-subtext1 focus:border-ctp-overlay1 focus:outline-none"
+          />
+          <Lock
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-ctp-overlay1"
+          />
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor={inputId}
-              className="block text-sm font-medium text-ctp-text mb-2"
-            >
-              Username
-            </label>
-            <div className="relative">
-              <input
-                id={inputId}
-                aria-invalid={problem !== null}
-                aria-describedby={`${inputId}-hint`}
-                value={username}
-                onChange={(event) => {
-                  setUsername(event.target.value);
-                  setSaved(false);
-                  setError(null);
-                }}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setInputFocused(false)}
-                maxLength={39}
-                spellCheck={false}
-                autoComplete="username"
-                className={`w-full px-4 py-2 pr-10 bg-ctp-base border rounded text-ctp-text placeholder-ctp-overlay0 transition-colors focus:outline-none focus:ring-2 ${inputStateClass}`}
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2">
-                {availability.state === "checking" && (
-                  <Loader2 className="w-4 h-4 animate-spin text-ctp-overlay0" />
-                )}
-                {availability.state === "available" && (
-                  <Check className="w-4 h-4 text-ctp-green" />
-                )}
-                {problem && <X className="w-4 h-4 text-ctp-red" />}
-              </span>
-              <span className="sr-only" aria-live="polite">
-                {usernameAnnouncement(availability)}
-              </span>
-            </div>
-            <p
-              id={`${inputId}-hint`}
-              className="text-sm text-ctp-subtext0 mt-2 leading-relaxed"
-            >
-              {problem ? (
-                <span className="text-ctp-red">{problem}</span>
-              ) : (
-                <>
-                  Letters, numbers, hyphens and underscores. You can change this
-                  freely until you publish your first theme, after which it is
-                  locked.
-                </>
-              )}
-            </p>
-          </div>
+        <p
+          id={`${inputId}-hint`}
+          className="mt-2 text-sm leading-relaxed text-ctp-subtext0"
+        >
+          Locked because you've published a theme. Changing it now would break
+          every saved link to your themes and every{" "}
+          <code className="text-ctp-subtext1">stellar apply</code> command
+          people already have. Get in touch if you need it changed.
+        </p>
+      </SettingsSection>
+    );
+  }
 
-          <div className="flex items-center justify-end gap-4">
-            {error && (
-              <p role="alert" className="text-sm text-ctp-red">
-                {error}
-              </p>
-            )}
-            {saved && !error && (
-              <output className="text-sm text-ctp-green">Username saved</output>
-            )}
-            <button
-              type="submit"
-              disabled={loading || isUnchanged || problem !== null}
-              className={`px-6 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 transition disabled:opacity-50 ${
-                unsavedNudge
-                  ? "border-ctp-peach/70 ring-2 ring-ctp-peach/30"
-                  : "border-ctp-surface1"
-              }`}
-            >
-              {loading ? "Saving…" : "Change username"}
-            </button>
+  return (
+    <SettingsSection id="username" title="Username" description={description}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="max-w-md">
+          <label
+            htmlFor={inputId}
+            className="mb-1.5 block text-sm font-medium text-ctp-text"
+          >
+            Username
+          </label>
+          <div className="relative">
+            <AtSign
+              aria-hidden="true"
+              className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ctp-overlay1"
+            />
+            <input
+              id={inputId}
+              aria-invalid={problem !== null}
+              aria-describedby={`${inputId}-hint`}
+              value={username}
+              onChange={(event) => {
+                setUsername(event.target.value);
+                setSaved(false);
+                setError(null);
+              }}
+              onFocus={() => setInputFocused(true)}
+              onBlur={() => setInputFocused(false)}
+              maxLength={39}
+              spellCheck={false}
+              autoComplete="username"
+              className={`w-full rounded-lg border-2 bg-ctp-base py-2 pr-10 pl-9 text-ctp-text placeholder-ctp-overlay0 transition-colors focus:outline-none focus:ring-2 ${inputStateClass}`}
+            />
+            <span className="absolute top-1/2 right-3 -translate-y-1/2">
+              {availability.state === "checking" && (
+                <Loader2 className="size-4 animate-spin text-ctp-overlay0" />
+              )}
+              {availability.state === "available" && (
+                <Check className="size-4 text-ctp-green" />
+              )}
+              {problem && <X className="size-4 text-ctp-red" />}
+            </span>
+            <span className="sr-only" aria-live="polite">
+              {usernameAnnouncement(availability)}
+            </span>
           </div>
-        </form>
-      )}
-    </section>
+        </div>
+        <p
+          id={`${inputId}-hint`}
+          className="text-sm leading-relaxed text-ctp-subtext0"
+        >
+          {problem ? (
+            <span className="text-ctp-red">{problem}</span>
+          ) : (
+            <>
+              Letters, numbers, hyphens and underscores. You can change this
+              freely until you publish your first theme, after which it is
+              locked.
+            </>
+          )}
+        </p>
+
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 border-t border-ctp-surface0 pt-4">
+          {error && (
+            <p role="alert" className="text-sm text-ctp-red">
+              {error}
+            </p>
+          )}
+          {saved && !error && (
+            // Green text is too faint on Latte; the icon carries the colour.
+            <output className="flex items-center gap-1.5 text-sm text-ctp-text">
+              <Check aria-hidden="true" className="size-4 text-ctp-green" />
+              Username saved
+            </output>
+          )}
+          <button
+            type="submit"
+            disabled={loading || isUnchanged || problem !== null}
+            className={cn(
+              buttonClass("primary"),
+              unsavedNudge &&
+                "ring-2 ring-ctp-peach/60 ring-offset-2 ring-offset-ctp-mantle",
+            )}
+          >
+            {loading && (
+              <Loader2 aria-hidden="true" className="size-4 animate-spin" />
+            )}
+            {loading ? "Saving…" : "Change username"}
+          </button>
+        </div>
+      </form>
+    </SettingsSection>
   );
 }

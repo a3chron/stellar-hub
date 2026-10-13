@@ -110,7 +110,9 @@ export default function ConfirmDialog({
           </p>
         )}
 
-        <div className="flex gap-3 mt-6">
+        {/* Side by side once both labels fit; stacked on a narrow phone,
+            where "Delete version" would wrap inside its button. */}
+        <div className="mt-6 flex flex-col gap-3 min-[420px]:flex-row">
           <button
             ref={cancelRef}
             type="button"

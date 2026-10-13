@@ -1,39 +1,52 @@
 "use client";
 
-import { Download, Loader2, Pencil, Trash2, Upload } from "lucide-react";
+import {
+  CalendarClock,
+  Download,
+  Layers,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ConfirmDialog from "@/components/confirm-dialog";
 import { LocalDate } from "@/components/local-time";
-import type { ColorScheme } from "@/lib/db/types";
+import type { ColorScheme, Theme as ThemeRow } from "@/lib/db/types";
 import type { Draft } from "@/lib/draft-shared";
 import { apiFetch, existingDraftCode, jsonRequest } from "@/lib/drafts-client";
 import type { ThemeGroup } from "@/lib/theme-groups";
 import { formatDownloads } from "@/lib/utils";
 import { formatVersion, pickLatestVersion } from "@/lib/versions";
 import EditMetadataForm from "../edit-metadata-form";
+import SettingsSection, {
+  buttonClass,
+  ICON_DELETE_BUTTON,
+} from "./settings-section";
+import ThemeVersions, { type ListedVersion } from "./theme-versions";
 import { useFocusAfterRemoval } from "./use-focus-after-removal";
 
-interface Theme {
-  id: string;
-  slug: string;
-  name: string;
-  description: string | null;
-  screenshotUrl: string;
-  downloads: number;
-  colorSchemeId: string | null;
-  colorMode: "dark" | "light" | "both";
-  group: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-  versions: Array<{
-    version: string;
-    configContent: string;
-    dependencies: string[] | null;
-    minStarshipVersion: string | null;
-  }>;
+type Theme = Pick<
+  ThemeRow,
+  | "id"
+  | "slug"
+  | "name"
+  | "description"
+  | "screenshotUrl"
+  | "downloads"
+  | "colorSchemeId"
+  | "colorMode"
+  | "group"
+  | "updatedAt"
+> & { versions: ListedVersion[] };
+
+/** "1 version", "4 versions". */
+function versionCount(count: number): string {
+  return count === 1 ? "1 version" : `${count} versions`;
 }
 
 /** "with its only version" / "with all 4 of its versions". */
@@ -120,29 +133,17 @@ export default function ThemeManagement({
 
   if (themes.length === 0) {
     return (
-      <section
-        id="themes"
-        className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
-      >
-        <h2
-          ref={headingRef}
-          tabIndex={-1}
-          className="text-2xl font-semibold text-ctp-text mb-6 focus:outline-none"
-        >
-          Your Themes
-        </h2>
-        <div className="text-center py-12">
-          <p className="text-ctp-subtext0 mb-4">
+      <SettingsSection id="themes" title="Themes" headingRef={headingRef}>
+        <div className="rounded-lg border border-dashed border-ctp-surface1 px-4 py-10 text-center">
+          <p className="mb-4 text-ctp-subtext0">
             You haven't uploaded any themes yet
           </p>
-          <a
-            href="/upload"
-            className="inline-block px-6 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded border border-ctp-surface1 transition"
-          >
-            Upload Your First Theme
-          </a>
+          <Link href="/upload" className={buttonClass("secondary")}>
+            <Plus aria-hidden="true" className="size-4" />
+            Upload your first theme
+          </Link>
         </div>
-      </section>
+      </SettingsSection>
     );
   }
 
@@ -150,30 +151,31 @@ export default function ThemeManagement({
 
   return (
     <>
-      <section
+      <SettingsSection
         id="themes"
-        className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
+        title="Themes"
+        count={themes.length}
+        headingRef={headingRef}
+        description="Edit how a theme is shown, publish a new version, or clean up old ones."
+        action={
+          <Link href="/upload" className={buttonClass("secondary", "sm")}>
+            <Plus aria-hidden="true" className="size-4" />
+            Upload theme
+          </Link>
+        }
       >
-        <h2
-          ref={headingRef}
-          tabIndex={-1}
-          className="text-2xl font-semibold text-ctp-text mb-6 focus:outline-none"
-        >
-          Your Themes ({themes.length})
-        </h2>
-
-        <div className="space-y-4">
+        <ul className="space-y-4">
           {themes.map((theme) => {
             const latestVersion = pickLatestVersion(theme.versions);
 
             return (
-              <div
+              <li
                 key={theme.id}
-                className="bg-ctp-base rounded-lg border border-ctp-surface0 p-4 hover:border-ctp-surface1 transition"
+                className="rounded-xl border border-ctp-surface0 bg-ctp-base p-3 transition hover:border-ctp-surface1 sm:p-4"
               >
-                <div className="flex items-start gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:gap-5">
                   {/* Screenshot */}
-                  <div className="relative w-32 h-20 rounded overflow-hidden shrink-0 bg-ctp-surface0">
+                  <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-lg border border-ctp-surface0 bg-ctp-surface0 sm:aspect-[16/10] sm:w-44 sm:self-start">
                     <Image
                       src={theme.screenshotUrl}
                       alt={theme.name}
@@ -189,84 +191,91 @@ export default function ThemeManagement({
                   </div>
 
                   {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
                         <Link
                           href={`/${author}/${theme.slug}`}
-                          className="text-lg font-semibold text-ctp-text hover:underline"
+                          className="break-words text-lg font-semibold text-ctp-text hover:underline"
                         >
                           {theme.name}
                         </Link>
-                        <p className="text-sm text-ctp-subtext0 font-mono">
+                        <p className="break-words font-mono text-sm text-ctp-subtext0">
                           {theme.slug} ·{" "}
                           {formatVersion(latestVersion?.version ?? "1.0")}
                         </p>
-                        {theme.description && (
-                          <p className="text-sm text-ctp-subtext0 mt-1 line-clamp-2">
-                            {theme.description}
-                          </p>
-                        )}
                       </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => setEditingMetadata(theme.slug)}
-                          type="button"
-                          className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer"
-                          title="Edit metadata"
-                          aria-label={`Edit metadata of ${theme.name}`}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => startVersion(theme.slug)}
-                          type="button"
-                          disabled={startingVersion !== null}
-                          className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                          title="New version"
-                          aria-label={`New version of ${theme.name}`}
-                        >
-                          {startingVersion === theme.slug ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Upload className="w-4 h-4" />
-                          )}
-                        </button>
-                        <button
-                          ref={buttonRef(theme.slug)}
-                          onClick={() => setDeleting(theme)}
-                          type="button"
-                          className="p-2 text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded transition cursor-pointer"
-                          title="Delete theme"
-                          aria-label={`Delete ${theme.name}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {/* Apart from the everyday actions below, so it's not
+                          what a hurried click lands on. */}
+                      <button
+                        ref={buttonRef(theme.slug)}
+                        onClick={() => setDeleting(theme)}
+                        type="button"
+                        className={`${ICON_DELETE_BUTTON} -mt-1 -mr-1 size-9`}
+                        title="Delete theme"
+                        aria-label={`Delete ${theme.name}`}
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
                     </div>
 
-                    {/* Stats */}
-                    <div className="flex items-center gap-4 mt-3 text-sm text-ctp-subtext0">
-                      <div className="flex items-center gap-1">
-                        <Download className="w-4 h-4" />
-                        <span
-                          title={`${theme.downloads.toLocaleString("en-US")} downloads`}
-                        >
-                          {formatDownloads(theme.downloads)}
+                    {theme.description && (
+                      <p className="mt-2 line-clamp-2 text-sm text-ctp-subtext0">
+                        {theme.description}
+                      </p>
+                    )}
+
+                    {/* Stats - an icon each instead of "·" separators, which
+                        would be left dangling at the end of a wrapped line on
+                        a phone. */}
+                    <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ctp-subtext0">
+                      <span
+                        className="flex items-center gap-1.5"
+                        title={`${theme.downloads.toLocaleString("en-US")} downloads`}
+                      >
+                        <Download aria-hidden="true" className="size-4" />
+                        {formatDownloads(theme.downloads)}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Layers aria-hidden="true" className="size-4" />
+                        {versionCount(theme.versions.length)}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <CalendarClock aria-hidden="true" className="size-4" />
+                        <span>
+                          Updated <LocalDate date={theme.updatedAt} />
                         </span>
-                      </div>
-                      <span>·</span>
-                      <span>
-                        {theme.versions.length === 1
-                          ? "1 version"
-                          : `${theme.versions.length} versions`}
                       </span>
-                      <span>·</span>
-                      <span>
-                        Updated <LocalDate date={theme.updatedAt} />
-                      </span>
+                    </p>
+
+                    {/* Actions */}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => setEditingMetadata(theme.slug)}
+                        type="button"
+                        className={`${buttonClass("secondary", "sm")} flex-1 whitespace-nowrap sm:flex-none`}
+                        aria-label={`Edit details of ${theme.name}`}
+                      >
+                        <Pencil aria-hidden="true" className="size-4" />
+                        Edit details
+                      </button>
+                      <button
+                        onClick={() => startVersion(theme.slug)}
+                        type="button"
+                        disabled={startingVersion !== null}
+                        className={`${buttonClass("secondary", "sm")} flex-1 whitespace-nowrap sm:flex-none`}
+                        aria-label={`New version of ${theme.name}`}
+                      >
+                        {startingVersion === theme.slug ? (
+                          <Loader2
+                            aria-hidden="true"
+                            className="size-4 animate-spin"
+                          />
+                        ) : (
+                          <Upload aria-hidden="true" className="size-4" />
+                        )}
+                        New version
+                      </button>
                     </div>
 
                     {versionError?.slug === theme.slug && (
@@ -285,11 +294,13 @@ export default function ThemeManagement({
                     )}
                   </div>
                 </div>
-              </div>
+
+                <ThemeVersions author={author} theme={theme} />
+              </li>
             );
           })}
-        </div>
-      </section>
+        </ul>
+      </SettingsSection>
 
       {deleting && (
         <ConfirmDialog
@@ -301,11 +312,11 @@ export default function ThemeManagement({
         >
           <p>
             <span className="text-ctp-text font-semibold">{deleting.name}</span>{" "}
-            <span className="font-mono">
+            <span className="break-words font-mono">
               ({author}/{deleting.slug})
             </span>{" "}
             is deleted, {versionsPhrase(deleting.versions.length)}. Its page and{" "}
-            <code className="text-ctp-subtext1">
+            <code className="break-words text-ctp-subtext1">
               stellar apply {author}/{deleting.slug}
             </code>{" "}
             stop working for everyone - people who already downloaded it keep

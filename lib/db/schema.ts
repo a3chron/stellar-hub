@@ -123,6 +123,11 @@ export const themes = pgTable(
       onDelete: "set null",
     }),
     colorMode: colorModeEnum("color_mode").notNull().default("dark"),
+    // The highest version number ever deleted from this theme, null until
+    // one is. New versions must be newer than it as well as the latest, so a
+    // deleted number is never published again with a different config - the
+    // CLI caches themes by version number and would keep the old one.
+    highestDeletedVersion: text("highest_deleted_version"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

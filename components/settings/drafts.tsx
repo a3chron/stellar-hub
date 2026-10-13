@@ -10,6 +10,10 @@ import type { Draft, DraftStatus } from "@/lib/draft-shared";
 import { apiFetch } from "@/lib/drafts-client";
 import { cn } from "@/lib/utils";
 import { formatVersion } from "@/lib/versions";
+import SettingsSection, {
+  buttonClass,
+  ICON_DELETE_BUTTON,
+} from "./settings-section";
 import { useFocusAfterRemoval } from "./use-focus-after-removal";
 
 // The status colour is carried by the border, tint and dot; the text itself
@@ -73,26 +77,20 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
   }
 
   return (
-    <section
+    <SettingsSection
       id="drafts"
-      className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
+      title="Drafts"
+      count={drafts.length}
+      headingRef={headingRef}
+      description="Themes and versions you started but haven't published yet. A draft is kept for 7 days after its last change."
     >
-      <h2
-        ref={headingRef}
-        tabIndex={-1}
-        className="text-2xl font-semibold text-ctp-text mb-2 focus:outline-none"
-      >
-        Drafts{drafts.length > 0 && ` (${drafts.length})`}
-      </h2>
-      <p className="text-sm text-ctp-subtext0 mb-6 leading-relaxed">
-        Themes and versions you started but haven't published yet. A draft is
-        kept for 7 days after its last change.
-      </p>
-
       {drafts.length === 0 && (
         <p className="text-sm text-ctp-subtext0">
           No drafts right now - start one from{" "}
-          <Link href="/upload" className="underline">
+          <Link
+            href="/upload"
+            className="text-ctp-lavender underline underline-offset-2"
+          >
             Upload
           </Link>{" "}
           or with <code className="text-ctp-subtext1">stellar publish</code>.
@@ -105,62 +103,60 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
             return (
               <li
                 key={draft.code}
-                className="bg-ctp-base rounded-lg border border-ctp-surface0 p-4"
+                className="flex flex-col gap-3 rounded-lg border border-ctp-surface0 bg-ctp-base p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4"
               >
-                <div className="flex flex-wrap items-start gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-ctp-text font-semibold truncate">
-                        {draftTitle(draft)}
-                      </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col items-start gap-1.5 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2">
+                    <span className="min-w-0 break-words font-semibold text-ctp-text">
+                      {draftTitle(draft)}
+                    </span>
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs text-ctp-text",
+                        STATUS_STYLES[draft.status].chip,
+                      )}
+                    >
                       <span
+                        aria-hidden="true"
                         className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs text-ctp-text",
-                          STATUS_STYLES[draft.status].chip,
+                          "size-1.5 rounded-full",
+                          STATUS_STYLES[draft.status].dot,
                         )}
-                      >
-                        <span
-                          aria-hidden="true"
-                          className={cn(
-                            "size-1.5 rounded-full",
-                            STATUS_STYLES[draft.status].dot,
-                          )}
-                        />
-                        {statusLabel(draft)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-ctp-subtext0 font-mono mt-1">
-                      {draft.kind === "theme"
-                        ? `${draft.slug} · new theme`
-                        : `${draft.theme?.slug} · new version`}{" "}
-                      · {draft.code}
-                    </p>
-                    <p className="text-xs text-ctp-subtext0 mt-2">
-                      Updated <TimeAgo date={draft.updatedAt} /> · kept until{" "}
-                      <LocalDate date={draft.expiresAt} />
-                      {draft.source && <> · from {draft.source}</>}
-                    </p>
+                      />
+                      {statusLabel(draft)}
+                    </span>
                   </div>
+                  <p className="mt-1.5 break-words font-mono text-sm text-ctp-subtext0">
+                    {draft.kind === "theme"
+                      ? `${draft.slug} · new theme`
+                      : `${draft.theme?.slug} · new version`}{" "}
+                    · {draft.code}
+                  </p>
+                  <p className="mt-1 text-xs text-ctp-subtext0">
+                    Updated <TimeAgo date={draft.updatedAt} /> · kept until{" "}
+                    <LocalDate date={draft.expiresAt} />
+                    {draft.source && <> · from {draft.source}</>}
+                  </p>
+                </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Link
-                      href={`/upload/${draft.code}`}
-                      className="flex items-center gap-2 px-4 py-2 text-sm bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 border-ctp-surface1 transition"
-                    >
-                      Continue
-                      <ArrowRight className="w-4 h-4" />
-                    </Link>
-                    <button
-                      ref={buttonRef(draft.code)}
-                      onClick={() => setDeleting(draft)}
-                      type="button"
-                      className="p-2 text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded transition cursor-pointer"
-                      title="Delete draft"
-                      aria-label={`Delete draft ${draft.code}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                <div className="flex items-center gap-2 sm:shrink-0">
+                  <Link
+                    href={`/upload/${draft.code}`}
+                    className={`${buttonClass("secondary")} flex-1 sm:flex-none`}
+                  >
+                    Continue
+                    <ArrowRight aria-hidden="true" className="size-4" />
+                  </Link>
+                  <button
+                    ref={buttonRef(draft.code)}
+                    onClick={() => setDeleting(draft)}
+                    type="button"
+                    className={`${ICON_DELETE_BUTTON} size-10`}
+                    title="Delete draft"
+                    aria-label={`Delete draft ${draft.code}`}
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
                 </div>
               </li>
             );
@@ -190,6 +186,6 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
           <p className="text-ctp-red">This can't be undone.</p>
         </ConfirmDialog>
       )}
-    </section>
+    </SettingsSection>
   );
 }

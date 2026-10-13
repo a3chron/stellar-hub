@@ -46,6 +46,24 @@ export function pickLatestVersion<T extends { version: string }>(
   return latest;
 }
 
+/**
+ * The number a new version has to be newer than: the latest existing version,
+ * or a higher one that was deleted (`themes.highestDeletedVersion`) - a
+ * deleted number is never used again.
+ */
+export function versionFloor(
+  latest: string | null | undefined,
+  highestDeleted: string | null | undefined,
+): string | null {
+  if (!latest) {
+    return highestDeleted ?? null;
+  }
+  if (highestDeleted && compareVersions(highestDeleted, latest) > 0) {
+    return highestDeleted;
+  }
+  return latest;
+}
+
 /** minor: 1.3 -> 2.0, patch: 1.3 -> 1.4. */
 export function calculateNextVersion(
   current: string,

@@ -15,7 +15,14 @@ export interface Draft {
   status: DraftStatus;
   url: string;
   // Version drafts only: the theme the version is for.
-  theme: { slug: string; name: string; latestVersion: string | null } | null;
+  // highestVersion is the number a new version has to beat: the latest, or a
+  // deleted version above it, since deleted numbers are never reused.
+  theme: {
+    slug: string;
+    name: string;
+    latestVersion: string | null;
+    highestVersion: string | null;
+  } | null;
   // Theme drafts only (slug is always set on them).
   name: string | null;
   slug: string | null;

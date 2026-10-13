@@ -4,6 +4,7 @@ import { AlertTriangle } from "lucide-react";
 import { useId, useState } from "react";
 import ConfirmDialog from "@/components/confirm-dialog";
 import type { User as UserType } from "@/lib/db/types";
+import SettingsSection, { buttonClass } from "./settings-section";
 
 /**
  * Account deletion. Kept behind a dialog and a typed confirmation because it
@@ -90,21 +91,22 @@ export default function DeleteAccount({
   }
 
   return (
-    <section className="bg-ctp-mantle rounded-lg border border-ctp-red/40 p-8">
-      <h2 className="text-2xl font-semibold text-ctp-text mb-2">
-        Delete account
-      </h2>
-      <p className="text-sm text-ctp-subtext0 mb-6 leading-relaxed">
-        {themesDescription} This can't be undone.
-      </p>
-
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="px-6 py-2 rounded-md border-2 border-ctp-red/50 text-ctp-red transition hover:bg-ctp-red/10 cursor-pointer"
-      >
-        Delete account
-      </button>
+    <SettingsSection id="danger-zone" title="Danger zone" tone="danger">
+      <div className="flex flex-col gap-4 rounded-lg border border-ctp-surface0 bg-ctp-base p-3 sm:flex-row sm:items-center sm:gap-6 sm:p-4">
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-ctp-text">Delete account</h3>
+          <p className="mt-1 text-sm leading-relaxed text-ctp-subtext0">
+            {themesDescription} This can't be undone.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className={`${buttonClass("danger")} w-full sm:w-auto sm:shrink-0`}
+        >
+          Delete account
+        </button>
+      </div>
 
       {open && (
         <ConfirmDialog
@@ -145,6 +147,6 @@ export default function DeleteAccount({
           </div>
         </ConfirmDialog>
       )}
-    </section>
+    </SettingsSection>
   );
 }

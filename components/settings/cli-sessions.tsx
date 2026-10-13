@@ -12,6 +12,7 @@ import {
   displayLoginName,
 } from "@/lib/cli-login-name";
 import type { CliToken } from "@/lib/db/types";
+import SettingsSection, { buttonClass } from "./settings-section";
 import { useFocusAfterRemoval } from "./use-focus-after-removal";
 
 type CliLogin = Pick<CliToken, "id" | "label" | "createdAt" | "lastUsedAt">;
@@ -119,27 +120,26 @@ export default function CliSessions({ logins }: { logins: CliLogin[] }) {
   }
 
   return (
-    <section
+    <SettingsSection
       id="cli-logins"
-      className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
+      title="CLI logins"
+      count={logins.length}
+      headingRef={headingRef}
+      description={
+        <>
+          Terminals where you ran{" "}
+          <code className="text-ctp-subtext1">stellar auth</code>. They can
+          create and publish theme drafts as you until you revoke them. See{" "}
+          <Link
+            href="/docs/publishing"
+            className="text-ctp-lavender underline underline-offset-2"
+          >
+            publishing from the CLI
+          </Link>
+          .
+        </>
+      }
     >
-      <h2
-        ref={headingRef}
-        tabIndex={-1}
-        className="text-2xl font-semibold text-ctp-text mb-2 focus:outline-none"
-      >
-        CLI logins
-      </h2>
-      <p className="text-sm text-ctp-subtext0 mb-6 leading-relaxed">
-        Terminals where you ran{" "}
-        <code className="text-ctp-subtext1">stellar auth</code>. They can create
-        and publish theme drafts as you until you revoke them. See{" "}
-        <Link href="/docs/publishing" className="underline">
-          publishing from the CLI
-        </Link>
-        .
-      </p>
-
       {logins.length === 0 ? (
         <p className="text-sm text-ctp-subtext0">No CLI logins yet.</p>
       ) : (
@@ -151,106 +151,113 @@ export default function CliSessions({ logins }: { logins: CliLogin[] }) {
             return (
               <li
                 key={login.id}
-                className="flex items-center gap-4 bg-ctp-base rounded-lg border border-ctp-surface0 p-4"
+                className="flex flex-col gap-3 rounded-lg border border-ctp-surface0 bg-ctp-base p-3 sm:flex-row sm:items-center sm:gap-4 sm:p-4"
               >
-                <TerminalSquare className="w-5 h-5 shrink-0 text-ctp-overlay1" />
-                <div className="flex-1 min-w-0">
-                  {editing ? (
-                    <form
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        saveRename(login);
-                      }}
-                      className="flex flex-wrap items-center gap-2"
-                    >
-                      <label htmlFor={nameInputId} className="sr-only">
-                        Name of this login
-                      </label>
-                      <input
-                        ref={nameInputRef}
-                        id={nameInputId}
-                        value={editName}
-                        onChange={(event) => setEditName(event.target.value)}
-                        onKeyDown={(event) => {
-                          if (event.key === "Escape") {
-                            event.preventDefault();
-                            stopRename(login.id);
-                          }
+                <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
+                  <TerminalSquare
+                    aria-hidden="true"
+                    className="mt-0.5 size-5 shrink-0 text-ctp-overlay1 sm:mt-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    {editing ? (
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          saveRename(login);
                         }}
-                        maxLength={CLI_LOGIN_NAME_MAX_LENGTH}
-                        autoComplete="off"
-                        spellCheck={false}
-                        aria-invalid={renameError !== null}
-                        aria-describedby={
-                          renameError ? `${nameInputId}-error` : undefined
-                        }
-                        className="min-w-0 flex-1 rounded-md border-2 border-ctp-crust bg-ctp-mantle px-2 py-1 text-sm text-ctp-text focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
-                      />
-                      <button
-                        type="submit"
-                        disabled={savingName}
-                        className="flex items-center gap-1.5 px-3 py-1 text-sm rounded-md bg-ctp-text text-ctp-base border-2 border-ctp-subtext0 transition hover:bg-ctp-subtext1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex flex-wrap items-center gap-2"
                       >
-                        {savingName && (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        )}
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => stopRename(login.id)}
-                        disabled={savingName}
-                        className="px-3 py-1 text-sm rounded-md bg-ctp-surface0 text-ctp-text border-2 border-ctp-surface1 transition hover:bg-ctp-surface1 cursor-pointer disabled:opacity-50"
-                      >
-                        Cancel
-                      </button>
-                    </form>
-                  ) : (
-                    <div className="flex items-center gap-1.5 min-w-0">
-                      <p className="text-sm font-medium text-ctp-text truncate">
-                        {name}
-                      </p>
-                      <button
-                        type="button"
-                        ref={(element) => {
-                          if (element) {
-                            pencilButtons.current.set(login.id, element);
-                          } else {
-                            pencilButtons.current.delete(login.id);
+                        <label htmlFor={nameInputId} className="sr-only">
+                          Name of this login
+                        </label>
+                        <input
+                          ref={nameInputRef}
+                          id={nameInputId}
+                          value={editName}
+                          onChange={(event) => setEditName(event.target.value)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Escape") {
+                              event.preventDefault();
+                              stopRename(login.id);
+                            }
+                          }}
+                          maxLength={CLI_LOGIN_NAME_MAX_LENGTH}
+                          autoComplete="off"
+                          spellCheck={false}
+                          aria-invalid={renameError !== null}
+                          aria-describedby={
+                            renameError ? `${nameInputId}-error` : undefined
                           }
-                        }}
-                        onClick={() => startRename(login)}
-                        aria-label={`Rename ${name}`}
-                        title="Rename"
-                        className="shrink-0 p-1 rounded text-ctp-subtext0 hover:text-ctp-text hover:bg-ctp-surface0 transition cursor-pointer"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
-                  {editing && renameError && (
-                    <p
-                      id={`${nameInputId}-error`}
-                      role="alert"
-                      className="text-xs text-ctp-red mt-1"
-                    >
-                      {renameError}
-                    </p>
-                  )}
-                  <p className="text-xs text-ctp-subtext0 mt-1">
-                    Logged in <LocalDate date={login.createdAt} /> · last used{" "}
-                    {login.lastUsedAt ? (
-                      <TimeAgo date={login.lastUsedAt} />
+                          className="min-w-0 flex-1 basis-40 rounded-lg border-2 border-ctp-surface0 bg-ctp-mantle px-2 py-1 text-sm text-ctp-text focus:border-ctp-overlay1 focus:outline-none"
+                        />
+                        <button
+                          type="submit"
+                          disabled={savingName}
+                          className={buttonClass("primary", "xs")}
+                        >
+                          {savingName && (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          )}
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => stopRename(login.id)}
+                          disabled={savingName}
+                          className={buttonClass("secondary", "xs")}
+                        >
+                          Cancel
+                        </button>
+                      </form>
                     ) : (
-                      "never"
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="text-sm font-medium text-ctp-text truncate">
+                          {name}
+                        </p>
+                        <button
+                          type="button"
+                          ref={(element) => {
+                            if (element) {
+                              pencilButtons.current.set(login.id, element);
+                            } else {
+                              pencilButtons.current.delete(login.id);
+                            }
+                          }}
+                          onClick={() => startRename(login)}
+                          aria-label={`Rename ${name}`}
+                          title="Rename"
+                          className="shrink-0 p-1 rounded text-ctp-subtext0 hover:text-ctp-text hover:bg-ctp-surface0 transition cursor-pointer"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     )}
-                  </p>
+                    {editing && renameError && (
+                      <p
+                        id={`${nameInputId}-error`}
+                        role="alert"
+                        className="text-xs text-ctp-red mt-1"
+                      >
+                        {renameError}
+                      </p>
+                    )}
+                    <p className="text-xs text-ctp-subtext0 mt-1">
+                      Logged in <LocalDate date={login.createdAt} /> · last used{" "}
+                      {login.lastUsedAt ? (
+                        <TimeAgo date={login.lastUsedAt} />
+                      ) : (
+                        "never"
+                      )}
+                    </p>
+                  </div>
                 </div>
+                {/* Below the name on a phone, so the name keeps the width. */}
                 <button
                   type="button"
                   ref={buttonRef(login.id)}
                   onClick={() => setRevoking(login)}
-                  className="shrink-0 px-4 py-2 text-sm rounded-md border-2 border-ctp-red/50 text-ctp-red transition hover:bg-ctp-red/10 cursor-pointer"
+                  aria-label={`Revoke ${name}`}
+                  className={`${buttonClass("danger")} w-full sm:w-auto sm:shrink-0`}
                 >
                   Revoke
                 </button>
@@ -279,6 +286,6 @@ export default function CliSessions({ logins }: { logins: CliLogin[] }) {
           </p>
         </ConfirmDialog>
       )}
-    </section>
+    </SettingsSection>
   );
 }

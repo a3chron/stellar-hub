@@ -13,7 +13,11 @@ import {
   tomlError,
 } from "@/lib/drafts";
 import type { RequestUser } from "@/lib/request-auth";
-import { compareVersions, pickLatestVersion } from "@/lib/versions";
+import {
+  compareVersions,
+  pickLatestVersion,
+  versionFloor,
+} from "@/lib/versions";
 
 // The one way anything gets published - the wizard's Publish button and
 // `stellar publish --publish` both end up here.
@@ -177,7 +181,11 @@ async function publishVersion(
   // other instead of both passing the "is it newer" test against the same
   // latest version.
   const [theme] = await tx
-    .select({ id: themes.id, slug: themes.slug })
+    .select({
+      id: themes.id,
+      slug: themes.slug,
+      highestDeletedVersion: themes.highestDeletedVersion,
+    })
     .from(themes)
     .where(and(eq(themes.id, themeId), eq(themes.authorId, owner.id)))
     .for("update");
@@ -194,14 +202,19 @@ async function publishVersion(
     throw versionExists(version);
   }
 
-  const latest = pickLatestVersion(versions);
-  if (latest && compareVersions(version, latest.version) <= 0) {
-    throw new PublishError(
-      400,
-      `Version ${version} isn't newer than the latest version ${latest.version}`,
-      "version_not_newer",
-      { details: { latest: latest.version } },
-    );
+  // Newer than the latest, and than any deleted number above it. `latest` in
+  // the details is the number to beat (what the CLI suggests the next
+  // version from), which is the deleted one when that is higher.
+  const latest = pickLatestVersion(versions)?.version;
+  const floor = versionFloor(latest, theme.highestDeletedVersion);
+  if (floor && compareVersions(version, floor) <= 0) {
+    const message =
+      floor === latest
+        ? `Version ${version} isn't newer than the latest version ${latest}`
+        : `Version ${version} isn't newer than ${floor} - it was deleted, and a deleted version number can't be used again`;
+    throw new PublishError(400, message, "version_not_newer", {
+      details: { latest: floor },
+    });
   }
 
   await tx.insert(themeVersions).values({

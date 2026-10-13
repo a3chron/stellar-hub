@@ -160,7 +160,7 @@ export default function EditMetadataForm({
           <p className="text-sm text-ctp-subtext0 mb-6">
             You selected a new screenshot that hasn't been saved yet.
           </p>
-          <div className="flex gap-3">
+          <div className="flex flex-col gap-3 min-[420px]:flex-row">
             <button
               ref={keepEditingButtonRef}
               type="button"
@@ -185,7 +185,7 @@ export default function EditMetadataForm({
           id={confirming ? undefined : titleId}
           className="text-2xl font-semibold text-ctp-text mb-6"
         >
-          Edit Metadata: {theme.name}
+          Edit details: {theme.name}
         </h3>
 
         <form
@@ -279,7 +279,7 @@ export default function EditMetadataForm({
                 accept={ACCEPTED_SCREENSHOT_TYPES.join(",")}
                 onChange={handleImageChange}
                 aria-invalid={screenshotError !== null}
-                className="w-fit bg-ctp-mantle border-2 border-ctp-crust p-2 px-4 rounded-lg mt-1.5 text-ctp-text file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-ctp-surface0 file:text-ctp-text"
+                className="w-fit max-w-full bg-ctp-mantle border-2 border-ctp-crust p-2 px-4 rounded-lg mt-1.5 text-ctp-text file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-ctp-surface0 file:text-ctp-text"
               />
             </label>
             {screenshotError && (
@@ -311,8 +311,9 @@ export default function EditMetadataForm({
             </p>
           )}
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
+          {/* Buttons - stacked on a narrow phone, where "Save Changes" would
+              wrap inside its button. */}
+          <div className="flex flex-col gap-3 pt-4 min-[420px]:flex-row">
             <button
               ref={cancelButtonRef}
               type="button"

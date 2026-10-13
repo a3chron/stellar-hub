@@ -60,9 +60,12 @@ export function useMDXComponents(): MDXComponents {
       }
       // text-ctp-text, not an accent: Latte's accents don't reach AA
       // contrast on the mantle background (peach was 2.45:1).
+      // break-words: paths like `~/.config/stellar/<author>/<slug>/<version>.toml`
+      // have no spaces to wrap on and would otherwise push the page wider
+      // than the viewport on phones.
       return (
         <code
-          className="px-1.5 py-0.5 rounded bg-ctp-mantle border border-ctp-crust text-sm text-ctp-text"
+          className="px-1.5 py-0.5 rounded bg-ctp-mantle border border-ctp-crust text-sm text-ctp-text break-words"
           {...props}
         />
       );

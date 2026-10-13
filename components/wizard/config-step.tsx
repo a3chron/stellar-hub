@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Check,
   CircleCheck,
   ClipboardPaste,
   FileUp,
@@ -12,6 +13,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import CopyButton from "@/components/docs/copy-button";
 import { TimeAgo } from "@/components/local-time";
 import { TomlEditor } from "@/components/toml/toml-editor";
+import { displayLoginName } from "@/lib/cli-login-name";
 import { CONFIG_MAX_LENGTH, type Draft } from "@/lib/draft-shared";
 import { apiFetch } from "@/lib/drafts-client";
 import { cn } from "@/lib/utils";
@@ -160,6 +162,81 @@ function useCliConfigPoll({
   }, [active, code]);
 }
 
+// Whether stellar-cli is logged in to this account anywhere: "unknown" until
+// the list has loaded (or if it can't be loaded).
+type CliLoginState =
+  | { kind: "unknown" }
+  | { kind: "none" }
+  | { kind: "some"; name: string; others: number };
+
+type CliLoginRow = {
+  label: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+};
+
+/**
+ * The account's CLI logins, loaded when the From CLI tab opens and again
+ * whenever the page comes back into view or focus - usually right after
+ * `stellar auth` was run in a terminal. The hub can't tell which machine this
+ * browser is on, so the most recently used login stands for all of them.
+ */
+function useCliLogins(active: boolean): CliLoginState {
+  const [state, setState] = useState<CliLoginState>({ kind: "unknown" });
+
+  useEffect(() => {
+    if (!active) {
+      return;
+    }
+
+    let stopped = false;
+    let inFlight = false;
+
+    async function load() {
+      if (stopped || inFlight || document.visibilityState !== "visible") {
+        return;
+      }
+      inFlight = true;
+      try {
+        const result = await apiFetch<{ tokens: CliLoginRow[] }>(
+          "/api/settings/cli-tokens",
+        );
+        if (stopped || !result.ok) {
+          return;
+        }
+        const { tokens } = result.data;
+        if (tokens.length === 0) {
+          setState({ kind: "none" });
+          return;
+        }
+        const lastActive = (login: CliLoginRow) =>
+          Date.parse(login.lastUsedAt ?? login.createdAt);
+        const latest = tokens.reduce((best, login) =>
+          lastActive(login) > lastActive(best) ? login : best,
+        );
+        setState({
+          kind: "some",
+          name: displayLoginName(latest.label),
+          others: tokens.length - 1,
+        });
+      } finally {
+        inFlight = false;
+      }
+    }
+
+    load();
+    document.addEventListener("visibilitychange", load);
+    window.addEventListener("focus", load);
+    return () => {
+      stopped = true;
+      document.removeEventListener("visibilitychange", load);
+      window.removeEventListener("focus", load);
+    };
+  }, [active]);
+
+  return state;
+}
+
 const TABS: Array<{ id: ConfigTab; icon: typeof ClipboardPaste }> = [
   { id: "paste", icon: ClipboardPaste },
   { id: "upload", icon: FileUp },
@@ -230,6 +307,7 @@ export default function ConfigStep({
     },
     onNotFound,
   });
+  const cliLogins = useCliLogins(tab === "cli");
 
   const tabLabels: Record<ConfigTab, string> = {
     paste: pasteLabel,
@@ -417,11 +495,8 @@ export default function ConfigStep({
         <div className="space-y-5">
           <ol className="space-y-4 text-sm text-ctp-subtext0 leading-relaxed">
             <li className="flex gap-3">
-              <StepNumber>1</StepNumber>
-              <p>
-                Not logged in yet? Run{" "}
-                <code className="text-ctp-subtext1">stellar auth</code> first.
-              </p>
+              <StepNumber done={cliLogins.kind === "some"}>1</StepNumber>
+              <CliLoginStep state={cliLogins} />
             </li>
             <li className="flex gap-3">
               <StepNumber>2</StepNumber>
@@ -513,15 +588,51 @@ export default function ConfigStep({
   );
 }
 
-function StepNumber({ children }: { children: React.ReactNode }) {
+function StepNumber({
+  children,
+  done = false,
+}: {
+  children: React.ReactNode;
+  done?: boolean;
+}) {
   return (
     <span
       aria-hidden="true"
-      className="flex size-5 shrink-0 items-center justify-center rounded-full bg-ctp-surface0 text-xs font-semibold text-ctp-text"
+      className={cn(
+        "flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
+        done
+          ? "bg-ctp-lavender/20 text-ctp-lavender"
+          : "bg-ctp-surface0 text-ctp-text",
+      )}
     >
-      {children}
+      {done ? <Check className="size-3" strokeWidth={3} /> : children}
     </span>
   );
+}
+
+/** Step 1 of From CLI, worded for whether stellar-cli is logged in yet. */
+function CliLoginStep({ state }: { state: CliLoginState }) {
+  const command = <code className="text-ctp-subtext1">stellar auth</code>;
+
+  if (state.kind === "some") {
+    return (
+      <p aria-live="polite">
+        stellar-cli is logged in on{" "}
+        <span className="text-ctp-text">{state.name}</span>
+        {state.others > 0 &&
+          ` and ${state.others} other ${state.others === 1 ? "machine" : "machines"}`}
+        . On a different machine? Run {command} there first.
+      </p>
+    );
+  }
+  if (state.kind === "none") {
+    return (
+      <p aria-live="polite">
+        Log in first: run {command} and approve it in the browser.
+      </p>
+    );
+  }
+  return <p aria-live="polite">Not logged in yet? Run {command} first.</p>;
 }
 
 function CommandLine({ command }: { command: string }) {

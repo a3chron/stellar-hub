@@ -236,6 +236,10 @@ export default function ThemeWizard({
   const [furthest, setFurthest] = useState(initialDraft ? STEPS.length - 1 : 0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiErrorBody | null>(null);
+  // What the field a failed save blamed held at the time, so editing it
+  // clears that error (and the red step) right away instead of on the next
+  // save.
+  const [errorValue, setErrorValue] = useState<string | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
   const [gone, setGone] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -250,6 +254,14 @@ export default function ThemeWizard({
   const { fields, saved } = form;
   const slug = customSlug ?? generateSlug(fields.name);
   const current: ThemeFields = { ...fields, slug: finishSlugInput(slug) };
+
+  /** The current value of the field an API error blames, if it names one. */
+  function blamedValue(failure: ApiErrorBody | null): string | null {
+    const field = errorField(failure);
+    return field !== null && field in current
+      ? current[field as FieldKey]
+      : null;
+  }
 
   const baseline = saved ?? EMPTY_FIELDS;
   const dirtyKeys = FIELD_KEYS.filter(
@@ -278,7 +290,11 @@ export default function ThemeWizard({
   // Step statuses for the stepper, built from the same facts that enable
   // Next and Publish below.
   const minStarshipShown = minStarshipTouched && minStarshipInvalid;
-  const failedStep = FIELD_STEP[errorField(error) ?? ""] ?? null;
+  const blamed = errorField(error);
+  const errorStale =
+    blamed !== null && blamed in current && blamedValue(error) !== errorValue;
+  const activeError = errorStale ? null : error;
+  const failedStep = FIELD_STEP[errorField(activeError) ?? ""] ?? null;
   const passed = (index: number) => leftSteps.has(index) || index < step;
   const hasName = current.name.trim().length > 0;
   const hasConfig = current.config.trim().length > 0;
@@ -378,6 +394,7 @@ export default function ThemeWizard({
       return;
     }
     setError(failure);
+    setErrorValue(blamedValue(failure));
   }
 
   /** Creates the draft on first use, then saves whatever changed. */
@@ -471,6 +488,7 @@ export default function ThemeWizard({
     setBusy(false);
     if (!result.ok) {
       setError(result.error);
+      setErrorValue(blamedValue(result.error));
       return;
     }
     setForm((prev) => ({
@@ -827,7 +845,7 @@ JetBrainsMono Nerd Font`}
             </>
           )}
 
-          {error && <ErrorBox error={error} />}
+          {activeError && <ErrorBox error={activeError} />}
 
           <WizardNav
             onBack={step > 0 ? () => go(step - 1) : null}

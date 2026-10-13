@@ -151,6 +151,10 @@ export default function VersionWizard({
   const [furthest, setFurthest] = useState(STEPS.length - 1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiErrorBody | null>(null);
+  // What the field a failed save blamed held at the time, so editing it
+  // clears that error (and the red step) right away instead of on the next
+  // save.
+  const [errorValue, setErrorValue] = useState<string | null>(null);
   const [configError, setConfigError] = useState<string | null>(null);
   const [gone, setGone] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -161,6 +165,12 @@ export default function VersionWizard({
   );
 
   const { fields, saved } = form;
+
+  /** The current value of the field an API error blames, if it names one. */
+  function blamedValue(failure: ApiErrorBody | null): string | null {
+    const field = errorField(failure);
+    return field !== null && field in fields ? fields[field as FieldKey] : null;
+  }
   const dirtyKeys = FIELD_KEYS.filter(
     (key) => comparable(fields, key) !== comparable(saved, key),
   );
@@ -211,6 +221,7 @@ export default function VersionWizard({
       return;
     }
     setError(failure);
+    setErrorValue(blamedValue(failure));
   }
 
   async function save(): Promise<Draft | null> {
@@ -289,6 +300,7 @@ export default function VersionWizard({
     setBusy(false);
     if (!result.ok) {
       setError(result.error);
+      setErrorValue(blamedValue(result.error));
       return;
     }
     setForm((prev) => ({
@@ -319,7 +331,11 @@ export default function VersionWizard({
 
   // Step statuses for the stepper, built from the same facts that enable
   // Next and Publish below.
-  const failedField = errorField(error);
+  const blamed = errorField(error);
+  const errorStale =
+    blamed !== null && blamed in fields && blamedValue(error) !== errorValue;
+  const activeError = errorStale ? null : error;
+  const failedField = errorField(activeError);
   const passed = (index: number) => leftSteps.has(index) || index < step;
   const hasConfig = fields.config.trim().length > 0;
   // Still the untouched copy of the latest version's config.
@@ -599,7 +615,7 @@ JetBrainsMono Nerd Font`}
             </>
           )}
 
-          {error && <ErrorBox error={error} />}
+          {activeError && <ErrorBox error={activeError} />}
 
           <WizardNav
             onBack={step > 0 ? () => go(step - 1) : null}

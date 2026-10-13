@@ -231,7 +231,7 @@
       },
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.cli_installs": {
       "name": "cli_installs",
@@ -421,7 +421,7 @@
       },
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.color_schemes": {
       "name": "color_schemes",
@@ -787,7 +787,7 @@
       },
       "policies": {},
       "checkConstraints": {},
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     },
     "public.theme_versions": {
       "name": "theme_versions",

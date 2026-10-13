@@ -1,11 +1,12 @@
 -- CLI device login, CLI tokens and theme drafts (stellar auth / stellar publish
 -- and the upload wizard).
 --
--- Purely additive: three new tables, their indexes, and foreign keys from them
--- to existing tables. Nothing existing is altered, so this can run ahead of
--- the deploy, and the previous build keeps working with these tables present
--- (it never reads them). Every user/theme reference cascades, so the existing
--- account and theme deletion paths keep working untouched.
+-- Purely additive: three new tables, their indexes, foreign keys from them
+-- to existing tables, and row level security on the new tables. Nothing
+-- existing is altered, so this can run ahead of the deploy, and the previous
+-- build keeps working with these tables present (it never reads them). Every
+-- user/theme reference cascades, so the existing account and theme deletion
+-- paths keep working untouched.
 --
 -- ROLLBACK
 --   A code-only rollback does NOT need any of this: the old code ignores
@@ -97,4 +98,12 @@ CREATE INDEX "idx_theme_drafts_user" ON "theme_drafts" USING btree ("user_id");-
 -- Partial, so a new-theme draft and a version draft never block each other:
 -- one draft per slug for new themes, one open version draft per theme.
 CREATE UNIQUE INDEX "unique_draft_user_slug" ON "theme_drafts" USING btree ("user_id","slug") WHERE kind = 'theme';--> statement-breakpoint
-CREATE UNIQUE INDEX "unique_draft_user_theme" ON "theme_drafts" USING btree ("user_id","theme_id") WHERE kind = 'version';
+CREATE UNIQUE INDEX "unique_draft_user_theme" ON "theme_drafts" USING btree ("user_id","theme_id") WHERE kind = 'version';--> statement-breakpoint
+
+-- Row level security with no policies: the app connects as the table owner and
+-- bypasses it. This only makes sure Supabase's Data API roles (anon /
+-- authenticated) can never read login codes, token hashes or private drafts,
+-- even if a grant is ever added to these tables by mistake.
+ALTER TABLE "cli_auth_requests" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "cli_tokens" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+ALTER TABLE "theme_drafts" ENABLE ROW LEVEL SECURITY;

@@ -206,6 +206,11 @@ export const themeVersions = pgTable(
 // kind/status-like columns here and below are plain text validated in the app
 // rather than pg enums, so migration 0008 stays purely additive and rolling it
 // back is a single DROP TABLE.
+//
+// All three have row level security enabled with no policies. The app connects
+// as the table owner and bypasses it; it only guarantees that Supabase's Data
+// API roles (anon/authenticated) can never read login codes, token hashes or
+// private drafts, even if a grant is ever added by mistake.
 export const cliAuthRequests = pgTable(
   "cli_auth_requests",
   {
@@ -232,7 +237,7 @@ export const cliAuthRequests = pgTable(
     ipHashIdx: index("idx_cli_auth_requests_ip_hash").on(table.ipHash),
     expiresAtIdx: index("idx_cli_auth_requests_expires_at").on(table.expiresAt),
   }),
-);
+).enableRLS();
 
 // CLI logins
 //
@@ -258,7 +263,7 @@ export const cliTokens = pgTable(
   (table) => ({
     userIdx: index("idx_cli_tokens_user").on(table.userId),
   }),
-);
+).enableRLS();
 
 // Theme drafts
 //
@@ -326,7 +331,7 @@ export const themeDrafts = pgTable(
       .on(table.userId, table.themeId)
       .where(sql`kind = 'version'`),
   }),
-);
+).enableRLS();
 
 // Relations
 export const userRelations = relations(user, ({ many }) => ({

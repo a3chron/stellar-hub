@@ -3,6 +3,7 @@ import type {
   cliAuthRequests,
   cliInstalls,
   cliTokens,
+  colorSchemes,
   themeDrafts,
   themes,
   themeVersions,
@@ -16,3 +17,4 @@ export type CliInstall = InferSelectModel<typeof cliInstalls>;
 export type CliAuthRequest = InferSelectModel<typeof cliAuthRequests>;
 export type CliToken = InferSelectModel<typeof cliTokens>;
 export type ThemeDraft = InferSelectModel<typeof themeDrafts>;
+export type ColorScheme = InferSelectModel<typeof colorSchemes>;

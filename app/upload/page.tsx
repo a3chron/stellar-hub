@@ -52,6 +52,11 @@ export default async function UploadPage() {
             does it too.
           </p>
           <ThemeWizard
+            // A new key per request: after the wizard has moved the address to
+            // /upload/<code> with history.replaceState, the router still knows
+            // this route as /upload, and following a link to /upload again
+            // would otherwise keep the old wizard and its draft on screen.
+            key={crypto.randomUUID()}
             author={author}
             colorSchemes={colorSchemes}
             groups={groups}

@@ -2,10 +2,11 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import GroupPicker from "@/components/group-picker";
 import Input from "@/components/input";
 import Select from "@/components/select";
+import type { ColorScheme } from "@/lib/db/types";
 import {
   type ApiErrorBody,
   DESCRIPTION_MAX_LENGTH,
@@ -201,7 +202,7 @@ function initialStep(draft: Draft | null): number {
 
 interface ThemeWizardProps {
   author: string;
-  colorSchemes: Array<{ id: string; name: string }>;
+  colorSchemes: Pick<ColorScheme, "id" | "name">[];
   // The author's existing theme groups, for the group picker.
   groups: ThemeGroup[];
   // An existing draft (/upload/[code]), or null for a fresh /upload.
@@ -222,6 +223,16 @@ export default function ThemeWizard({
   initialDraft,
 }: ThemeWizardProps) {
   const router = useRouter();
+
+  // Back or Forward onto a history entry this wizard replaced with
+  // /upload/<code> brings the router back to this fresh-wizard route under
+  // that address. Load the draft the address names instead.
+  useEffect(() => {
+    if (!initialDraft && window.location.pathname !== "/upload") {
+      router.replace(window.location.pathname);
+    }
+  }, [initialDraft, router]);
+
   const descriptionId = useId();
   const dependenciesId = useId();
   const minStarshipId = useId();
@@ -331,7 +342,11 @@ export default function ThemeWizard({
     passed: passed(STEP.config),
   });
   const screenshotStatus = resolveStepStatus({
-    invalid: screenshotError !== null || failedStep === "screenshot",
+    // A rejected file only matters while there is no screenshot - with one
+    // already uploaded, the draft is fine as it is.
+    invalid:
+      (screenshotError !== null && !hasScreenshot) ||
+      failedStep === "screenshot",
     complete: hasScreenshot,
     started: hasScreenshot,
     missing: !hasScreenshot,
@@ -453,6 +468,9 @@ export default function ThemeWizard({
     }
     if (index !== step) {
       setLeftSteps((previous) => new Set(previous).add(step));
+    }
+    if (step === STEP.screenshot && index !== step) {
+      setScreenshotError(null);
     }
     setStep(index);
     setFurthest((previous) => Math.max(previous, index));
@@ -796,7 +814,7 @@ JetBrainsMono Nerd Font`}
                   onEdit={() => go(STEP.screenshot)}
                 >
                   {draft?.screenshotUrl && (
-                    <span className="relative block h-24 w-40 overflow-hidden rounded bg-ctp-surface0">
+                    <span className="relative block h-24 w-full max-w-40 overflow-hidden rounded bg-ctp-surface0">
                       <Image
                         src={draft.screenshotUrl}
                         alt="Theme screenshot"

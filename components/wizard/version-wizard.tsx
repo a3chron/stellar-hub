@@ -140,13 +140,15 @@ export default function VersionWizard({
   });
 
   const [draft, setDraft] = useState<Draft>(initialDraft);
+  // A draft without a version starts out on the minor bump, like the old
+  // form did - in the saved copy too, so opening the wizard is no edit.
+  function withDefaultVersion(fields: VersionFields): VersionFields {
+    return { ...fields, version: fields.version || bumps.minor };
+  }
+
   const [form, setForm] = useState(() => {
-    const start = fieldsFromDraft(initialDraft);
-    // A cleared version starts out on the minor bump, like the old form did.
-    return {
-      fields: { ...start, version: start.version || bumps.minor },
-      saved: start,
-    };
+    const start = withDefaultVersion(fieldsFromDraft(initialDraft));
+    return { fields: start, saved: start };
   });
   const [step, setStep] = useState<number>(STEP.config);
   const [furthest, setFurthest] = useState(STEPS.length - 1);
@@ -196,7 +198,7 @@ export default function VersionWizard({
   // Same merge rule as the theme wizard: untouched fields follow the server,
   // unsaved edits stay - except the config when stellar-cli pushed one.
   function adopt(next: Draft, { replaceConfig = false } = {}) {
-    const nextSaved = fieldsFromDraft(next);
+    const nextSaved = withDefaultVersion(fieldsFromDraft(next));
     setForm((prev) => {
       const merged = { ...prev.fields };
       for (const key of FIELD_KEYS) {
@@ -226,12 +228,18 @@ export default function VersionWizard({
   }
 
   async function save(): Promise<Draft | null> {
-    if (dirtyKeys.length === 0) {
+    // The defaulted version isn't an edit, but the server doesn't have it
+    // yet - it goes along with the first save (publishing saves first).
+    const keys =
+      draft.version === null && !dirtyKeys.includes("version")
+        ? [...dirtyKeys, "version" as const]
+        : dirtyKeys;
+    if (keys.length === 0) {
       return draft;
     }
     const result = await apiFetch<Draft>(
       `/api/drafts/${draft.code}`,
-      jsonRequest("PATCH", toPayload(fields, dirtyKeys)),
+      jsonRequest("PATCH", toPayload(fields, keys)),
     );
     if (!result.ok) {
       handleFailure(result.status, result.error);

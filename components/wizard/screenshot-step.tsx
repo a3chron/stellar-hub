@@ -2,7 +2,7 @@
 
 import { ImageUp, Loader2, Trash2 } from "lucide-react";
 import Image from "next/image";
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import ConfirmDialog from "@/components/confirm-dialog";
 import type { Draft } from "@/lib/draft-shared";
 import { apiFetch } from "@/lib/drafts-client";
@@ -36,6 +36,9 @@ export default function ScreenshotStep({
   const [uploading, setUploading] = useState(false);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [dragging, setDragging] = useState(false);
+  // Numbers each upload, so only the answer to the newest one is shown - an
+  // older, slower one finishing later must not replace the image just picked.
+  const latestRequest = useRef(0);
 
   async function upload(file: File) {
     const problem = validateScreenshotFile(file);
@@ -44,6 +47,7 @@ export default function ScreenshotStep({
       return;
     }
 
+    const request = ++latestRequest.current;
     onError(null);
     setUploading(true);
     const body = new FormData();
@@ -52,6 +56,9 @@ export default function ScreenshotStep({
       `/api/drafts/${draft.code}/screenshot`,
       { method: "PUT", body },
     );
+    if (request !== latestRequest.current) {
+      return;
+    }
     setUploading(false);
 
     if (result.ok) {
@@ -96,6 +103,10 @@ export default function ScreenshotStep({
         onDrop={(event) => {
           event.preventDefault();
           setDragging(false);
+          // The file input is disabled while uploading; a drop is too.
+          if (uploading) {
+            return;
+          }
           const file = event.dataTransfer.files[0];
           if (file) {
             upload(file);

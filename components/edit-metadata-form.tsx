@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import type { Theme } from "@/lib/db/types";
+import type { ColorScheme, Theme } from "@/lib/db/types";
 import {
   ACCEPTED_SCREENSHOT_TYPES,
   validateScreenshotFile,
@@ -31,7 +31,7 @@ type EditableTheme = Pick<
 interface EditMetadataFormProps {
   author: string;
   theme: EditableTheme;
-  colorSchemes: Array<{ id: string; name: string }>;
+  colorSchemes: Pick<ColorScheme, "id" | "name">[];
   // The author's existing theme groups, for the group picker.
   groups: ThemeGroup[];
   onCancel: () => void;

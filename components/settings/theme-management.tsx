@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ConfirmDialog from "@/components/confirm-dialog";
 import { LocalDate } from "@/components/local-time";
+import type { ColorScheme } from "@/lib/db/types";
 import type { Draft } from "@/lib/draft-shared";
 import { apiFetch, existingDraftCode, jsonRequest } from "@/lib/drafts-client";
 import type { ThemeGroup } from "@/lib/theme-groups";
@@ -45,7 +46,7 @@ function versionsPhrase(count: number): string {
 interface ThemeManagementProps {
   author: string;
   themes: Theme[];
-  colorSchemes: Array<{ id: string; name: string }>;
+  colorSchemes: Pick<ColorScheme, "id" | "name">[];
   groups: ThemeGroup[];
 }
 
@@ -109,7 +110,10 @@ export default function ThemeManagement({
 
   if (themes.length === 0) {
     return (
-      <section className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8">
+      <section
+        id="themes"
+        className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
+      >
         <h2 className="text-2xl font-semibold text-ctp-text mb-6">
           Your Themes
         </h2>
@@ -132,7 +136,10 @@ export default function ThemeManagement({
 
   return (
     <>
-      <section className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8">
+      <section
+        id="themes"
+        className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
+      >
         <h2 className="text-2xl font-semibold text-ctp-text mb-6">
           Your Themes ({themes.length})
         </h2>

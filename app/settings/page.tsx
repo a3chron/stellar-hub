@@ -82,7 +82,7 @@ export default async function SettingsPage() {
               user={user}
               hasPublishedThemes={user.themes.length > 0}
             />
-            {drafts.length > 0 && <Drafts drafts={drafts} />}
+            <Drafts drafts={drafts} />
             <ThemeManagement
               author={user.username}
               themes={user.themes}

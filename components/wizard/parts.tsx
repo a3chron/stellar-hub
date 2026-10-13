@@ -48,7 +48,7 @@ export function ErrorBox({ error }: { error: ApiErrorBody }) {
     );
   } else if (error.code === "duplicate_slug") {
     action = (
-      <Link href="/settings" className="underline">
+      <Link href="/settings#themes" className="underline">
         Publish a new version from settings
       </Link>
     );
@@ -60,13 +60,23 @@ export function ErrorBox({ error }: { error: ApiErrorBody }) {
     );
   }
 
+  // The API's messages mostly end without a full stop; the link is its own
+  // sentence either way.
+  const message = describe(error);
+  const separator = /[.!?]$/.test(message) ? " " : ". ";
+
   return (
     <p
       role="alert"
       className="text-sm text-ctp-red border-2 border-ctp-red/40 bg-ctp-mantle rounded-lg p-3"
     >
-      {describe(error)}
-      {action && <> {action}.</>}
+      {message}
+      {action && (
+        <>
+          {separator}
+          {action}.
+        </>
+      )}
     </p>
   );
 }
@@ -184,8 +194,10 @@ export function ReviewRow({
   missing?: boolean;
 }) {
   return (
-    <div className="flex items-start gap-4 py-3 border-b border-ctp-surface0 last:border-b-0">
-      <dt className="w-36 shrink-0 text-sm text-ctp-subtext0">{label}</dt>
+    <div className="flex items-start gap-3 sm:gap-4 py-3 border-b border-ctp-surface0 last:border-b-0">
+      <dt className="w-24 sm:w-36 shrink-0 text-sm text-ctp-subtext0">
+        {label}
+      </dt>
       <dd className="flex-1 min-w-0 text-sm text-ctp-text break-words">
         {missing ? <span className="text-ctp-red">Missing</span> : children}
       </dd>
@@ -193,6 +205,7 @@ export function ReviewRow({
         <button
           type="button"
           onClick={onEdit}
+          aria-label={`Edit ${label}`}
           className="shrink-0 text-xs text-ctp-lavender underline underline-offset-2 cursor-pointer"
         >
           Edit

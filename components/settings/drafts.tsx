@@ -62,71 +62,83 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
       className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
     >
       <h2 className="text-2xl font-semibold text-ctp-text mb-2">
-        Drafts ({drafts.length})
+        Drafts{drafts.length > 0 && ` (${drafts.length})`}
       </h2>
       <p className="text-sm text-ctp-subtext0 mb-6 leading-relaxed">
         Themes and versions you started but haven't published yet. A draft is
         kept for 7 days after its last change.
       </p>
 
-      <ul className="space-y-3">
-        {drafts.map((draft) => {
-          return (
-            <li
-              key={draft.code}
-              className="bg-ctp-base rounded-lg border border-ctp-surface0 p-4"
-            >
-              <div className="flex flex-wrap items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-ctp-text font-semibold truncate">
-                      {draftTitle(draft)}
-                    </span>
-                    <span
-                      className={cn(
-                        "rounded-full border px-2 py-0.5 text-xs",
-                        STATUS_STYLES[draft.status],
-                      )}
-                    >
-                      {statusLabel(draft)}
-                    </span>
-                  </div>
-                  <p className="text-sm text-ctp-subtext0 font-mono mt-1">
-                    {draft.kind === "theme"
-                      ? `${draft.slug} • new theme`
-                      : `${draft.theme?.slug} • new version`}{" "}
-                    • {draft.code}
-                  </p>
-                  <p className="text-xs text-ctp-subtext0 mt-2">
-                    Updated <TimeAgo date={draft.updatedAt} /> · kept until{" "}
-                    <LocalDate date={draft.expiresAt} />
-                    {draft.source && <> · from {draft.source}</>}
-                  </p>
-                </div>
+      {drafts.length === 0 && (
+        <p className="text-sm text-ctp-subtext0">
+          No drafts right now - start one from{" "}
+          <Link href="/upload" className="underline">
+            Upload
+          </Link>{" "}
+          or with <code className="text-ctp-subtext1">stellar publish</code>.
+        </p>
+      )}
 
-                <div className="flex items-center gap-2 shrink-0">
-                  <Link
-                    href={`/upload/${draft.code}`}
-                    className="flex items-center gap-2 px-4 py-2 text-sm bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 border-ctp-surface1 transition"
-                  >
-                    Continue
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                  <button
-                    onClick={() => setDeleting(draft)}
-                    type="button"
-                    className="p-2 text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded transition cursor-pointer"
-                    title="Delete draft"
-                    aria-label={`Delete draft ${draft.code}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+      {drafts.length > 0 && (
+        <ul className="space-y-3">
+          {drafts.map((draft) => {
+            return (
+              <li
+                key={draft.code}
+                className="bg-ctp-base rounded-lg border border-ctp-surface0 p-4"
+              >
+                <div className="flex flex-wrap items-start gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-ctp-text font-semibold truncate">
+                        {draftTitle(draft)}
+                      </span>
+                      <span
+                        className={cn(
+                          "rounded-full border px-2 py-0.5 text-xs",
+                          STATUS_STYLES[draft.status],
+                        )}
+                      >
+                        {statusLabel(draft)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-ctp-subtext0 font-mono mt-1">
+                      {draft.kind === "theme"
+                        ? `${draft.slug} • new theme`
+                        : `${draft.theme?.slug} • new version`}{" "}
+                      • {draft.code}
+                    </p>
+                    <p className="text-xs text-ctp-subtext0 mt-2">
+                      Updated <TimeAgo date={draft.updatedAt} /> · kept until{" "}
+                      <LocalDate date={draft.expiresAt} />
+                      {draft.source && <> · from {draft.source}</>}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Link
+                      href={`/upload/${draft.code}`}
+                      className="flex items-center gap-2 px-4 py-2 text-sm bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 border-ctp-surface1 transition"
+                    >
+                      Continue
+                      <ArrowRight className="w-4 h-4" />
+                    </Link>
+                    <button
+                      onClick={() => setDeleting(draft)}
+                      type="button"
+                      className="p-2 text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded transition cursor-pointer"
+                      title="Delete draft"
+                      aria-label={`Delete draft ${draft.code}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       {deleting && (
         <ConfirmDialog

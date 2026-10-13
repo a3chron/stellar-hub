@@ -53,7 +53,7 @@ export default function SlugField({
         {availability.state === "unavailable" && (
           <>
             {" "}
-            <Link href="/settings" className="underline">
+            <Link href="/settings#themes" className="underline">
               Publish a new version of it from settings
             </Link>
             .

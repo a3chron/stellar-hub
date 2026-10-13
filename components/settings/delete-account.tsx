@@ -92,7 +92,7 @@ export default function DeleteAccount({
 
   return (
     <SettingsSection id="danger-zone" title="Danger zone" tone="danger">
-      <div className="flex flex-col gap-4 rounded-lg border border-ctp-red/30 bg-ctp-base p-3 sm:flex-row sm:items-center sm:gap-6 sm:p-4">
+      <div className="flex flex-col gap-4 rounded-lg border border-ctp-surface0 bg-ctp-base p-3 sm:flex-row sm:items-center sm:gap-6 sm:p-4">
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold text-ctp-text">Delete account</h3>
           <p className="mt-1 text-sm leading-relaxed text-ctp-subtext0">

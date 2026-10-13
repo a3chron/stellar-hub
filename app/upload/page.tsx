@@ -1,8 +1,11 @@
+import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import UploadForm from "@/components/upload-form";
+import ThemeWizard from "@/components/wizard/theme-wizard";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { user } from "@/lib/db/schema";
 
 export default async function UploadPage() {
   const session = await auth.api.getSession({
@@ -18,6 +21,17 @@ export default async function UploadPage() {
     orderBy: (colorSchemes, { asc }) => [asc(colorSchemes.name)],
   });
 
+  // Always set in the database; better-auth only types it as optional.
+  const author =
+    session.user.username ??
+    (
+      await db.query.user.findFirst({
+        where: eq(user.id, session.user.id),
+        columns: { username: true },
+      })
+    )?.username ??
+    "";
+
   return (
     <main className="bg-ctp-base">
       <div className="container mx-auto px-4 py-12">
@@ -26,9 +40,20 @@ export default async function UploadPage() {
             Publish Theme
           </h1>
           <p className="mb-8 text-ctp-subtext0">
-            Share your Starship theme with the community
+            Share your Starship theme with the community. Prefer the terminal?{" "}
+            <Link
+              href="/docs/publishing"
+              className="text-ctp-lavender underline underline-offset-2"
+            >
+              stellar publish
+            </Link>{" "}
+            does it too.
           </p>
-          <UploadForm colorSchemes={colorSchemes} />
+          <ThemeWizard
+            author={author}
+            colorSchemes={colorSchemes}
+            initialDraft={null}
+          />
         </div>
       </div>
     </main>

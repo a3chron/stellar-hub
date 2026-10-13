@@ -3,12 +3,14 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import CliSessions from "@/components/settings/cli-sessions";
 import DeleteAccount from "@/components/settings/delete-account";
+import Drafts from "@/components/settings/drafts";
 import ProfileSettings from "@/components/settings/profile-settings";
 import ThemeManagement from "@/components/settings/theme-management";
 import UsernameSettings from "@/components/settings/username-settings";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { cliTokens } from "@/lib/db/schema";
+import { cliTokens, themeDrafts } from "@/lib/db/schema";
+import { purgeExpiredDrafts, serializeDrafts } from "@/lib/drafts";
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -41,6 +43,16 @@ export default async function SettingsPage() {
     orderBy: (colorSchemes, { asc }) => [asc(colorSchemes.name)],
   });
 
+  await purgeExpiredDrafts(user.id);
+  const drafts = await serializeDrafts(
+    await db
+      .select()
+      .from(themeDrafts)
+      .where(eq(themeDrafts.userId, user.id))
+      .orderBy(desc(themeDrafts.updatedAt)),
+    { includeConfig: false },
+  );
+
   const cliLogins = await db
     .select({
       id: cliTokens.id,
@@ -67,6 +79,7 @@ export default async function SettingsPage() {
               user={user}
               hasPublishedThemes={user.themes.length > 0}
             />
+            {drafts.length > 0 && <Drafts drafts={drafts} />}
             <ThemeManagement
               author={user.username}
               themes={user.themes}

@@ -1,0 +1,206 @@
+"use client";
+
+import { ArrowLeft, ArrowRight, Loader2, RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { LocalDate } from "@/components/local-time";
+import type { ApiErrorBody, Draft } from "@/lib/draft-shared";
+import { existingDraftCode } from "@/lib/drafts-client";
+
+// Building blocks shared by the theme and version wizards.
+
+const FIELD_LABELS: Record<string, string> = {
+  name: "Theme Name",
+  slug: "Slug",
+  description: "Description",
+  group: "Group",
+  colorMode: "Theme Mode",
+  colorSchemeId: "Color Scheme",
+  dependencies: "Dependencies",
+  minStarshipVersion: "Minimum Starship Version",
+  version: "Version",
+  versionNotes: "Version Notes",
+  config: "Starship Config",
+  source: "Source",
+};
+
+/** "Theme Name: must be 100 characters or less" for a validation error. */
+function describe(error: ApiErrorBody): string {
+  if (error.code === "validation_failed" && error.details) {
+    const [field, messages] =
+      Object.entries(error.details as Record<string, string[]>)[0] ?? [];
+    if (field && messages?.[0]) {
+      return `${FIELD_LABELS[field] ?? field}: ${messages[0]}`;
+    }
+  }
+  return error.error;
+}
+
+export function ErrorBox({ error }: { error: ApiErrorBody }) {
+  const draftCode = existingDraftCode(error);
+
+  let action: React.ReactNode = null;
+  if (draftCode) {
+    action = (
+      <Link href={`/upload/${draftCode}`} className="underline">
+        Continue that draft
+      </Link>
+    );
+  } else if (error.code === "duplicate_slug") {
+    action = (
+      <Link href="/settings" className="underline">
+        Publish a new version from settings
+      </Link>
+    );
+  } else if (error.code === "too_many_drafts") {
+    action = (
+      <Link href="/settings#drafts" className="underline">
+        Manage your drafts
+      </Link>
+    );
+  }
+
+  return (
+    <p
+      role="alert"
+      className="text-sm text-ctp-red border-2 border-ctp-red/40 bg-ctp-mantle rounded-lg p-3"
+    >
+      {describe(error)}
+      {action && <> {action}.</>}
+    </p>
+  );
+}
+
+// The primary button submits the surrounding <form>, so Enter in a field moves
+// on too.
+export function WizardNav({
+  onBack,
+  nextLabel,
+  busy,
+  nextDisabled = false,
+}: {
+  onBack: (() => void) | null;
+  nextLabel: string;
+  busy: boolean;
+  nextDisabled?: boolean;
+}) {
+  return (
+    <div className="flex gap-3 pt-2">
+      {onBack && (
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={busy}
+          className="flex items-center gap-2 px-4 py-3 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-lg border-2 border-ctp-surface1 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <ArrowLeft size={16} />
+          Back
+        </button>
+      )}
+      <button
+        type="submit"
+        disabled={busy || nextDisabled}
+        className="flex flex-1 items-center justify-center gap-2 bg-ctp-text hover:bg-ctp-subtext1 border-2 border-ctp-subtext0 text-ctp-base py-3 rounded-lg font-semibold transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {busy && <Loader2 size={16} className="animate-spin" />}
+        {nextLabel}
+        {!busy && nextLabel === "Next" && <ArrowRight size={16} />}
+      </button>
+    </div>
+  );
+}
+
+/** Shown in place of the wizard once its draft has disappeared server-side. */
+export function GoneBanner({
+  onStartOver,
+  busy,
+  error,
+}: {
+  onStartOver: () => void;
+  busy: boolean;
+  error: ApiErrorBody | null;
+}) {
+  return (
+    <div className="space-y-4 rounded-lg border-2 border-ctp-peach/40 bg-ctp-mantle p-6">
+      <h2 className="text-xl font-semibold text-ctp-text">
+        This draft expired, was published or deleted
+      </h2>
+      <p className="text-sm text-ctp-subtext0 leading-relaxed">
+        Everything you entered on this page is still here. Start a new draft
+        with it - a screenshot has to be added again.
+      </p>
+      {error && <ErrorBox error={error} />}
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onStartOver}
+          disabled={busy}
+          className="flex items-center gap-2 px-4 py-2 bg-ctp-text hover:bg-ctp-subtext1 border-2 border-ctp-subtext0 text-ctp-base rounded-lg font-semibold transition cursor-pointer disabled:opacity-50"
+        >
+          {busy ? (
+            <Loader2 size={16} className="animate-spin" />
+          ) : (
+            <RotateCcw size={16} />
+          )}
+          Start over with my inputs
+        </button>
+        <Link
+          href="/settings#drafts"
+          className="px-4 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-lg border-2 border-ctp-surface1 transition"
+        >
+          Your drafts
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/** "Draft K7QF2M · saved automatically, kept until 19.10.2026". */
+export function DraftStatusLine({ draft }: { draft: Draft | null }) {
+  if (!draft) {
+    return (
+      <p className="text-xs text-ctp-subtext0 -mt-4 mb-6">
+        Your progress is saved as a draft from the first step on.
+      </p>
+    );
+  }
+  return (
+    <p className="text-xs text-ctp-subtext0 -mt-4 mb-6">
+      Draft <span className="font-mono text-ctp-subtext1">{draft.code}</span> ·
+      saved as you go, kept until <LocalDate date={draft.expiresAt} />
+    </p>
+  );
+}
+
+export function ReviewRow({
+  label,
+  children,
+  onEdit,
+  missing = false,
+}: {
+  label: string;
+  children: React.ReactNode;
+  onEdit?: () => void;
+  missing?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-4 py-3 border-b border-ctp-surface0 last:border-b-0">
+      <dt className="w-36 shrink-0 text-sm text-ctp-subtext0">{label}</dt>
+      <dd className="flex-1 min-w-0 text-sm text-ctp-text break-words">
+        {missing ? <span className="text-ctp-red">Missing</span> : children}
+      </dd>
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="shrink-0 text-xs text-ctp-lavender underline underline-offset-2 cursor-pointer"
+        >
+          Edit
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function Muted({ children }: { children: React.ReactNode }) {
+  return <span className="text-ctp-overlay1">{children}</span>;
+}

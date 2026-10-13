@@ -5,9 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { LocalDate } from "@/components/local-time";
+import type { Draft } from "@/lib/draft-shared";
+import { apiFetch, existingDraftCode, jsonRequest } from "@/lib/drafts-client";
 import { formatDownloads } from "@/lib/utils";
 import EditMetadataForm from "../edit-metadata-form";
-import UpdateConfigForm from "../update-config-form";
 
 interface Theme {
   id: string;
@@ -42,10 +44,37 @@ export default function ThemeManagement({
 }: ThemeManagementProps) {
   const router = useRouter();
   const [editingMetadata, setEditingMetadata] = useState<string | null>(null);
-  const [updatingConfig, setUpdatingConfig] = useState<string | null>(null);
+  const [startingVersion, setStartingVersion] = useState<string | null>(null);
+  const [versionError, setVersionError] = useState<{
+    slug: string;
+    message: string;
+  } | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // A new version is put together as a draft in the upload wizard. An open
+  // version draft for the theme (from an earlier visit, or from
+  // `stellar publish`) is continued rather than duplicated.
+  const startVersion = async (slug: string) => {
+    setStartingVersion(slug);
+    setVersionError(null);
+
+    const result = await apiFetch<Draft>(
+      "/api/drafts",
+      jsonRequest("POST", { kind: "version", themeSlug: slug }),
+    );
+    const code = result.ok ? result.data.code : existingDraftCode(result.error);
+    if (code) {
+      router.push(`/upload/${code}`);
+      return;
+    }
+
+    setStartingVersion(null);
+    if (!result.ok) {
+      setVersionError({ slug, message: result.error.error });
+    }
+  };
 
   const handleDelete = async (slug: string) => {
     if (deleteConfirm !== slug) {
@@ -101,7 +130,6 @@ export default function ThemeManagement({
   }
 
   const editingTheme = themes.find((t) => t.slug === editingMetadata);
-  const updatingTheme = themes.find((t) => t.slug === updatingConfig);
 
   return (
     <>
@@ -176,12 +204,17 @@ export default function ThemeManagement({
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => setUpdatingConfig(theme.slug)}
+                          onClick={() => startVersion(theme.slug)}
                           type="button"
-                          className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer"
-                          title="Update config"
+                          disabled={startingVersion !== null}
+                          className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                          title="New version"
                         >
-                          <Upload className="w-4 h-4" />
+                          {startingVersion === theme.slug ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Upload className="w-4 h-4" />
+                          )}
                         </button>
                         <button
                           onClick={() => handleDelete(theme.slug)}
@@ -231,9 +264,15 @@ export default function ThemeManagement({
                       <span>{theme.versions.length} versions</span>
                       <span>•</span>
                       <span>
-                        Updated {new Date(theme.updatedAt).toLocaleDateString()}
+                        Updated <LocalDate date={theme.updatedAt} />
                       </span>
                     </div>
+
+                    {versionError?.slug === theme.slug && (
+                      <p role="alert" className="mt-3 text-sm text-ctp-red">
+                        {versionError.message}
+                      </p>
+                    )}
 
                     {/* Delete confirmation */}
                     {deleteConfirm === theme.slug && (
@@ -267,17 +306,6 @@ export default function ThemeManagement({
           theme={editingTheme}
           colorSchemes={colorSchemes}
           onCancel={() => setEditingMetadata(null)}
-        />
-      )}
-
-      {/* Update Config Modal */}
-      {updatingTheme?.versions[0] && (
-        <UpdateConfigForm
-          author={author}
-          themeSlug={updatingTheme.slug}
-          themeName={updatingTheme.name}
-          latestVersion={updatingTheme.versions[0]}
-          onCancel={() => setUpdatingConfig(null)}
         />
       )}
     </>

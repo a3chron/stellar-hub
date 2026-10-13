@@ -41,6 +41,14 @@ export interface Draft {
   expiresAt: string;
 }
 
+/** What POST /api/drafts/[code]/publish answers. */
+export interface PublishResult {
+  author: string;
+  slug: string;
+  version: string;
+  url: string;
+}
+
 /** The error body every CLI-facing route uses. */
 export interface ApiErrorBody {
   error: string;

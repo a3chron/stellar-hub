@@ -17,7 +17,7 @@ import { usernameEquals } from "@/lib/username";
 
 type RouteParams = { params: Promise<{ author: string; slug: string }> };
 
-// Mirrors the limits /api/upload enforces at create time, so a field that
+// Mirrors the limits the drafts API enforces at create time, so a field that
 // can't exceed 500 characters on a new theme can't exceed it on an edit
 // either. Every field is optional: PATCH callers may send a subset, and an
 // omitted or blank one keeps/clears the stored value as before.

@@ -4,6 +4,7 @@ import { APP_URL } from "@/lib/app-url";
 import { db } from "@/lib/db";
 import { themeDrafts, themes, themeVersions } from "@/lib/db/schema";
 import type { ThemeDraft } from "@/lib/db/types";
+import type { PublishResult } from "@/lib/draft-shared";
 import {
   draftMissing,
   normalizeDraftCode,
@@ -16,13 +17,6 @@ import { compareVersions, pickLatestVersion } from "@/lib/versions";
 
 // The one way anything gets published - the wizard's Publish button and
 // `stellar publish --publish` both end up here.
-
-export interface PublishResult {
-  author: string;
-  slug: string;
-  version: string;
-  url: string;
-}
 
 /** A publish refusal, carrying the API error it maps to. */
 export class PublishError extends Error {

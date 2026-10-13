@@ -25,6 +25,16 @@ const BAR_CLASS: Record<StepStatus, string> = {
   error: "bg-ctp-red",
 };
 
+// The current step's ring: its own bar colour, faded, so the ring marks
+// "you are here" without competing with the status colours. An empty bar's
+// surface colour would vanish against the page, so it uses a brighter grey.
+const RING_CLASS: Record<StepStatus, string> = {
+  empty: "ring-ctp-overlay0/50",
+  partial: "ring-ctp-lavender/40",
+  complete: "ring-ctp-green/40",
+  error: "ring-ctp-red/40",
+};
+
 // Colour alone doesn't say anything to a screen reader (or to everyone who
 // can't tell red from green), so every status but "empty" is also spelled out.
 const STATUS_TEXT: Record<StepStatus, string | null> = {
@@ -115,14 +125,16 @@ export default function Stepper({
                 onClick={() => onSelect(index)}
                 disabled={!reachable || isCurrent}
                 aria-current={isCurrent ? "step" : undefined}
-                className="group w-full text-left cursor-pointer disabled:cursor-default"
+                // The gap, not a margin on the label: `not-sr-only` resets margins, so a
+                // label margin only ever applied to the current step.
+                className="group flex w-full flex-col gap-2 text-left cursor-pointer disabled:cursor-default"
               >
                 <span
                   className={cn(
                     "block h-1.5 rounded-full transition-colors",
                     BAR_CLASS[stepStatus],
                     isCurrent &&
-                      "ring-2 ring-offset-2 ring-offset-ctp-base ring-ctp-overlay1",
+                      `ring-2 ring-offset-2 ring-offset-ctp-base ${RING_CLASS[stepStatus]}`,
                     reachable &&
                       !isCurrent &&
                       "group-hover:ring-1 group-hover:ring-offset-1 group-hover:ring-offset-ctp-base group-hover:ring-ctp-surface2",
@@ -130,7 +142,7 @@ export default function Stepper({
                 />
                 <span
                   className={cn(
-                    "mt-2 items-center gap-1.5 text-xs",
+                    "items-center gap-1.5 text-xs",
                     labelClass,
                     // On a phone only the current step is labelled visibly;
                     // the others keep theirs for screen readers.

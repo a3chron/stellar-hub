@@ -17,6 +17,10 @@ hub.
 | `stellar clean` | Remove cached themes you're not using |
 | `stellar remove` | Remove one or more cached themes |
 | `stellar rollback` | Switch back to the previously applied theme |
+| `stellar new` | Create a new, empty theme of your own |
+| `stellar fork` | Copy a theme into one you own, to edit freely |
+| `stellar publish` | Upload a local theme (or a new version) to the hub |
+| `stellar auth` | Log in to the hub, check the login, or log out |
 | `stellar update` | Update the stellar CLI itself |
 | `stellar version` | Show the installed version and check for updates |
 | `stellar uninstall` | Remove stellar, keeping your current prompt as a plain file |
@@ -145,6 +149,65 @@ Switches back to whichever theme was applied before the current one.
 ```bash
 stellar rollback
 ```
+
+## new
+
+Creates a theme of your own with a small starter config, at
+`~/.config/stellar/<you>/<name>/1.0.toml`. Never overwrites an existing
+file.
+
+```bash
+stellar new my-theme
+
+# Under a specific author folder
+stellar new a3chron/my-theme
+```
+
+## fork
+
+Copies a theme from the hub (or from your cache, when offline) into one you
+own, with a line crediting the original at the top.
+
+```bash
+stellar fork a3chron/ctp-blue cozy-blue
+
+# Fork a specific version
+stellar fork a3chron/ctp-blue@1.2 cozy-blue
+```
+
+Themes made with `new` and `fork` are never removed by `stellar clean`.
+
+## publish
+
+Uploads a local theme to the hub as a draft and prints a link to finish it
+in the browser - or publishes it right away with `--publish`. Already
+published? Then it starts the next version instead.
+
+```bash
+stellar publish my-theme
+
+# A file or a folder works too
+stellar publish ./starship.toml --slug my-theme
+
+# Skip the browser
+stellar publish my-theme --publish --screenshot ./prompt.png
+```
+
+Every flag, drafts and new versions are covered in
+[Publishing](/docs/publishing).
+
+## auth
+
+Logs the CLI in to the hub through your browser - `publish` needs it.
+
+```bash
+stellar auth          # log in
+stellar auth status   # show who you're logged in as
+stellar auth logout   # revoke this login
+```
+
+See [Publishing](/docs/publishing#log-in-once) for what the login can do and
+how to revoke it.
 
 ## update
 

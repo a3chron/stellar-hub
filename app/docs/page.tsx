@@ -19,7 +19,8 @@ export default function DocsPage() {
     <div>
       <h1 className="text-4xl font-bold mb-2">Documentation</h1>
       <p className="text-ctp-subtext0">
-        Everything you need to install, configure and troubleshoot stellar.
+        Everything you need to install, configure and troubleshoot stellar - and
+        to publish your own themes.
       </p>
 
       <div className="grid sm:grid-cols-2 gap-6 mt-8">

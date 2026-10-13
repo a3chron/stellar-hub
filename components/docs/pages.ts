@@ -1,4 +1,4 @@
-import { Bug, Cog, Download, Palette, Terminal } from "lucide-react";
+import { Bug, Cog, Download, Palette, Terminal, Upload } from "lucide-react";
 
 /**
  * Single source of truth for the docs pages: the sidebar/pill nav, the
@@ -46,6 +46,14 @@ export const DOCS_PAGES = {
     icon: Cog,
     iconClassName: "text-ctp-mauve",
   },
+  publishing: {
+    href: "/docs/publishing",
+    title: "Publishing",
+    description:
+      "Log in from the CLI, publish themes and new versions, and manage drafts.",
+    icon: Upload,
+    iconClassName: "text-ctp-teal",
+  },
   troubleshooting: {
     href: "/docs/troubleshooting",
     title: "Troubleshooting",
@@ -70,6 +78,7 @@ export const DOCS_NAV_KEYS: DocsPageKey[] = [
   "installing",
   "commands",
   "how-it-works",
+  "publishing",
   "troubleshooting",
 ];
 
@@ -78,5 +87,6 @@ export const DOCS_CARD_KEYS: DocsPageKey[] = [
   "installing",
   "commands",
   "how-it-works",
+  "publishing",
   "troubleshooting",
 ];

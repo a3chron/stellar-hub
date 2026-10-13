@@ -1,11 +1,13 @@
 import { and, eq } from "drizzle-orm";
 import { type NextRequest, NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
 import { db } from "@/lib/db";
 import { themes, themeVersions } from "@/lib/db/schema";
 import type { ThemeVersion } from "@/lib/db/types";
+import { getSessionUser } from "@/lib/request-auth";
 import { hasCustomSections } from "@/lib/toml-custom-detect";
 import { usernameEquals } from "@/lib/username";
-import { pickLatestVersion } from "@/lib/versions";
+import { pickLatestVersion, VERSION_PATTERN } from "@/lib/versions";
 
 type RouteParams = {
   params: Promise<{ author: string; slug: string; version: string }>;
@@ -122,5 +124,124 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       { error: "Failed to download theme" },
       { status: 500 },
     );
+  }
+}
+
+/**
+ * DELETE /api/[author]/[slug]/[version]
+ * Delete one version of a theme (requires authentication and ownership).
+ *
+ * Never the theme's latest version: a new version has to be numerically
+ * greater than the latest, so a deleted number is always below it and can
+ * never be published again with different content. That keeps `stellar`
+ * caches, which are keyed by version number, honest - an `@1.1` someone
+ * already has can't silently turn into another config.
+ */
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const {
+      author: authorName,
+      slug: themeSlug,
+      version: versionIn,
+    } = await params;
+
+    // Session only (no CLI token), with the Origin check every
+    // cookie-authenticated, state-changing route gets.
+    const sessionUser = await getSessionUser(request);
+    if (!sessionUser.ok) {
+      return sessionUser.response;
+    }
+    const { user } = sessionUser;
+
+    // Same normalization as GET, but "latest" is a moving target - deleting
+    // has to name the exact version.
+    const version = versionIn.replace(/^v/, "");
+    if (version === "latest") {
+      return apiError(
+        400,
+        'Name the exact version to delete, like 1.2 - "latest" isn\'t accepted here',
+        "invalid_version",
+      );
+    }
+    if (!VERSION_PATTERN.test(version)) {
+      return apiError(
+        400,
+        `"${versionIn}" isn't a version number like 1.2`,
+        "invalid_version",
+      );
+    }
+
+    const author = await db.query.user.findFirst({
+      where: (users) => usernameEquals(users.username, authorName),
+    });
+
+    if (!author) {
+      return apiError(404, "Author not found", "author_not_found");
+    }
+
+    const theme = await db.query.themes.findFirst({
+      where: and(eq(themes.authorId, author.id), eq(themes.slug, themeSlug)),
+    });
+
+    if (!theme) {
+      return apiError(404, "Theme not found", "theme_not_found");
+    }
+
+    if (theme.authorId !== user.id) {
+      return apiError(403, "You do not own this theme", "not_theme_owner");
+    }
+
+    return await db.transaction(async (tx) => {
+      // Locked like publishVersion() in lib/publish.ts does, so a publish or
+      // another delete of this theme runs strictly before or after this one
+      // and the "is it the latest" check below can't go stale.
+      const [locked] = await tx
+        .select({ id: themes.id })
+        .from(themes)
+        .where(and(eq(themes.id, theme.id), eq(themes.authorId, user.id)))
+        .for("update");
+      if (!locked) {
+        return apiError(404, "Theme not found", "theme_not_found");
+      }
+
+      const versions = await tx
+        .select({ id: themeVersions.id, version: themeVersions.version })
+        .from(themeVersions)
+        .where(eq(themeVersions.themeId, locked.id));
+
+      const target = versions.find((existing) => existing.version === version);
+      if (!target) {
+        return apiError(
+          404,
+          `Version ${version} not found`,
+          "version_not_found",
+        );
+      }
+
+      if (versions.length === 1) {
+        return apiError(
+          409,
+          "A theme needs at least one version - delete the whole theme instead",
+          "only_version",
+        );
+      }
+
+      if (pickLatestVersion(versions)?.id === target.id) {
+        return apiError(
+          409,
+          "The latest version can't be deleted - publish a newer version first, or delete the whole theme",
+          "latest_version",
+        );
+      }
+
+      // themes.updatedAt stays as it is: it drives the "Latest" sorting, and
+      // removing an old version isn't news.
+      await tx.delete(themeVersions).where(eq(themeVersions.id, target.id));
+
+      return NextResponse.json({ success: true });
+    });
+  } catch (error) {
+    console.error("Version delete error:", error);
+    return apiError(500, "Internal server error");
   }
 }

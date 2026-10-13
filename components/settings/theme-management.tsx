@@ -63,6 +63,7 @@ export default function ThemeManagement({
   const [versionError, setVersionError] = useState<{
     slug: string;
     message: string;
+    code?: string;
   } | null>(null);
   const [deleting, setDeleting] = useState<Theme | null>(null);
   const { headingRef, buttonRef, removing } = useFocusAfterRemoval(
@@ -88,7 +89,11 @@ export default function ThemeManagement({
 
     setStartingVersion(null);
     if (!result.ok) {
-      setVersionError({ slug, message: result.error.error });
+      setVersionError({
+        slug,
+        message: result.error.error,
+        code: result.error.code,
+      });
     }
   };
 
@@ -211,6 +216,7 @@ export default function ThemeManagement({
                           type="button"
                           className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer"
                           title="Edit metadata"
+                          aria-label={`Edit metadata of ${theme.name}`}
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
@@ -220,6 +226,7 @@ export default function ThemeManagement({
                           disabled={startingVersion !== null}
                           className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                           title="New version"
+                          aria-label={`New version of ${theme.name}`}
                         >
                           {startingVersion === theme.slug ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -265,6 +272,15 @@ export default function ThemeManagement({
                     {versionError?.slug === theme.slug && (
                       <p role="alert" className="mt-3 text-sm text-ctp-red">
                         {versionError.message}
+                        {versionError.code === "too_many_drafts" && (
+                          <>
+                            .{" "}
+                            <Link href="/settings#drafts" className="underline">
+                              Manage your drafts
+                            </Link>
+                            .
+                          </>
+                        )}
                       </p>
                     )}
                   </div>

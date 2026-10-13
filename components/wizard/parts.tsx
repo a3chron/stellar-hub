@@ -2,6 +2,7 @@
 
 import { ArrowLeft, ArrowRight, Loader2, RotateCcw } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useRef } from "react";
 import LegalLink from "@/components/legal-link";
 import { LocalDate } from "@/components/local-time";
@@ -39,10 +40,25 @@ function describe(error: ApiErrorBody): string {
 }
 
 export function ErrorBox({ error }: { error: ApiErrorBody }) {
+  const pathname = usePathname();
   const draftCode = existingDraftCode(error);
+  const sessionExpired = error.code === "unauthorized";
 
   let action: React.ReactNode = null;
-  if (draftCode) {
+  if (sessionExpired) {
+    // A new tab, so whatever is filled in here survives signing in; back
+    // here, the next try goes through.
+    action = (
+      <Link
+        href={`/login?callbackUrl=${encodeURIComponent(pathname)}`}
+        target="_blank"
+        rel="noopener"
+        className="underline"
+      >
+        Sign in again (opens a new tab), then try once more here
+      </Link>
+    );
+  } else if (draftCode) {
     action = (
       <Link href={`/upload/${draftCode}`} className="underline">
         Continue that draft
@@ -64,7 +80,7 @@ export function ErrorBox({ error }: { error: ApiErrorBody }) {
 
   // The API's messages mostly end without a full stop; the link is its own
   // sentence either way.
-  const message = describe(error);
+  const message = sessionExpired ? "Your session has expired" : describe(error);
   const separator = /[.!?]$/.test(message) ? " " : ". ";
 
   return (

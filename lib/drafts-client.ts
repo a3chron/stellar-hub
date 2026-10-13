@@ -35,7 +35,9 @@ export async function apiFetch<T>(
   if (response.ok && body !== null) {
     return { ok: true, status: response.status, data: body as T };
   }
-  if (body && typeof body.error === "string") {
+  // Our own errors carry a message worth showing - except a server error,
+  // whose "Internal server error" says nothing useful.
+  if (body && typeof body.error === "string" && response.status < 500) {
     return { ok: false, status: response.status, error: body };
   }
   if (response.status === 413) {
@@ -48,11 +50,12 @@ export async function apiFetch<T>(
       },
     };
   }
-  return {
-    ok: false,
-    status: response.status,
-    error: { error: `stellar-hub returned ${response.status}` },
-  };
+  // A server error, or a proxy page instead of one of our JSON errors.
+  const error =
+    response.status >= 500
+      ? `Something went wrong on our side (${response.status}) - please try again in a moment.`
+      : `Something went wrong (${response.status}) - please try again.`;
+  return { ok: false, status: response.status, error: { error } };
 }
 
 export function jsonRequest(method: string, body: unknown): RequestInit {

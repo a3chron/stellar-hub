@@ -17,6 +17,7 @@ import {
   isValidAvatarFilename,
   isValidScreenshotFilename,
 } from "@/lib/file-validation";
+import { checkOrigin } from "@/lib/request-auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
 const deleteAccountSchema = z.object({
@@ -43,6 +44,15 @@ export async function DELETE(request: NextRequest) {
 
     if (!authSession) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Cookie-authenticated and state-changing, so only from our own pages:
+    // the session cookie alone mustn't let another site do this (checkOrigin).
+    if (!checkOrigin(request)) {
+      return NextResponse.json(
+        { error: "Request origin not allowed" },
+        { status: 403 },
+      );
     }
 
     const body = await request.json().catch(() => null);

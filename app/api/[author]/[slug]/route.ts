@@ -11,6 +11,7 @@ import {
   isValidScreenshotFilename,
 } from "@/lib/file-validation";
 import { downloadRateLimiter, getClientIP } from "@/lib/rate-limit";
+import { checkOrigin } from "@/lib/request-auth";
 import { validateScreenshotFile } from "@/lib/screenshot-validation";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usernameEquals } from "@/lib/username";
@@ -131,7 +132,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  * DELETE /api/[author]/[slug]
  * Delete a theme (requires authentication and ownership)
  */
-export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { author: authorName, slug: themeSlug } = await params;
 
@@ -141,6 +142,15 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Cookie-authenticated and state-changing, so only from our own pages:
+    // the session cookie alone mustn't let another site do this (checkOrigin).
+    if (!checkOrigin(request)) {
+      return NextResponse.json(
+        { error: "Request origin not allowed" },
+        { status: 403 },
+      );
     }
 
     const author = await db.query.user.findFirst({
@@ -215,6 +225,15 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Cookie-authenticated and state-changing, so only from our own pages:
+    // the session cookie alone mustn't let another site do this (checkOrigin).
+    if (!checkOrigin(request)) {
+      return NextResponse.json(
+        { error: "Request origin not allowed" },
+        { status: 403 },
+      );
     }
 
     const author = await db.query.user.findFirst({

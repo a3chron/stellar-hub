@@ -10,7 +10,7 @@ import SettingsSection, { buttonClass, FIELD } from "./settings-section";
 // What /api/settings/profile accepts for an avatar - checked here as well so
 // a too-large file is refused on selection, not after the upload.
 const AVATAR_TYPES = "image/png,image/jpeg,image/webp";
-const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+const AVATAR_MAX_BYTES = 4 * 1024 * 1024;
 
 export default function ProfileSettings({ user }: { user: UserType }) {
   const router = useRouter();
@@ -47,7 +47,7 @@ export default function ProfileSettings({ user }: { user: UserType }) {
       return;
     }
     if (file.size > AVATAR_MAX_BYTES) {
-      setAvatarError("That image is larger than 5 MB - pick a smaller one.");
+      setAvatarError("That image is larger than 4 MB - pick a smaller one.");
       e.target.value = "";
       return;
     }
@@ -115,6 +115,10 @@ export default function ProfileSettings({ user }: { user: UserType }) {
                 alt={user.name}
                 fill
                 sizes="112px"
+                // Like the avatars on the profile page: Google and GitLab
+                // avatar hosts aren't in images.remotePatterns, and a picked
+                // file is a data: URL.
+                unoptimized
                 className="object-cover"
               />
             ) : (
@@ -144,7 +148,7 @@ export default function ProfileSettings({ user }: { user: UserType }) {
               id={`${fieldId}-avatar-hint`}
               className="text-xs leading-relaxed text-ctp-subtext0"
             >
-              PNG, JPEG or WebP, up to 5 MB.
+              PNG, JPEG or WebP, up to 4 MB.
               {user.image?.includes("github") && !imageFile && (
                 <> Currently using your GitHub profile picture.</>
               )}

@@ -149,6 +149,16 @@ function useActiveSection(ids: string[]) {
     const inBand = new Set<string>();
     let atEnd = false;
 
+    // Opened at /settings#cli-logins (the CLI and the authorize page link
+    // there): ScrollToHash brings that section up, but near the end of the
+    // page the end-of-page rule below would hand the highlight to the last
+    // section. Treat it like a click instead.
+    const fromHash = decodeURIComponent(window.location.hash.slice(1));
+    if (order.includes(fromHash)) {
+      lockedRef.current = true;
+      setActiveId(fromHash);
+    }
+
     function pick() {
       if (lockedRef.current) {
         return;

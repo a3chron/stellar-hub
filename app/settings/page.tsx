@@ -89,6 +89,9 @@ export default async function SettingsPage() {
                 alt=""
                 fill
                 sizes="64px"
+                // OAuth avatars come from hosts images.remotePatterns doesn't
+                // list (Google, GitLab), same as on the profile page.
+                unoptimized
                 className="object-cover"
               />
             ) : (
@@ -114,7 +117,11 @@ export default async function SettingsPage() {
             className={`${buttonClass("secondary", "sm")} shrink-0`}
           >
             <Eye aria-hidden="true" className="size-4" />
-            <span className="sm:hidden">Public profile</span>
+            {/* Icon only below 360px, where the label would run into the
+                heading - still read out by screen readers. */}
+            <span className="sr-only min-[360px]:not-sr-only sm:hidden">
+              Public profile
+            </span>
             <span className="hidden sm:inline">View public profile</span>
           </Link>
         </header>

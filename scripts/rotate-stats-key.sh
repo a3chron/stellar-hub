@@ -46,20 +46,22 @@ KEY="$(od -An -tx1 -N32 /dev/urandom | tr -d ' \n')"
 # The key reaches awk through its environment, never its arguments: argv is
 # readable by every local user (ps, /proc/*/cmdline), the environment isn't.
 set_var_in_file() {
-  local file="$1" var="$2" tmp
+  local file="$1" var="$2" content
 
   if [ -f "$file" ]; then
-    tmp="$(mktemp "$file.XXXXXX")" # 0600, it briefly holds the whole file
-    VAR="$var" VALUE="$KEY" awk '
+    [ -w "$file" ] || die "$file is not writable"
+    # Built in memory, never in a temp file: an interrupted run must not leave
+    # a copy of every secret in the file lying next to it, where git doesn't
+    # ignore it. If awk fails, set -e stops before the file is touched.
+    content="$(VAR="$var" VALUE="$KEY" awk '
       BEGIN { line = ENVIRON["VAR"] "=" ENVIRON["VALUE"] }
       index($0, ENVIRON["VAR"] "=") == 1 { if (!done) print line; done = 1; next }
       { print }
       END { if (!done) print line }
-    ' "$file" > "$tmp"
-    # Copied back over the original rather than moved, so the file keeps its
-    # inode, owner and mode.
-    cat "$tmp" > "$file"
-    rm -f "$tmp"
+    ' "$file")"
+    # Written over the original rather than replacing it, so the file keeps
+    # its inode, owner and mode. printf is a builtin: no argv to leak.
+    printf '%s\n' "$content" > "$file"
   else
     mkdir -p "$(dirname "$file")"
     (

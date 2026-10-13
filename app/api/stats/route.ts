@@ -1,17 +1,76 @@
+import { timingSafeEqual } from "node:crypto";
 import { isNotNull, isNull, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { apiError } from "@/lib/api-error";
+import { hashSecret } from "@/lib/cli-auth";
 import { db } from "@/lib/db";
 import { cliInstalls, themes } from "@/lib/db/schema";
 
 /**
  * GET /api/stats
  *
- * Public, read by the chronogrid dashboard. `totalDownloads` is the original
- * field and keeps its exact shape (it arrives as a STRING through the Supabase
- * pooler, and the consumer coerces it — do not "fix" that here without
- * changing the consumer). The `cli` block is newer and carries numbers, cast
- * with `::int` in SQL and `Number()` here because of that same pooler quirk.
+ * Gated behind `STATS_API_KEY`, read by the chronogrid dashboard and Horus.
+ * `totalDownloads` is the original field and keeps its exact shape (it
+ * arrives as a STRING through the Supabase pooler, and the consumer coerces
+ * it — do not "fix" that here without changing the consumer). The `cli`
+ * block is newer and carries numbers, cast with `::int` in SQL and
+ * `Number()` here because of that same pooler quirk.
+ *
+ * Auth runs before any database query, so an unauthenticated call never
+ * touches the database — that alone settles the ticket's DB-load concern,
+ * no separate rate limiter needed. This only ever checks the stats key:
+ * `lib/request-auth.ts`'s `stl_…` CLI bearer tokens are a different scheme
+ * and must not be accepted here.
  */
+
+const NO_STORE_HEADERS = { "Cache-Control": "private, no-store" };
+
+function jsonNoStore(body: unknown, init?: { status?: number }) {
+  return NextResponse.json(body, { ...init, headers: NO_STORE_HEADERS });
+}
+
+function unauthorized() {
+  const response = apiError(401, "Unauthorized", "unauthorized");
+  response.headers.set("WWW-Authenticate", "Bearer");
+  response.headers.set("Cache-Control", "private, no-store");
+  return response;
+}
+
+/**
+ * Constant-time compare: both sides are hashed to equal-length SHA-256
+ * digests first, so `timingSafeEqual` never sees mismatched lengths (which
+ * would otherwise throw) and no length leak is possible either.
+ */
+function keysMatch(a: string, b: string): boolean {
+  return timingSafeEqual(
+    Buffer.from(hashSecret(a)),
+    Buffer.from(hashSecret(b)),
+  );
+}
+
+function checkAuth(request: Request): NextResponse | null {
+  // Trimmed, so a value pasted into Vercel with a trailing newline still
+  // matches what the rotation script handed out.
+  const expected = process.env.STATS_API_KEY?.trim();
+  if (!expected) {
+    console.error("STATS_API_KEY is not configured");
+    const response = apiError(
+      503,
+      "Stats API is not configured",
+      "not_configured",
+    );
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
+  }
+
+  const header = request.headers.get("authorization");
+  const match = header?.match(/^Bearer\s+(.+)$/);
+  if (!match || !keysMatch(match[1], expected)) {
+    return unauthorized();
+  }
+
+  return null;
+}
 
 type Bucket = { active: number; uninstalled: number };
 
@@ -57,7 +116,12 @@ export type CliStats = {
   since: string | null;
 };
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authError = checkAuth(request);
+  if (authError) {
+    return authError;
+  }
+
   try {
     const result = await db
       .select({
@@ -65,16 +129,13 @@ export async function GET() {
       })
       .from(themes);
 
-    return NextResponse.json({
+    return jsonNoStore({
       totalDownloads: result[0].totalDownloads,
       cli: await cliStats(),
     });
   } catch (error) {
     console.error("Failed to fetch stats:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch stats" },
-      { status: 500 },
-    );
+    return jsonNoStore({ error: "Failed to fetch stats" }, { status: 500 });
   }
 }
 

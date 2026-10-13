@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useId, useState } from "react";
 import AuthShell from "@/components/auth/auth-shell";
 import GoogleLogo from "@/components/icons/google";
+import LegalLink from "@/components/legal-link";
 import { authClient } from "@/lib/auth-client";
 import {
   getLastLoginMethod,
@@ -23,6 +24,7 @@ import {
   usernameStateClass,
   useUsernameAvailability,
 } from "@/lib/use-username-availability";
+import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup";
 
@@ -290,6 +292,8 @@ function LoginContent() {
           </button>
         ))}
       </div>
+      {/* Shown when signing in too: a first OAuth sign-in creates the account. */}
+      <AccountConsent className="mt-3" />
 
       <div className="my-6 flex items-center gap-4">
         <span className="h-px flex-1 bg-ctp-surface0" />
@@ -448,8 +452,19 @@ function LoginContent() {
           )}
           {isSignUp ? "Create account" : "Log in"}
         </button>
+        {isSignUp && <AccountConsent />}
       </form>
     </AuthShell>
+  );
+}
+
+function AccountConsent({ className }: { className?: string }) {
+  return (
+    <p className={cn("text-xs text-ctp-subtext0", className)}>
+      By creating an account, you agree to the{" "}
+      <LegalLink section="terms">terms of use</LegalLink> and the{" "}
+      <LegalLink section="privacy">privacy policy</LegalLink>.
+    </p>
   );
 }
 

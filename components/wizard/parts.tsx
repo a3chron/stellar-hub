@@ -2,6 +2,7 @@
 
 import { ArrowLeft, ArrowRight, Loader2, RotateCcw } from "lucide-react";
 import Link from "next/link";
+import LegalLink from "@/components/legal-link";
 import { LocalDate } from "@/components/local-time";
 import type { ApiErrorBody, Draft } from "@/lib/draft-shared";
 import { existingDraftCode } from "@/lib/drafts-client";
@@ -234,4 +235,21 @@ export function errorField(error: ApiErrorBody | null): string | null {
     default:
       return null;
   }
+}
+
+/**
+ * The consent line on both Review steps. Its link opens in a new tab, so
+ * reading the terms never leaves the wizard half saved.
+ */
+export function PublishConsent() {
+  return (
+    <p className="text-xs text-ctp-subtext0">
+      By publishing, you confirm this theme follows the{" "}
+      <LegalLink section="terms" newTab>
+        terms of use
+      </LegalLink>{" "}
+      - in particular, no harmful{" "}
+      <code className="text-ctp-subtext1">[custom]</code> commands.
+    </p>
+  );
 }

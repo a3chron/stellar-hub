@@ -27,6 +27,7 @@ import {
   errorField,
   GoneBanner,
   Muted,
+  PublishConsent,
   ReviewRow,
   WizardNav,
 } from "./parts";
@@ -838,6 +839,7 @@ JetBrainsMono Nerd Font`}
                 </code>
                 . The slug can't be changed afterwards.
               </p>
+              <PublishConsent />
             </>
           )}
 

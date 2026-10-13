@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import LegalLink from "@/components/legal-link";
 
 type Decision = "approved" | "denied";
 
@@ -111,6 +112,10 @@ export default function AuthorizeForm({
       <p className="mt-6 text-xs leading-relaxed text-ctp-subtext0">
         Approving lets that terminal create and publish theme drafts as you
         until you revoke it - nothing else on your account.
+      </p>
+      <p className="mt-2 text-xs text-ctp-subtext0">
+        Themes published from that terminal are subject to the{" "}
+        <LegalLink section="terms">terms of use</LegalLink>.
       </p>
 
       {error && (

@@ -23,6 +23,7 @@ import {
   errorField,
   GoneBanner,
   Muted,
+  PublishConsent,
   ReviewRow,
   WizardNav,
 } from "./parts";
@@ -612,6 +613,7 @@ JetBrainsMono Nerd Font`}
                   config, dependencies or minimum Starship version first.
                 </p>
               )}
+              <PublishConsent />
             </>
           )}
 

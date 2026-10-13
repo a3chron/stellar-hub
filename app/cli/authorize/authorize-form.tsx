@@ -8,7 +8,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LegalLink from "@/components/legal-link";
 
 type Decision = "approved" | "denied";
@@ -64,7 +64,7 @@ export default function AuthorizeForm({
   }
 
   if (result) {
-    return <DecisionResult decision={result} />;
+    return <DecisionResult decision={result} focusOnMount />;
   }
 
   return (
@@ -104,7 +104,8 @@ export default function AuthorizeForm({
           <ShieldAlert className="h-5 w-5 shrink-0 text-ctp-red" />
           <p className="text-sm leading-relaxed text-ctp-text">
             This login request came from a different network than the one you're
-            on now. If someone sent you this link, Deny.
+            on now. If someone sent you this link, Deny. That's expected if you
+            ran stellar auth on another machine, e.g. over SSH.
           </p>
         </div>
       )}
@@ -116,7 +117,10 @@ export default function AuthorizeForm({
       </p>
       <p className="mt-2 text-xs text-ctp-subtext0">
         Themes published from that terminal are subject to the{" "}
-        <LegalLink section="terms">terms of use</LegalLink>.
+        <LegalLink section="terms" newTab>
+          terms of use
+        </LegalLink>
+        .
       </p>
 
       {error && (
@@ -151,13 +155,36 @@ export default function AuthorizeForm({
   );
 }
 
-/** What's left once the login was approved or denied (also after a reload). */
-export function DecisionResult({ decision }: { decision: Decision }) {
+/**
+ * What's left once the login was approved or denied (also after a reload).
+ * Right after a click the heading takes focus, so a screen reader announces
+ * the outcome instead of losing focus with the removed buttons.
+ */
+export function DecisionResult({
+  decision,
+  focusOnMount = false,
+}: {
+  decision: Decision;
+  focusOnMount?: boolean;
+}) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (focusOnMount) {
+      headingRef.current?.focus();
+    }
+  }, [focusOnMount]);
+
   if (decision === "denied") {
     return (
       <div>
         <CircleX size={40} className="mb-4 text-ctp-red" />
-        <h1 className="text-3xl font-bold text-ctp-text">Login denied</h1>
+        <h1
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-3xl font-bold text-ctp-text focus:outline-none"
+        >
+          Login denied
+        </h1>
         <p className="mt-4 text-sm leading-relaxed text-ctp-subtext0">
           Nothing was shared with the CLI. You can close this tab.
         </p>
@@ -168,7 +195,11 @@ export function DecisionResult({ decision }: { decision: Decision }) {
   return (
     <div>
       <CircleCheck size={40} className="mb-4 text-ctp-green" />
-      <h1 className="text-3xl font-bold text-ctp-text">
+      <h1
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-3xl font-bold text-ctp-text focus:outline-none"
+      >
         You can close this tab
       </h1>
       <p className="mt-4 text-sm leading-relaxed text-ctp-subtext0">

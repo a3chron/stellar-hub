@@ -293,7 +293,7 @@ function LoginContent() {
         ))}
       </div>
       {/* Shown when signing in too: a first OAuth sign-in creates the account. */}
-      <AccountConsent className="mt-3" />
+      <AccountConsent action="continue" className="mt-3" />
 
       <div className="my-6 flex items-center gap-4">
         <span className="h-px flex-1 bg-ctp-surface0" />
@@ -452,18 +452,34 @@ function LoginContent() {
           )}
           {isSignUp ? "Create account" : "Log in"}
         </button>
-        {isSignUp && <AccountConsent />}
+        {isSignUp && <AccountConsent action="create" />}
       </form>
     </AuthShell>
   );
 }
 
-function AccountConsent({ className }: { className?: string }) {
+// The links open in a new tab, so reading them never loses a half-filled
+// sign-up form.
+function AccountConsent({
+  action,
+  className,
+}: {
+  action: "continue" | "create";
+  className?: string;
+}) {
   return (
     <p className={cn("text-xs text-ctp-subtext0", className)}>
-      By creating an account, you agree to the{" "}
-      <LegalLink section="terms">terms of use</LegalLink> and the{" "}
-      <LegalLink section="privacy">privacy policy</LegalLink>.
+      {action === "continue"
+        ? "By continuing, you agree to the"
+        : "By creating an account, you agree to the"}{" "}
+      <LegalLink section="terms" newTab>
+        terms of use
+      </LegalLink>{" "}
+      and the{" "}
+      <LegalLink section="privacy" newTab>
+        privacy policy
+      </LegalLink>
+      .
     </p>
   );
 }

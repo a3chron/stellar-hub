@@ -470,8 +470,10 @@ export default function ConfigStep({
 
           {receivedFromCli ? (
             <div className="space-y-2">
-              <output className="flex items-center gap-2 text-sm text-ctp-green">
-                <CircleCheck size={16} className="shrink-0" />
+              {/* Green only on the icon: green text is too faint on the light
+                  theme to read at this size. */}
+              <output className="flex items-center gap-2 text-sm text-ctp-text">
+                <CircleCheck size={16} className="shrink-0 text-ctp-green" />
                 <span>
                   Received from stellar-cli{" "}
                   <span className="text-ctp-subtext0">

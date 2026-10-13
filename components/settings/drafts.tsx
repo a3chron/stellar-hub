@@ -12,10 +12,19 @@ import { cn } from "@/lib/utils";
 import { formatVersion } from "@/lib/versions";
 import { useFocusAfterRemoval } from "./use-focus-after-removal";
 
-const STATUS_STYLES: Record<DraftStatus, string> = {
-  waiting_for_config: "text-ctp-peach border-ctp-peach/40 bg-ctp-peach/10",
-  incomplete: "text-ctp-yellow border-ctp-yellow/40 bg-ctp-yellow/10",
-  ready: "text-ctp-green border-ctp-green/40 bg-ctp-green/10",
+// The status colour is carried by the border, tint and dot; the text itself
+// stays in the theme's text colour, since peach, yellow and green text don't
+// reach a readable contrast on the light (Latte) background.
+const STATUS_STYLES: Record<DraftStatus, { chip: string; dot: string }> = {
+  waiting_for_config: {
+    chip: "border-ctp-peach/60 bg-ctp-peach/10",
+    dot: "bg-ctp-peach",
+  },
+  incomplete: {
+    chip: "border-ctp-yellow/60 bg-ctp-yellow/10",
+    dot: "bg-ctp-yellow",
+  },
+  ready: { chip: "border-ctp-green/60 bg-ctp-green/10", dot: "bg-ctp-green" },
 };
 
 function statusLabel(draft: Draft): string {
@@ -106,10 +115,17 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
                       </span>
                       <span
                         className={cn(
-                          "rounded-full border px-2 py-0.5 text-xs",
-                          STATUS_STYLES[draft.status],
+                          "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs text-ctp-text",
+                          STATUS_STYLES[draft.status].chip,
                         )}
                       >
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "size-1.5 rounded-full",
+                            STATUS_STYLES[draft.status].dot,
+                          )}
+                        />
                         {statusLabel(draft)}
                       </span>
                     </div>

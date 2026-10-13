@@ -10,18 +10,22 @@ export type ThemeSlugAvailability =
   // A usable slug exists, the server has not answered yet.
   | { state: "checking" }
   | { state: "available" }
-  | { state: "unavailable" };
+  | { state: "unavailable" }
+  // Another of the user's drafts already holds this slug.
+  | { state: "draft"; code: string };
 
 /**
- * Live availability of the auto-generated theme slug for the signed-in
- * user, mirroring useUsernameAvailability: an unusable slug shows up
- * instantly, the taken/free lookup against the user's own themes is
- * debounced since it hits the database.
+ * Live availability of the theme slug for the signed-in user, mirroring
+ * useUsernameAvailability: an unusable slug shows up instantly, the
+ * taken/free lookup against the user's own themes and drafts is debounced
+ * since it hits the database. `draftCode` is the draft being edited, which
+ * never counts as holding its own slug.
  */
 export function useThemeSlugAvailability(
   name: string,
   slug: string,
   enabled: boolean,
+  draftCode: string | null = null,
 ): ThemeSlugAvailability {
   const [availability, setAvailability] = useState<ThemeSlugAvailability>({
     state: "idle",
@@ -35,13 +39,13 @@ export function useThemeSlugAvailability(
   const nameIsEmpty = !name.trim();
 
   useEffect(() => {
-    if (!enabled || nameIsEmpty) {
+    if (!enabled) {
       setAvailability({ state: "idle" });
       return;
     }
 
     if (!slug) {
-      setAvailability({ state: "empty" });
+      setAvailability(nameIsEmpty ? { state: "idle" } : { state: "empty" });
       return;
     }
 
@@ -49,10 +53,13 @@ export function useThemeSlugAvailability(
     const controller = new AbortController();
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(
-          `/api/upload/check?slug=${encodeURIComponent(slug)}`,
-          { signal: controller.signal },
-        );
+        const params = new URLSearchParams({ slug });
+        if (draftCode) {
+          params.set("draft", draftCode);
+        }
+        const response = await fetch(`/api/upload/check?${params}`, {
+          signal: controller.signal,
+        });
         if (!response.ok) {
           // A 401/500 here isn't "this slug is taken" - treat it the same as
           // an aborted/failed request and let the server be the final say on
@@ -63,9 +70,13 @@ export function useThemeSlugAvailability(
           return;
         }
         const data = await response.json();
-        setAvailability(
-          data.available ? { state: "available" } : { state: "unavailable" },
-        );
+        if (data.available) {
+          setAvailability({ state: "available" });
+        } else if (typeof data.draftCode === "string") {
+          setAvailability({ state: "draft", code: data.draftCode });
+        } else {
+          setAvailability({ state: "unavailable" });
+        }
       } catch {
         // An aborted or failed check shouldn't show a red cross - the server
         // checks again on submit either way.
@@ -79,7 +90,7 @@ export function useThemeSlugAvailability(
       controller.abort();
       clearTimeout(timer);
     };
-  }, [nameIsEmpty, slug, enabled]);
+  }, [nameIsEmpty, slug, enabled, draftCode]);
 
   return availability;
 }
@@ -93,6 +104,9 @@ export function themeSlugError(
   }
   if (availability.state === "unavailable") {
     return "You already have a theme with this slug.";
+  }
+  if (availability.state === "draft") {
+    return "You already have a draft with this slug.";
   }
   return null;
 }
@@ -109,6 +123,7 @@ export function themeSlugStateClass(
   switch (availability.state) {
     case "empty":
     case "unavailable":
+    case "draft":
       return "border-ctp-red! focus:ring-ctp-red/30!";
     case "checking":
       return "border-ctp-green/40! focus:ring-ctp-green/20!";

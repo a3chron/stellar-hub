@@ -4,7 +4,14 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { account, session, themes, user as userTable } from "@/lib/db/schema";
+import {
+  account,
+  session,
+  themeDrafts,
+  themes,
+  user as userTable,
+} from "@/lib/db/schema";
+import { removeScreenshotObjects } from "@/lib/drafts";
 import {
   extractValidFilename,
   isValidAvatarFilename,
@@ -22,9 +29,10 @@ const deleteAccountSchema = z.object({
  * DELETE /api/settings/account
  *
  * Deletes the signed-in user's account: their profile, every theme they
- * published and all of its versions, their sessions and their linked sign-in
- * providers. This is what makes the right to erasure (GDPR Art. 17) something
- * a user can exercise themselves rather than by emailing and waiting.
+ * published and all of its versions, their drafts, their CLI logins, their
+ * sessions and their linked sign-in providers. This is what makes the right
+ * to erasure (GDPR Art. 17) something a user can exercise themselves rather
+ * than by emailing and waiting.
  *
  * Irreversible, and it breaks every published link to that author's themes -
  * hence the typed confirmation.
@@ -65,11 +73,23 @@ export async function DELETE(request: NextRequest) {
     // `session` and `account` reference `user` WITHOUT `onDelete: cascade`
     // (see lib/db/schema.ts), so they have to be cleared explicitly and in
     // this order or the final delete fails on a foreign key. `themes` does
-    // cascade, and `theme_versions` cascades from `themes`.
-    await db.transaction(async (tx) => {
+    // cascade, and `theme_versions` cascades from `themes`. `theme_drafts`,
+    // `cli_tokens` and `cli_auth_requests` cascade from `user` too.
+    //
+    // Drafts are deleted explicitly first, though, so their screenshot paths
+    // come back from the same statement that removes them: read beforehand,
+    // a screenshot uploaded in between would be missed and left orphaned. (A
+    // screenshot upload that loses the race removes its own file once it
+    // finds the draft gone.)
+    const draftScreenshots = await db.transaction(async (tx) => {
+      const drafts = await tx
+        .delete(themeDrafts)
+        .where(eq(themeDrafts.userId, userId))
+        .returning({ screenshotPath: themeDrafts.screenshotPath });
       await tx.delete(session).where(eq(session.userId, userId));
       await tx.delete(account).where(eq(account.userId, userId));
       await tx.delete(userTable).where(eq(userTable.id, userId));
+      return drafts;
     });
 
     // Storage cleanup runs only after the database delete has committed. If it
@@ -100,6 +120,10 @@ export async function DELETE(request: NextRequest) {
         (name) => name,
       );
     }
+
+    await removeScreenshotObjects(
+      draftScreenshots.map((draft) => draft.screenshotPath),
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

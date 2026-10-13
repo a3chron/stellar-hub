@@ -196,6 +196,148 @@ export const themeVersions = pgTable(
   }),
 );
 
+// CLI device login
+//
+// One row per `stellar auth` run, from POST /api/cli/auth/start until the CLI
+// picks up its token (or the request is denied or expires). Only hashes of the
+// secrets are kept: the device code is what the CLI polls with, so a database
+// dump must not be enough to claim someone else's approval with it.
+//
+// kind/status-like columns here and below are plain text validated in the app
+// rather than pg enums, so migration 0008 stays purely additive and rolling it
+// back is a single DROP TABLE.
+//
+// All three have row level security enabled with no policies. The app connects
+// as the table owner and bypasses it; it only guarantees that Supabase's Data
+// API roles (anon/authenticated) can never read login codes, token hashes or
+// private drafts, even if a grant is ever added by mistake.
+export const cliAuthRequests = pgTable(
+  "cli_auth_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // SHA-256 (hex) of the device code handed to the CLI.
+    deviceCodeHash: text("device_code_hash").notNull().unique(),
+    // The 8 characters shown in the terminal, stored without the dash.
+    userCode: text("user_code").notNull().unique(),
+    // Until approval the client string of the start request, "stellar-cli/1.7.0
+    // (linux; amd64)" or "unknown client", shown on the approval page. Once
+    // approved, the name the user chose there - which the token route copies
+    // into cli_tokens.label.
+    client: text("client").notNull(),
+    // getClientNetworkHash() of the start request (an HMAC of the IP, the /64
+    // for IPv6), for the per-network limit and the "different network" notice.
+    ipHash: text("ip_hash").notNull(),
+    // "pending" | "approved" | "denied"
+    status: text("status").notNull().default("pending"),
+    // Who approved or denied it. Null while pending.
+    userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
+    lastPolledAt: timestamp("last_polled_at", { withTimezone: true }),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => ({
+    ipHashIdx: index("idx_cli_auth_requests_ip_hash").on(table.ipHash),
+    expiresAtIdx: index("idx_cli_auth_requests_expires_at").on(table.expiresAt),
+  }),
+).enableRLS();
+
+// CLI logins
+//
+// A bearer token minted when a device login is approved. Only its SHA-256 is
+// stored. Tokens never expire on their own - they are revoked with
+// `stellar auth logout` or from settings. Deliberately narrow: they are only
+// accepted on whoami, token revocation and /api/drafts/**.
+export const cliTokens = pgTable(
+  "cli_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tokenHash: text("token_hash").notNull().unique(),
+    // The name chosen when the login was approved; renameable in settings.
+    // Logins from before names existed hold the raw client string instead.
+    label: text("label").notNull(),
+    userId: text("user_id")
+      .references(() => user.id, { onDelete: "cascade" })
+      .notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+  },
+  (table) => ({
+    userIdx: index("idx_cli_tokens_user").on(table.userId),
+  }),
+).enableRLS();
+
+// Theme drafts
+//
+// A new theme or a new version that is still being put together, by the
+// upload wizard, by `stellar publish`, or by both taking turns. Publishing
+// (lib/publish.ts) deletes the draft and writes the theme/version in one
+// transaction. Drafts expire 7 days after their last write.
+export const themeDrafts = pgTable(
+  "theme_drafts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // The short public handle in /upload/<code>: 6 characters, uppercase.
+    code: text("code").notNull().unique(),
+    userId: text("user_id")
+      .references(() => user.id, { onDelete: "cascade" })
+      .notNull(),
+    // "theme" (a new theme) | "version" (a new version of `themeId`)
+    kind: text("kind").notNull(),
+    themeId: uuid("theme_id").references(() => themes.id, {
+      onDelete: "cascade",
+    }),
+    // Theme fields - only used by theme drafts.
+    name: text("name"),
+    slug: text("slug"),
+    description: text("description"),
+    group: text("group"),
+    colorMode: colorModeEnum("color_mode"),
+    colorSchemeId: uuid("color_scheme_id").references(() => colorSchemes.id, {
+      onDelete: "set null",
+    }),
+    // Version fields - used by both kinds.
+    version: text("version"),
+    versionNotes: text("version_notes"),
+    dependencies: text("dependencies")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
+    minStarshipVersion: text("min_starship_version"),
+    config: text("config"),
+    // Who last changed the config: "cli" | "web", or "latest" while a version
+    // draft still carries the latest version's config. Null until set.
+    configSource: text("config_source"),
+    configUpdatedAt: timestamp("config_updated_at", { withTimezone: true }),
+    // Object name in the `stellar` bucket - already the final
+    // `<userId>-<timestamp>.webp`, so publishing needs no storage call.
+    screenshotPath: text("screenshot_path"),
+    // Where the config came from: "author/name@ver" or a bare filename.
+    source: text("source"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  },
+  (table) => ({
+    userIdx: index("idx_theme_drafts_user").on(table.userId),
+    // One draft per slug for new themes, and one open version draft per
+    // theme, so the CLI and the wizard always land on the same draft.
+    uniqueUserSlug: uniqueIndex("unique_draft_user_slug")
+      .on(table.userId, table.slug)
+      .where(sql`kind = 'theme'`),
+    uniqueUserTheme: uniqueIndex("unique_draft_user_theme")
+      .on(table.userId, table.themeId)
+      .where(sql`kind = 'version'`),
+  }),
+).enableRLS();
+
 // Relations
 export const userRelations = relations(user, ({ many }) => ({
   themes: many(themes),

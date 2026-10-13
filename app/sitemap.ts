@@ -41,6 +41,11 @@ const STATIC_ROUTES = [
     priority: 0.5,
   },
   {
+    path: "/docs/publishing",
+    changeFrequency: "monthly" as const,
+    priority: 0.5,
+  },
+  {
     path: "/docs/troubleshooting",
     changeFrequency: "monthly" as const,
     priority: 0.5,

@@ -15,6 +15,15 @@ interface ModalProps {
   onRequestClose: () => void;
   children: React.ReactNode;
   className?: string;
+  /**
+   * Element to focus when the dialog opens, instead of its first focusable
+   * one - a confirmation puts Cancel here, so a stray Enter is harmless.
+   */
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
+  /** "alertdialog" for a confirmation that interrupts to ask something. */
+  role?: "dialog" | "alertdialog";
+  /** id of the element that says what the dialog is about. */
+  describedById?: string;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -31,6 +40,9 @@ export default function Modal({
   onRequestClose,
   children,
   className,
+  initialFocusRef,
+  role = "dialog",
+  describedById,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -44,18 +56,30 @@ export default function Modal({
     onRequestCloseRef.current = onRequestClose;
   });
 
+  // Mount-only on purpose: initialFocusRef is read once, when the dialog
+  // opens. Depending on its .current would re-run this as soon as the ref
+  // attaches, restoring and re-stealing focus.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
 
     const dialog = dialogRef.current;
     const focusable = dialog?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-    (focusable ?? dialog)?.focus();
+    (initialFocusRef?.current ?? focusable ?? dialog)?.focus();
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
+        // A control inside already used this Escape to close its own popup
+        // (a select, the group picker). React's root listener sits on this
+        // same document node and runs first, so stopPropagation() there
+        // can't keep the key from reaching this listener - preventDefault()
+        // is the signal instead.
+        if (e.defaultPrevented) {
+          return;
+        }
         e.preventDefault();
         onRequestCloseRef.current();
         return;
@@ -119,11 +143,14 @@ export default function Modal({
     // effect above, so a second key handler here would fire onRequestClose
     // twice per Escape.
     // biome-ignore lint/a11y/useKeyWithClickEvents: see comment above.
+    // biome-ignore lint/a11y/noStaticElementInteractions: role is always dialog or alertdialog (a prop, which the linter can't follow)
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-modal is valid on both dialog and alertdialog
     <div
       ref={dialogRef}
-      role="dialog"
+      role={role}
       aria-modal="true"
       aria-labelledby={titleId}
+      aria-describedby={describedById}
       tabIndex={-1}
       className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[100] outline-none"
       onClick={handleBackdropClick}

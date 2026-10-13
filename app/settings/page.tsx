@@ -1,11 +1,18 @@
+import { desc, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import ScrollToHash from "@/components/scroll-to-hash";
+import CliSessions from "@/components/settings/cli-sessions";
 import DeleteAccount from "@/components/settings/delete-account";
+import Drafts from "@/components/settings/drafts";
 import ProfileSettings from "@/components/settings/profile-settings";
 import ThemeManagement from "@/components/settings/theme-management";
 import UsernameSettings from "@/components/settings/username-settings";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { cliTokens, themeDrafts } from "@/lib/db/schema";
+import { purgeExpiredDrafts, serializeDrafts } from "@/lib/drafts";
+import { getAuthorGroups } from "@/lib/theme-groups";
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -37,6 +44,28 @@ export default async function SettingsPage() {
   const colorSchemes = await db.query.colorSchemes.findMany({
     orderBy: (colorSchemes, { asc }) => [asc(colorSchemes.name)],
   });
+  const groups = await getAuthorGroups(user.id);
+
+  await purgeExpiredDrafts(user.id);
+  const drafts = await serializeDrafts(
+    await db
+      .select()
+      .from(themeDrafts)
+      .where(eq(themeDrafts.userId, user.id))
+      .orderBy(desc(themeDrafts.updatedAt)),
+    { includeConfig: false },
+  );
+
+  const cliLogins = await db
+    .select({
+      id: cliTokens.id,
+      label: cliTokens.label,
+      createdAt: cliTokens.createdAt,
+      lastUsedAt: cliTokens.lastUsedAt,
+    })
+    .from(cliTokens)
+    .where(eq(cliTokens.userId, user.id))
+    .orderBy(desc(cliTokens.createdAt));
 
   return (
     <main className="bg-ctp-base">
@@ -53,15 +82,20 @@ export default async function SettingsPage() {
               user={user}
               hasPublishedThemes={user.themes.length > 0}
             />
+            <Drafts drafts={drafts} />
             <ThemeManagement
               author={user.username}
               themes={user.themes}
               colorSchemes={colorSchemes}
+              groups={groups}
             />
+            <CliSessions logins={cliLogins} />
             <DeleteAccount user={user} themeCount={user.themes.length} />
           </div>
         </div>
       </div>
+      {/* After the sections, so /settings#cli-logins and #drafts find them. */}
+      <ScrollToHash />
     </main>
   );
 }

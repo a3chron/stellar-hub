@@ -1,13 +1,20 @@
 "use client";
 
-import { Download, Loader2, Pencil, Trash2, Upload, XIcon } from "lucide-react";
+import { Download, Loader2, Pencil, Trash2, Upload } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import ConfirmDialog from "@/components/confirm-dialog";
+import { LocalDate } from "@/components/local-time";
+import type { ColorScheme } from "@/lib/db/types";
+import type { Draft } from "@/lib/draft-shared";
+import { apiFetch, existingDraftCode, jsonRequest } from "@/lib/drafts-client";
+import type { ThemeGroup } from "@/lib/theme-groups";
 import { formatDownloads } from "@/lib/utils";
+import { formatVersion, pickLatestVersion } from "@/lib/versions";
 import EditMetadataForm from "../edit-metadata-form";
-import UpdateConfigForm from "../update-config-form";
+import { useFocusAfterRemoval } from "./use-focus-after-removal";
 
 interface Theme {
   id: string;
@@ -29,60 +36,99 @@ interface Theme {
   }>;
 }
 
+/** "with its only version" / "with all 4 of its versions". */
+function versionsPhrase(count: number): string {
+  if (count === 1) {
+    return "with its only version";
+  }
+  return `with all ${count} of its versions`;
+}
+
 interface ThemeManagementProps {
   author: string;
   themes: Theme[];
-  colorSchemes: Array<{ id: string; name: string }>;
+  colorSchemes: Pick<ColorScheme, "id" | "name">[];
+  groups: ThemeGroup[];
 }
 
 export default function ThemeManagement({
   author,
   themes,
   colorSchemes,
+  groups,
 }: ThemeManagementProps) {
   const router = useRouter();
   const [editingMetadata, setEditingMetadata] = useState<string | null>(null);
-  const [updatingConfig, setUpdatingConfig] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [startingVersion, setStartingVersion] = useState<string | null>(null);
+  const [versionError, setVersionError] = useState<{
+    slug: string;
+    message: string;
+    code?: string;
+  } | null>(null);
+  const [deleting, setDeleting] = useState<Theme | null>(null);
+  const { headingRef, buttonRef, removing } = useFocusAfterRemoval(
+    themes.map((theme) => theme.slug),
+  );
 
-  const handleDelete = async (slug: string) => {
-    if (deleteConfirm !== slug) {
-      setDeleteConfirm(slug);
-      setDeleteError(null);
+  // A new version is put together as a draft in the upload wizard. An open
+  // version draft for the theme (from an earlier visit, or from
+  // `stellar publish`) is continued rather than duplicated.
+  const startVersion = async (slug: string) => {
+    setStartingVersion(slug);
+    setVersionError(null);
+
+    const result = await apiFetch<Draft>(
+      "/api/drafts",
+      jsonRequest("POST", { kind: "version", themeSlug: slug }),
+    );
+    const code = result.ok ? result.data.code : existingDraftCode(result.error);
+    if (code) {
+      router.push(`/upload/${code}`);
       return;
     }
 
-    setDeletingSlug(slug);
-    setDeleteError(null);
+    setStartingVersion(null);
+    if (!result.ok) {
+      setVersionError({
+        slug,
+        message: result.error.error,
+        code: result.error.code,
+      });
+    }
+  };
 
+  // Resolves with the message to show in the dialog, or null once deleted.
+  const deleteTheme = async (theme: Theme): Promise<string | null> => {
     try {
-      const response = await fetch(`/api/${author}/${slug}`, {
+      const response = await fetch(`/api/${author}/${theme.slug}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
+        removing(theme.slug);
+        setDeleting(null);
         router.refresh();
-        setDeleteConfirm(null);
-        return;
+        return null;
       }
 
       const body = await response.json().catch(() => null);
-      setDeleteError(body?.error ?? `Delete failed (${response.status})`);
+      return body?.error ?? `Delete failed (${response.status})`;
     } catch {
-      setDeleteError(
-        "Could not reach the server - check your connection and try again.",
-      );
-    } finally {
-      setDeletingSlug(null);
+      return "Could not reach the server - check your connection and try again.";
     }
   };
 
   if (themes.length === 0) {
     return (
-      <section className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8">
-        <h2 className="text-2xl font-semibold text-ctp-text mb-6">
+      <section
+        id="themes"
+        className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
+      >
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-2xl font-semibold text-ctp-text mb-6 focus:outline-none"
+        >
           Your Themes
         </h2>
         <div className="text-center py-12">
@@ -101,27 +147,24 @@ export default function ThemeManagement({
   }
 
   const editingTheme = themes.find((t) => t.slug === editingMetadata);
-  const updatingTheme = themes.find((t) => t.slug === updatingConfig);
 
   return (
     <>
-      <section className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8">
-        <h2 className="text-2xl font-semibold text-ctp-text mb-6">
+      <section
+        id="themes"
+        className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
+      >
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-2xl font-semibold text-ctp-text mb-6 focus:outline-none"
+        >
           Your Themes ({themes.length})
         </h2>
 
         <div className="space-y-4">
           {themes.map((theme) => {
-            const latestVersion = theme.versions[0];
-
-            let deleteButtonTitle: string;
-            if (deletingSlug === theme.slug) {
-              deleteButtonTitle = "Deleting...";
-            } else if (deleteConfirm === theme.slug) {
-              deleteButtonTitle = "Click again to confirm";
-            } else {
-              deleteButtonTitle = "Delete theme";
-            }
+            const latestVersion = pickLatestVersion(theme.versions);
 
             return (
               <div
@@ -156,7 +199,8 @@ export default function ThemeManagement({
                           {theme.name}
                         </Link>
                         <p className="text-sm text-ctp-subtext0 font-mono">
-                          {theme.slug} • v{latestVersion?.version || "1.0"}
+                          {theme.slug} ·{" "}
+                          {formatVersion(latestVersion?.version ?? "1.0")}
                         </p>
                         {theme.description && (
                           <p className="text-sm text-ctp-subtext0 mt-1 line-clamp-2">
@@ -172,48 +216,34 @@ export default function ThemeManagement({
                           type="button"
                           className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer"
                           title="Edit metadata"
+                          aria-label={`Edit metadata of ${theme.name}`}
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => setUpdatingConfig(theme.slug)}
+                          onClick={() => startVersion(theme.slug)}
                           type="button"
-                          className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer"
-                          title="Update config"
+                          disabled={startingVersion !== null}
+                          className="p-2 hover:bg-ctp-surface0 rounded text-ctp-subtext0 hover:text-ctp-text transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                          title="New version"
+                          aria-label={`New version of ${theme.name}`}
                         >
-                          <Upload className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(theme.slug)}
-                          type="button"
-                          disabled={deletingSlug === theme.slug}
-                          className={`p-2 transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${
-                            deleteConfirm === theme.slug
-                              ? "text-ctp-crust bg-ctp-red rounded-l pr-2.5"
-                              : "text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded"
-                          }`}
-                          title={deleteButtonTitle}
-                        >
-                          {deletingSlug === theme.slug ? (
+                          {startingVersion === theme.slug ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <Trash2 className="w-4 h-4" />
+                            <Upload className="w-4 h-4" />
                           )}
                         </button>
-                        {deleteConfirm === theme.slug && (
-                          <button
-                            onClick={() => {
-                              setDeleteConfirm(null);
-                              setDeleteError(null);
-                            }}
-                            type="button"
-                            disabled={deletingSlug === theme.slug}
-                            className="p-2 pl-2.5 -ml-2 bg-ctp-surface0 rounded-r text-ctp-text cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                            title="Cancel deletion"
-                          >
-                            <XIcon className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          ref={buttonRef(theme.slug)}
+                          onClick={() => setDeleting(theme)}
+                          type="button"
+                          className="p-2 text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded transition cursor-pointer"
+                          title="Delete theme"
+                          aria-label={`Delete ${theme.name}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
 
@@ -227,30 +257,31 @@ export default function ThemeManagement({
                           {formatDownloads(theme.downloads)}
                         </span>
                       </div>
-                      <span>•</span>
-                      <span>{theme.versions.length} versions</span>
-                      <span>•</span>
+                      <span>·</span>
                       <span>
-                        Updated {new Date(theme.updatedAt).toLocaleDateString()}
+                        {theme.versions.length === 1
+                          ? "1 version"
+                          : `${theme.versions.length} versions`}
+                      </span>
+                      <span>·</span>
+                      <span>
+                        Updated <LocalDate date={theme.updatedAt} />
                       </span>
                     </div>
 
-                    {/* Delete confirmation */}
-                    {deleteConfirm === theme.slug && (
-                      <div className="mt-3 p-3 bg-ctp-surface0 border border-ctp-red/20 rounded space-y-2">
-                        <p className="text-sm text-ctp-red">
-                          Are you sure? Click delete again to confirm. This
-                          cannot be undone.
-                        </p>
-                        {deleteError && (
-                          <p
-                            role="alert"
-                            className="text-sm text-ctp-red font-medium"
-                          >
-                            {deleteError}
-                          </p>
+                    {versionError?.slug === theme.slug && (
+                      <p role="alert" className="mt-3 text-sm text-ctp-red">
+                        {versionError.message}
+                        {versionError.code === "too_many_drafts" && (
+                          <>
+                            .{" "}
+                            <Link href="/settings#drafts" className="underline">
+                              Manage your drafts
+                            </Link>
+                            .
+                          </>
                         )}
-                      </div>
+                      </p>
                     )}
                   </div>
                 </div>
@@ -260,24 +291,38 @@ export default function ThemeManagement({
         </div>
       </section>
 
+      {deleting && (
+        <ConfirmDialog
+          title="Delete theme?"
+          confirmLabel="Delete theme"
+          busyLabel="Deleting…"
+          onConfirm={() => deleteTheme(deleting)}
+          onCancel={() => setDeleting(null)}
+        >
+          <p>
+            <span className="text-ctp-text font-semibold">{deleting.name}</span>{" "}
+            <span className="font-mono">
+              ({author}/{deleting.slug})
+            </span>{" "}
+            is deleted, {versionsPhrase(deleting.versions.length)}. Its page and{" "}
+            <code className="text-ctp-subtext1">
+              stellar apply {author}/{deleting.slug}
+            </code>{" "}
+            stop working for everyone - people who already downloaded it keep
+            their local copy.
+          </p>
+          <p className="text-ctp-red">This can't be undone.</p>
+        </ConfirmDialog>
+      )}
+
       {/* Edit Metadata Modal */}
       {editingTheme && (
         <EditMetadataForm
           author={author}
           theme={editingTheme}
           colorSchemes={colorSchemes}
+          groups={groups}
           onCancel={() => setEditingMetadata(null)}
-        />
-      )}
-
-      {/* Update Config Modal */}
-      {updatingTheme?.versions[0] && (
-        <UpdateConfigForm
-          author={author}
-          themeSlug={updatingTheme.slug}
-          themeName={updatingTheme.name}
-          latestVersion={updatingTheme.versions[0]}
-          onCancel={() => setUpdatingConfig(null)}
         />
       )}
     </>

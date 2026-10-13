@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useId, useState } from "react";
 import AuthShell from "@/components/auth/auth-shell";
 import GoogleLogo from "@/components/icons/google";
+import LegalLink from "@/components/legal-link";
 import { authClient } from "@/lib/auth-client";
 import {
   getLastLoginMethod,
@@ -23,6 +24,7 @@ import {
   usernameStateClass,
   useUsernameAvailability,
 } from "@/lib/use-username-availability";
+import { cn } from "@/lib/utils";
 
 type Mode = "signin" | "signup";
 
@@ -201,7 +203,7 @@ function LoginContent() {
             <Loader2 size={16} className="animate-spin" />
           )}
           {resendCooldown > 0 && `Sent - resend in ${resendCooldown}s`}
-          {resendCooldown === 0 && resendState === "sending" && "Sending..."}
+          {resendCooldown === 0 && resendState === "sending" && "Sending…"}
           {resendCooldown === 0 &&
             resendState !== "sending" &&
             "Resend confirmation email"}
@@ -290,6 +292,8 @@ function LoginContent() {
           </button>
         ))}
       </div>
+      {/* Shown when signing in too: a first OAuth sign-in creates the account. */}
+      <AccountConsent action="continue" className="mt-3" />
 
       <div className="my-6 flex items-center gap-4">
         <span className="h-px flex-1 bg-ctp-surface0" />
@@ -448,8 +452,35 @@ function LoginContent() {
           )}
           {isSignUp ? "Create account" : "Log in"}
         </button>
+        {isSignUp && <AccountConsent action="create" />}
       </form>
     </AuthShell>
+  );
+}
+
+// The links open in a new tab, so reading them never loses a half-filled
+// sign-up form.
+function AccountConsent({
+  action,
+  className,
+}: {
+  action: "continue" | "create";
+  className?: string;
+}) {
+  return (
+    <p className={cn("text-xs text-ctp-subtext0", className)}>
+      {action === "continue"
+        ? "By continuing, you agree to the"
+        : "By creating an account, you agree to the"}{" "}
+      <LegalLink section="terms" newTab>
+        terms of use
+      </LegalLink>{" "}
+      and the{" "}
+      <LegalLink section="privacy" newTab>
+        privacy policy
+      </LegalLink>
+      .
+    </p>
   );
 }
 
@@ -458,7 +489,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <AuthShell>
-          <div className="text-ctp-subtext0">Loading...</div>
+          <div className="text-ctp-subtext0">Loading…</div>
         </AuthShell>
       }
     >

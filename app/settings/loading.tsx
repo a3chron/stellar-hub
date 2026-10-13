@@ -29,10 +29,12 @@ export default function SettingsLoading() {
           <Skeleton className="h-10 w-44 mb-2" />
           <Skeleton className="h-5 w-72 mb-12" />
           <div className="space-y-12">
-            {/* Profile, username, your themes */}
+            {/* Profile, username, drafts, your themes, CLI logins */}
             <SectionSkeleton fields={3} />
             <SectionSkeleton fields={1} />
+            <SectionSkeleton fields={1} />
             <SectionSkeleton fields={2} />
+            <SectionSkeleton fields={1} />
           </div>
         </div>
       </div>

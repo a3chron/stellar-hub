@@ -33,7 +33,7 @@ export function useMDXComponents(): MDXComponents {
     }: AnchorHTMLAttributes<HTMLAnchorElement>) => (
       <Link
         href={href ?? "#"}
-        className="text-ctp-blue underline hover:text-ctp-sky"
+        className="text-ctp-blue underline hover:text-ctp-lavender"
         target={href?.startsWith("http") ? "_blank" : undefined}
         rel={href?.startsWith("http") ? "noopener noreferrer" : undefined}
         {...props}

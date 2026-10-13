@@ -16,7 +16,7 @@ export default function Markdown({ children, className }: MarkdownProps) {
           a: ({ href, children }) => (
             <Link
               href={href ?? "#"}
-              className="text-ctp-blue underline hover:text-ctp-sky"
+              className="text-ctp-blue underline hover:text-ctp-lavender"
               target={href?.startsWith("http") ? "_blank" : undefined}
               rel="noopener noreferrer"
             >

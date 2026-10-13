@@ -19,7 +19,7 @@ const OPERATOR = {
   email: "kurt.schambach@gmail.com",
 };
 
-const LAST_UPDATED = "22 September 2026";
+const LAST_UPDATED = "13 October 2026";
 
 function Section({
   id,
@@ -103,13 +103,19 @@ export default function LegalPage() {
             </Link>
           </address>
           <p>
-            The source code for both the website and the command-line tool is
-            public at{" "}
+            The source code is public: the command-line tool at{" "}
             <Link
               href="https://github.com/a3chron/stellar"
               className="text-ctp-lavender underline underline-offset-4"
             >
               github.com/a3chron/stellar
+            </Link>{" "}
+            and this website at{" "}
+            <Link
+              href="https://github.com/a3chron/stellar-hub"
+              className="text-ctp-lavender underline underline-offset-4"
+            >
+              github.com/a3chron/stellar-hub
             </Link>
             .
           </p>
@@ -184,6 +190,22 @@ export default function LegalPage() {
             same one-way keyed digest is held in memory for a short window. The
             raw address is not written to disk.
           </p>
+          <p>
+            Logging in from the command line (
+            <code className="text-ctp-text">stellar auth</code>) creates a login
+            request that is stored in our database until the CLI collects the
+            answer or the request expires. It holds a one-way keyed digest of
+            the network you started it from — computed from your IP address,
+            using only its first 64 bits for IPv6 — and the client string the
+            CLI sends: its version, operating system and CPU architecture. The
+            digest limits how many logins one network can start and lets the
+            approval page warn you when the request came from a different
+            network. Both are deleted together with the request. An approved
+            request becomes a CLI login, stored as a one-way hash of its token
+            together with a name you choose when approving it (prefilled with
+            your operating system and CPU architecture) and when it was last
+            used, so you can see, rename and revoke it in your settings.
+          </p>
 
           <H3>Themes you publish</H3>
           <p>
@@ -192,6 +214,11 @@ export default function LegalPage() {
             author are visible to everyone and are served through the public API
             to the CLI. Do not put anything private into a theme configuration
             or a screenshot.
+          </p>
+          <p>
+            Drafts — themes and versions you have started but not published —
+            are shown only to you, though a draft's uploaded screenshot is
+            already stored at its final, unlisted address.
           </p>
 
           <H3>Email</H3>
@@ -271,6 +298,19 @@ export default function LegalPage() {
             </li>
             <li>Sessions: until they expire or you sign out.</li>
             <li>
+              CLI logins: until you revoke them, from your settings or with{" "}
+              <code className="text-ctp-text">stellar auth logout</code>,
+              together with when each was last used.
+            </li>
+            <li>
+              Drafts and their screenshots: deleted 7 days after their last
+              change, or earlier when you publish or delete them.
+            </li>
+            <li>
+              CLI login requests: deleted shortly after they expire, within
+              about 20 minutes of being started.
+            </li>
+            <li>
               CLI install records: until the install reports an uninstall, or
               until we no longer need them.
             </li>
@@ -295,8 +335,8 @@ export default function LegalPage() {
             </Link>
             . Deleting your account immediately removes your profile, your
             sign-in methods, every theme you published together with all of its
-            versions, and the associated images. For anything else, write to the
-            address above.
+            versions, your drafts, your CLI logins, and the associated images.
+            For anything else, write to the address above.
           </p>
           <p>
             You also have the right to complain to a data protection supervisory

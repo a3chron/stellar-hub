@@ -12,6 +12,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { findCustomSections } from "@/lib/toml-custom-sections";
 import { cn } from "@/lib/utils";
+import { formatVersion } from "@/lib/versions";
 import type { TomlLineTokens } from "./toml/highlighter";
 import { TomlLineContent } from "./toml/toml-line";
 import { useTomlTokens } from "./toml/use-toml-tokens";
@@ -584,7 +585,9 @@ export function ConfigPreviewModal({
       <div className="bg-ctp-mantle border border-ctp-surface0 rounded-lg shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col m-4">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-ctp-surface0">
-          <h2 className="text-xl font-semibold">Config Preview - v{version}</h2>
+          <h2 className="text-xl font-semibold">
+            Config Preview - {formatVersion(version)}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -677,9 +680,9 @@ export function ConfigPreviewModal({
                       </p>
                       {customSections.length === 0 && (
                         <p className="text-ctp-subtext1 text-sm mt-2">
-                          They are declared in a form this viewer cannot point
-                          at directly (an inline table or a dotted key rather
-                          than a{" "}
+                          They are declared in a form this viewer can't point at
+                          directly (an inline table or a dotted key rather than
+                          a{" "}
                           <code className="bg-ctp-surface0 px-1 rounded">
                             [custom.*]
                           </code>{" "}

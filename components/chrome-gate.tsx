@@ -6,7 +6,12 @@ import { usePathname } from "next/navigation";
 // and supply their own branding. The site nav and footer would otherwise sit
 // around a min-h-screen panel, showing the Stellar wordmark twice and forcing
 // the "full screen" login page to scroll.
-const BARE_ROUTES = ["/login", "/forgot-password", "/reset-password"];
+const BARE_ROUTES = [
+  "/login",
+  "/forgot-password",
+  "/reset-password",
+  "/cli/authorize",
+];
 
 /**
  * Hides the site chrome on the auth pages.

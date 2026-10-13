@@ -1,12 +1,13 @@
 "use client";
 
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useId, useState } from "react";
+import ConfirmDialog from "@/components/confirm-dialog";
 import type { User as UserType } from "@/lib/db/types";
 
 /**
- * Account deletion. Kept behind a disclosure and a typed confirmation because
- * it destroys published themes and breaks every link and `stellar apply`
+ * Account deletion. Kept behind a dialog and a typed confirmation because it
+ * destroys published themes and breaks every link and `stellar apply`
  * command pointing at them - there is no undo.
  */
 export default function DeleteAccount({
@@ -19,8 +20,6 @@ export default function DeleteAccount({
   const inputId = useId();
   const [open, setOpen] = useState(false);
   const [confirmUsername, setConfirmUsername] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const confirmed =
     confirmUsername.trim().toLowerCase() === user.username.toLowerCase();
@@ -28,12 +27,16 @@ export default function DeleteAccount({
   let themesDescription: React.ReactNode;
   if (themeCount === 0) {
     themesDescription = (
-      <>Permanently deletes your profile and your sign-in methods.</>
+      <>
+        Permanently deletes your profile, your sign-in methods, your drafts and
+        your CLI logins.
+      </>
     );
   } else if (themeCount === 1) {
     themesDescription = (
       <>
-        Permanently deletes your profile, your sign-in methods and{" "}
+        Permanently deletes your profile, your sign-in methods, your drafts,
+        your CLI logins and{" "}
         <span className="text-ctp-text">your 1 published theme</span> with every
         version. Anyone who has already downloaded it keeps their local copy,
         but the page and{" "}
@@ -44,7 +47,8 @@ export default function DeleteAccount({
   } else {
     themesDescription = (
       <>
-        Permanently deletes your profile, your sign-in methods and{" "}
+        Permanently deletes your profile, your sign-in methods, your drafts,
+        your CLI logins and{" "}
         <span className="text-ctp-text">
           all {themeCount} of your published themes
         </span>{" "}
@@ -56,10 +60,9 @@ export default function DeleteAccount({
     );
   }
 
-  async function handleDelete() {
-    setLoading(true);
-    setError(null);
-
+  // Resolves with the message to show in the dialog. On success the page
+  // reloads, so the dialog simply stays busy until then.
+  async function deleteAccount(): Promise<string | null> {
     try {
       const response = await fetch("/api/settings/account", {
         method: "DELETE",
@@ -71,16 +74,19 @@ export default function DeleteAccount({
         // The session rows are gone, so the cookie now resolves to nothing.
         // A full page load is the cleanest way to drop all client state.
         window.location.href = "/";
-        return;
+        return null;
       }
 
       const data = await response.json().catch(() => null);
-      setError(data?.error ?? "Failed to delete account");
-      setLoading(false);
+      return data?.error ?? "Failed to delete account";
     } catch {
-      setError("Failed to delete account - are you offline?");
-      setLoading(false);
+      return "Failed to delete account - are you offline?";
     }
+  }
+
+  function close() {
+    setOpen(false);
+    setConfirmUsername("");
   }
 
   return (
@@ -89,11 +95,28 @@ export default function DeleteAccount({
         Delete account
       </h2>
       <p className="text-sm text-ctp-subtext0 mb-6 leading-relaxed">
-        {themesDescription} This cannot be undone.
+        {themesDescription} This can't be undone.
       </p>
 
-      {open ? (
-        <div className="space-y-4">
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="px-6 py-2 rounded-md border-2 border-ctp-red/50 text-ctp-red transition hover:bg-ctp-red/10 cursor-pointer"
+      >
+        Delete account
+      </button>
+
+      {open && (
+        <ConfirmDialog
+          title="Delete your account?"
+          confirmLabel="Delete my account"
+          busyLabel="Deleting…"
+          onConfirm={deleteAccount}
+          onCancel={close}
+          confirmDisabled={!confirmed}
+        >
+          <p>{themesDescription}</p>
+
           <div className="flex gap-3 rounded-lg border border-ctp-red/40 bg-ctp-red/10 p-4">
             <AlertTriangle className="w-5 h-5 shrink-0 text-ctp-red" />
             <p className="text-sm text-ctp-text leading-relaxed">
@@ -117,48 +140,10 @@ export default function DeleteAccount({
               onChange={(event) => setConfirmUsername(event.target.value)}
               autoComplete="off"
               spellCheck={false}
-              className="w-full px-4 py-2 bg-ctp-base border border-ctp-surface0 rounded text-ctp-text placeholder-ctp-overlay0 focus:outline-none focus:border-ctp-red"
+              className="w-full px-4 py-2 bg-ctp-mantle border border-ctp-surface0 rounded text-ctp-text placeholder-ctp-overlay0 focus:outline-none focus:border-ctp-red"
             />
           </div>
-
-          {error && (
-            <p role="alert" className="text-sm text-ctp-red">
-              {error}
-            </p>
-          )}
-
-          <div className="flex items-center justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                setConfirmUsername("");
-                setError(null);
-              }}
-              disabled={loading}
-              className="px-6 py-2 text-ctp-subtext1 hover:text-ctp-text transition disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={!confirmed || loading}
-              className="flex items-center gap-2 px-6 py-2 bg-ctp-red text-ctp-crust font-semibold rounded-md transition hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              Delete my account
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="px-6 py-2 rounded-md border-2 border-ctp-red/50 text-ctp-red transition hover:bg-ctp-red/10"
-        >
-          Delete account
-        </button>
+        </ConfirmDialog>
       )}
     </section>
   );

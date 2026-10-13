@@ -62,6 +62,25 @@ if (process.env.NODE_ENV === "production" && !isEmailConfigured()) {
   );
 }
 
+/**
+ * Origins allowed to drive the session: better-auth's own callback check, and
+ * the Origin check on the session-authenticated CLI-login approval and drafts
+ * routes (lib/request-auth.ts), which have no CSRF token of their own.
+ */
+export const trustedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  // No trailing slash: better-auth compares these with `pattern ===
+  // getOrigin(url)`, and an origin never carries one - so "…dev/" silently
+  // matches nothing and every callback is rejected as an untrusted origin.
+  "https://stellar.a3chron.dev",
+  // The old host has to keep serving regardless: every stellar binary up to
+  // v1.4.0 hardcodes it as the API base. Those requests are unauthenticated,
+  // but anyone who reaches the *site* there in a browser would otherwise be
+  // unable to complete an OAuth callback, so it costs nothing to keep.
+  "https://stellar-hub.vercel.app",
+];
+
 export const auth = betterAuth({
   // Mail-bombing guard, keyed on IP + path by better-auth.
   //
@@ -83,19 +102,7 @@ export const auth = betterAuth({
       "/sign-up/email": { window: 60, max: 5 },
     },
   },
-  trustedOrigins: [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    // No trailing slash: better-auth compares these with `pattern ===
-    // getOrigin(url)`, and an origin never carries one - so "…dev/" silently
-    // matches nothing and every callback is rejected as an untrusted origin.
-    "https://stellar.a3chron.dev",
-    // The old host has to keep serving regardless: every stellar binary up to
-    // v1.4.0 hardcodes it as the API base. Those requests are unauthenticated,
-    // but anyone who reaches the *site* there in a browser would otherwise be
-    // unable to complete an OAuth callback, so it costs nothing to keep.
-    "https://stellar-hub.vercel.app",
-  ],
+  trustedOrigins,
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {

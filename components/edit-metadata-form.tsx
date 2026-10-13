@@ -3,13 +3,15 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
-import type { Theme } from "@/lib/db/types";
+import type { ColorScheme, Theme } from "@/lib/db/types";
 import {
   ACCEPTED_SCREENSHOT_TYPES,
   validateScreenshotFile,
 } from "@/lib/screenshot-validation";
+import type { ThemeGroup } from "@/lib/theme-groups";
 import { useConfirmClose } from "@/lib/use-confirm-close";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
+import GroupPicker from "./group-picker";
 import Input from "./input";
 import Modal from "./modal";
 import Select from "./select";
@@ -29,7 +31,9 @@ type EditableTheme = Pick<
 interface EditMetadataFormProps {
   author: string;
   theme: EditableTheme;
-  colorSchemes: Array<{ id: string; name: string }>;
+  colorSchemes: Pick<ColorScheme, "id" | "name">[];
+  // The author's existing theme groups, for the group picker.
+  groups: ThemeGroup[];
   onCancel: () => void;
 }
 
@@ -37,6 +41,7 @@ export default function EditMetadataForm({
   author,
   theme,
   colorSchemes,
+  groups,
   onCancel,
 }: EditMetadataFormProps) {
   const router = useRouter();
@@ -122,7 +127,7 @@ export default function EditMetadataForm({
       }
 
       // A proxy error page isn't JSON, and letting the parse throw would
-      // strand the button on "Saving...".
+      // strand the button on "Saving…".
       const body = await response.json().catch(() => null);
       setError(
         body?.details?.[0]?.message ??
@@ -222,7 +227,7 @@ export default function EditMetadataForm({
                 rows={3}
                 defaultValue={theme.description || ""}
                 className="p-2 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text placeholder:text-ctp-subtext0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
-                placeholder="A brief description..."
+                placeholder="A brief description…"
               />
             </label>
           </div>
@@ -258,15 +263,11 @@ export default function EditMetadataForm({
           </div>
 
           {/* Group */}
-          <div>
-            <Input
-              type="text"
-              name="group"
-              label="Group (optional)"
-              defaultValue={theme.group || ""}
-              placeholder="e.g., 'variants'"
-            />
-          </div>
+          <GroupPicker
+            groups={groups}
+            name="group"
+            defaultValue={theme.group || ""}
+          />
 
           {/* Screenshot Update */}
           <div>
@@ -325,7 +326,7 @@ export default function EditMetadataForm({
               disabled={loading || screenshotError !== null}
               className="flex-1 px-4 py-2 bg-ctp-text hover:bg-ctp-subtext1 text-ctp-base rounded-md border-2 border-ctp-subtext0 transition disabled:opacity-50"
             >
-              {loading ? "Saving..." : "Save Changes"}
+              {loading ? "Saving…" : "Save Changes"}
             </button>
           </div>
         </form>

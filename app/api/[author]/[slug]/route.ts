@@ -14,10 +14,11 @@ import { downloadRateLimiter, getClientIP } from "@/lib/rate-limit";
 import { validateScreenshotFile } from "@/lib/screenshot-validation";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usernameEquals } from "@/lib/username";
+import { sortVersionsDesc } from "@/lib/versions";
 
 type RouteParams = { params: Promise<{ author: string; slug: string }> };
 
-// Mirrors the limits /api/upload enforces at create time, so a field that
+// Mirrors the limits the drafts API enforces at create time, so a field that
 // can't exceed 500 characters on a new theme can't exceed it on an edit
 // either. Every field is optional: PATCH callers may send a subset, and an
 // omitted or blank one keeps/clears the stored value as before.
@@ -106,7 +107,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       downloads: theme.downloads,
       colorScheme: theme.colorScheme?.name,
       group: theme.group,
-      versions: theme.versions.map((v) => ({
+      // Newest first by version number: released CLIs take versions[0] as
+      // the latest one.
+      versions: sortVersionsDesc(theme.versions).map((v) => ({
         version: v.version,
         versionNotes: v.versionNotes,
         dependencies: v.dependencies,
@@ -292,9 +295,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     let screenshotUrl = theme.screenshotUrl;
 
     if (screenshot && screenshot.size > 0) {
-      // Same rules /api/upload enforces at create time (PNG/JPEG/WebP, 5MB
+      // Same rules the draft screenshot upload enforces (PNG/JPEG/WebP, 4MB
       // max) - this previously accepted any image/* type, so a GIF or SVG
-      // slipped past here that /api/upload would have rejected outright.
+      // slipped past here that the upload would have rejected outright.
       const screenshotError = validateScreenshotFile(screenshot);
       if (screenshotError) {
         return NextResponse.json({ error: screenshotError }, { status: 400 });

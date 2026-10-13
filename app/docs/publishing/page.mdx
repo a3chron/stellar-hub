@@ -1,0 +1,195 @@
+export const metadata = { title: "Publishing" };
+
+# Publishing
+
+Made a prompt you're a little too proud of? Good. Here's how to get it onto
+the hub - from the terminal, from the browser, or by bouncing between the two
+until it's done.
+
+## Log in (once)
+
+```bash
+stellar auth
+```
+
+Your browser opens on a page showing a code like `WDJB-MJHT`. Check that it
+matches the one in your terminal, click **Approve**, close the tab. The CLI
+should notice the approval on its own a few seconds later.
+
+```bash
+stellar auth --no-browser   # on an SSH box: just print the link
+stellar auth status         # who am I logged in as?
+stellar auth logout         # revoke this login
+```
+
+<Callout type="tip" title="What that login can do">
+
+Create, edit and publish your theme drafts. It can't touch your
+profile, your password or anything else on the account. It's stored in
+`~/.config/stellar/credentials.json`, readable only by you. For CI, see
+[Publishing from CI](#publishing-from-ci).
+
+</Callout>
+
+## Start a theme
+
+Starting from scratch:
+
+```bash
+stellar new my-theme
+```
+
+This creates `~/.config/stellar/<you>/my-theme/1.0.toml` with a small starter
+config. `stellar apply <you>/my-theme` it and start editing - on Linux and
+macOS your prompt updates as you save.
+
+Or start with someone else's prompt:
+
+```bash
+stellar fork a3chron/ctp-blue cozy-blue
+```
+
+That copies the theme (a specific `@version` works too) into
+`<you>/cozy-blue/1.0.toml`, with a `# Forked from ...` line at the top. 
+Neither command ever overwrites an existing file, and `stellar clean` leaves both alone
+(unless you pass `--include-own`).
+
+## Publish it
+
+```bash
+stellar publish my-theme
+```
+
+`publish` takes a path (a `.toml` file or a theme folder), an
+`author/slug[@version]`, or just a name from your stellar folder, and figures
+out the rest:
+
+- **Not on the hub yet** - it starts a draft for a new theme.
+- **Already yours on the hub** - it starts a draft for the next version.
+- **A draft for it already exists** - it updates that one instead of making
+  another.
+
+Then it prints something like this, with a ctrl+clickable link:
+
+```text
+✓ Draft K7QF2M: My Theme (a3chron/my-theme@1.0)
+Finish it on the hub: https://stellar.a3chron.dev/upload/K7QF2M
+```
+
+Open the link to add a screenshot and the finishing touches, then hit
+**Publish**.
+
+### Skip the browser: `--publish`
+
+If everything's there, `--publish` finalizes straight from the terminal:
+
+```bash
+stellar publish my-theme --publish --name "My Theme" --screenshot ./prompt.png
+```
+
+Missing something? In a terminal it asks; in a script it fails and tells you
+which flag to add.
+
+Only the theme itself is required. Two flags can be: `--screenshot` when you
+`--publish` a brand-new theme, and `--slug` for a loose `starship.toml` in a
+script.
+
+| Flag | Required? | What it sets |
+| --- | --- | --- |
+| `--screenshot` | With `--publish` for a new theme, unless its draft already has one | A PNG, JPEG or WebP, at most 4 MB |
+| `--slug` | Only for a loose `starship.toml` in a script (a terminal asks) | The address and `stellar apply` name (default: the folder name) |
+| `--name` | Optional, new themes only | The display name (default: the slug, capitalized) |
+| `--description` | Optional, new themes only | The description |
+| `--group` | Optional, new themes only | A group for related variants |
+| `--color-mode` | Optional, new themes only | `dark`, `light` or `both` |
+| `--dep` | Optional | A dependency, e.g. a Nerd Font (repeat it for more) |
+| `--min-starship` | Optional | The minimum Starship version, like `1.24.0` |
+| `--version` | Optional | The version to publish (default: your file's version, like `1.2.toml` → `1.2`, or the next free one) |
+| `--notes` | Optional | Version notes |
+| `--draft` | Optional | Attach to a specific draft by its code |
+| `--publish` | Optional | Publish right away instead of leaving a draft |
+| `--yes`, `-y` | Optional | Never prompt: confirm everything and use defaults (fails if a required value has no default) |
+
+`--name`, `--description`, `--group` and `--color-mode` describe the theme
+itself, so they only apply to a new theme. For a new version they're ignored
+(with a warning) - change them in [settings](/settings) instead.
+
+<Callout type="caution" title="Custom commands">
+
+Themes with [`custom` modules](https://starship.rs/config/#custom-commands)
+can be published, but everyone applying them sees a security warning first.
+`publish` reminds you when yours has some.
+
+</Callout>
+
+## Drafts
+
+Every draft gets a short code and lives at `/upload/<code>` - only you can see
+it. Drafts stick around for 7 days after their last change (up to 10 at a
+time), and **Settings → Drafts** lists them with a Continue button.
+
+The terminal and the browser work on the same draft, so you can start in
+one and finish in the other. Starting in the browser? On
+[the upload page](/upload), the **Config** step has a **From CLI** tab that
+shows the exact command for that draft:
+
+```bash
+stellar publish my-theme --draft K7QF2M
+```
+
+Run it and the page picks up your config within a couple of seconds.
+
+## New versions
+
+Same command. Once a theme is published, `stellar publish` starts a draft for
+its next version - `1.4` becomes `2.0` unless you pass `--version 1.5` (or
+your local file already has a newer version number). Versions compare
+numerically, so `1.10` is newer than `1.9`. If nothing actually changed since
+the latest version, it asks before going ahead.
+
+```text
+✓ Draft K7QF2M: new version a3chron/my-theme@2.0
+```
+
+In the browser it's the upload icon next to your theme in
+[settings](/settings), which opens the same kind of draft in the wizard.
+
+## Publishing from CI
+
+Give your CI its own login instead of reusing your machine's. Log in once
+with a throwaway stellar folder:
+
+```bash
+STELLAR_HOME=$(mktemp -d) stellar auth
+```
+
+That folder's `credentials.json` now holds a token starting with `stl_`.
+Store it as a CI secret named `STELLAR_TOKEN` - stellar uses it instead of
+a stored login - and delete the folder. Then, in the pipeline:
+
+```bash
+stellar publish ./starship.toml --slug my-theme --publish --yes
+```
+
+Add `--screenshot` while the theme is still new. After that, each run
+publishes the next version - `--yes` even confirms an unchanged one, so only
+run it when the theme changed. The CI login shows up on its own in
+**Settings → CLI logins**, so you can revoke it without logging out
+anywhere else.
+
+## Logging out and revoking
+
+`stellar auth logout` revokes the login of the machine you're on.
+**Settings → CLI logins** lists every terminal you've approved, with a
+**Revoke** button for the laptop you left on the train. You can name a login
+when you approve it (it starts out as your OS and architecture, like
+"Linux · amd64") and rename it there anytime.
+
+`stellar uninstall` tries to revoke its login on the way out, but it can't
+when you're offline, when the uninstall script falls back to deleting files
+for an older stellar, or when you remove `~/.config/stellar` yourself. Logins
+never expire on their own, so check settings for leftovers.
+
+## Next steps
+
+<NextSteps pages={["commands", "troubleshooting"]} />

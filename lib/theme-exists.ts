@@ -1,11 +1,10 @@
 import { db } from "@/lib/db";
 
 /**
- * Whether the given author already has a theme with this slug. Backs both
- * the live availability check on the upload form
- * (/api/upload/check) and the duplicate check /api/upload falls back to at
- * submit time - the unique index on (authorId, slug) is what actually
- * enforces this under a race between the two.
+ * Whether the given author already has a theme with this slug. Backs the
+ * live availability check in the upload wizard (/api/upload/check) and the
+ * duplicate checks of the drafts API and publishing - the unique index on
+ * (authorId, slug) is what actually enforces this under a race.
  */
 export async function themeSlugTaken(
   authorId: string,

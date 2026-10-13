@@ -1,18 +1,22 @@
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { findDraftCodeForSlug, normalizeDraftCode } from "@/lib/drafts";
 import { themeSlugTaken } from "@/lib/theme-exists";
 import { MAX_SLUG_LENGTH } from "@/lib/theme-slug";
 
 const SLUG_PATTERN = /^[a-z0-9-]+$/;
 
 /**
- * Live duplicate check for the upload form's auto-generated slug field, so a
- * clash with one of the signed-in user's own themes shows up while they're
- * still typing the name - not after they've already picked a screenshot and
- * pasted a config. Backed by the same lookup /api/upload falls back to at
- * submit time (see themeSlugTaken); the unique index on (authorId, slug) is
- * what actually settles a race between the two.
+ * Live duplicate check for the upload wizard's slug field, so a clash with
+ * one of the signed-in user's own themes shows up while they're still typing
+ * the name - not after they've already picked a screenshot and pasted a
+ * config. The unique index on (authorId, slug) is what actually settles a
+ * race at publish time.
+ *
+ * Also answers `draftCode` when another of the user's drafts already holds
+ * the slug, so the wizard can offer to continue that draft instead. `draft`
+ * names the draft being edited, which never counts against itself.
  *
  * Auth is required (unlike the username check) since this only ever answers
  * about the caller's own themes - there is no oracle over other users' slugs
@@ -31,10 +35,26 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ available: false, error: "Invalid slug" });
   }
 
-  const taken = await themeSlugTaken(session.user.id, slug);
+  if (await themeSlugTaken(session.user.id, slug)) {
+    return NextResponse.json({
+      available: false,
+      error: "You already have a theme with this slug",
+    });
+  }
 
-  return NextResponse.json({
-    available: !taken,
-    error: taken ? "You already have a theme with this slug" : undefined,
-  });
+  const draftParam = request.nextUrl.searchParams.get("draft");
+  const draftCode = await findDraftCodeForSlug(
+    session.user.id,
+    slug,
+    draftParam ? normalizeDraftCode(draftParam) : null,
+  );
+  if (draftCode) {
+    return NextResponse.json({
+      available: false,
+      draftCode,
+      error: "You already have a draft with this slug",
+    });
+  }
+
+  return NextResponse.json({ available: true });
 }

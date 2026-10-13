@@ -235,7 +235,7 @@ export default function ResetPasswordPage() {
     <Suspense
       fallback={
         <AuthShell>
-          <div className="text-ctp-subtext0">Loading...</div>
+          <div className="text-ctp-subtext0">Loading…</div>
         </AuthShell>
       }
     >

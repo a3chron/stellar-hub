@@ -1,18 +1,8 @@
 import { Skeleton } from "@/components/skeletons/skeleton";
 
-// Name, slug, description, mode/scheme, group, min version, screenshot,
-// config and dependencies - roughly the upload form's field stack.
-const FIELD_HEIGHTS = [
-  "h-10",
-  "h-10",
-  "h-24",
-  "h-10",
-  "h-10",
-  "h-10",
-  "h-12",
-  "h-48",
-  "h-20",
-];
+// Name, slug, description, dependencies, min version - roughly the wizard's
+// first step.
+const FIELD_HEIGHTS = ["h-10", "h-10", "h-24", "h-20", "h-10"];
 
 export default function UploadLoading() {
   return (
@@ -21,6 +11,9 @@ export default function UploadLoading() {
         <div className="max-w-2xl mx-auto">
           <Skeleton className="h-10 w-64 mb-2" />
           <Skeleton className="h-5 w-full max-w-sm mb-8" />
+          {/* The stepper, as one bar: this also covers /upload/[code], which
+              may be a five-step theme or a three-step version draft. */}
+          <Skeleton className="h-1.5 w-full rounded-full mb-12" />
           <div className="space-y-6">
             {FIELD_HEIGHTS.map((height, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: Skeleton items are static placeholders with no state or reordering

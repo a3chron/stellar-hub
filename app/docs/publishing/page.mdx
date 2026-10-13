@@ -26,8 +26,8 @@ stellar auth logout         # revoke this login
 
 Create, edit and publish your theme drafts. It can't touch your
 profile, your password or anything else on the account. It's stored in
-`~/.config/stellar/credentials.json`, readable only by you. In CI, set
-`STELLAR_TOKEN` instead.
+`~/.config/stellar/credentials.json`, readable only by you. For CI, see
+[Publishing from CI](#publishing-from-ci).
 
 </Callout>
 
@@ -153,6 +153,29 @@ the latest version, it asks before going ahead.
 
 In the browser it's the upload icon next to your theme in
 [settings](/settings), which opens the same kind of draft in the wizard.
+
+## Publishing from CI
+
+Give your CI its own login instead of reusing your machine's. Log in once
+with a throwaway stellar folder:
+
+```bash
+STELLAR_HOME=$(mktemp -d) stellar auth
+```
+
+That folder's `credentials.json` now holds a token starting with `stl_`.
+Store it as a CI secret named `STELLAR_TOKEN` - stellar uses it instead of
+a stored login - and delete the folder. Then, in the pipeline:
+
+```bash
+stellar publish ./starship.toml --slug my-theme --publish --yes
+```
+
+Add `--screenshot` while the theme is still new. After that, each run
+publishes the next version - `--yes` even confirms an unchanged one, so only
+run it when the theme changed. The CI login shows up on its own in
+**Settings → CLI logins**, so you can revoke it without logging out
+anywhere else.
 
 ## Logging out and revoking
 

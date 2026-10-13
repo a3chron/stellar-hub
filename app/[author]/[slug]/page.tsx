@@ -10,6 +10,7 @@ import { themes } from "@/lib/db/schema";
 import { hasCustomSections } from "@/lib/toml-custom-detect";
 import { usernameEquals } from "@/lib/username";
 import { formatDownloads } from "@/lib/utils";
+import { sortVersionsDesc } from "@/lib/versions";
 import ApplyCommand from "./apply-command";
 import { ThemeScreenshot } from "./theme-screenshot";
 
@@ -102,7 +103,10 @@ export default async function ThemePage({ params }: PageProps) {
 
   if (!theme) return notFound();
 
-  const latestVersion = theme.versions[0];
+  // Newest first by version number (1.10 after 1.9), which createdAt order
+  // doesn't guarantee - the versions list and its "latest" rely on it too.
+  const versions = sortVersionsDesc(theme.versions);
+  const latestVersion = versions[0];
 
   // Fetch related themes in the same group (if group exists)
   const relatedThemes = theme.group
@@ -210,7 +214,7 @@ export default async function ThemePage({ params }: PageProps) {
         <ThemeVersionsSection
           author={author.username}
           slug={themeSlug}
-          versions={theme.versions}
+          versions={versions}
           // Computed here rather than in the client component: it is a full
           // TOML parse per version, and doing it during render would both
           // repeat on every re-render and ship the parser to the browser.

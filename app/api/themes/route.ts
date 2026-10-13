@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { colorModeEnum, themes, user } from "@/lib/db/schema";
 import { buildThemeSearchCondition, escapeLike } from "@/lib/theme-search";
+import { pickLatestVersion } from "@/lib/versions";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -148,9 +149,10 @@ export async function GET(request: NextRequest) {
           },
         },
         colorScheme: true,
+        // Only the version numbers - "latest" is the numerically highest
+        // one, which an ordering by createdAt doesn't give.
         versions: {
-          orderBy: (versions, { desc }) => [desc(versions.createdAt)],
-          limit: 1,
+          columns: { version: true },
         },
       },
       orderBy,
@@ -180,7 +182,7 @@ export async function GET(request: NextRequest) {
       screenshotUrl: theme.screenshotUrl,
       downloads: theme.downloads,
       colorScheme: theme.colorScheme?.name,
-      latestVersion: theme.versions[0]?.version,
+      latestVersion: pickLatestVersion(theme.versions)?.version,
       createdAt: theme.createdAt.toISOString(),
       updatedAt: theme.updatedAt.toISOString(),
     }));

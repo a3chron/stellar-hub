@@ -18,7 +18,7 @@ const approveSchema = z.object({
 function invalidCode() {
   return apiError(
     404,
-    "This code isn't valid - check it against your terminal, or run `stellar auth` again",
+    "This code isn't valid - check it against your terminal, or run stellar auth again",
     "invalid_code",
   );
 }
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     if (row.expiresAt <= new Date()) {
       return apiError(
         410,
-        "This code expired - run `stellar auth` again",
+        "This code expired - run stellar auth again",
         "expired_token",
       );
     }

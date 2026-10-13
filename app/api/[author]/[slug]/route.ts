@@ -14,6 +14,7 @@ import { downloadRateLimiter, getClientIP } from "@/lib/rate-limit";
 import { validateScreenshotFile } from "@/lib/screenshot-validation";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usernameEquals } from "@/lib/username";
+import { sortVersionsDesc } from "@/lib/versions";
 
 type RouteParams = { params: Promise<{ author: string; slug: string }> };
 
@@ -106,7 +107,9 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       downloads: theme.downloads,
       colorScheme: theme.colorScheme?.name,
       group: theme.group,
-      versions: theme.versions.map((v) => ({
+      // Newest first by version number: released CLIs take versions[0] as
+      // the latest one.
+      versions: sortVersionsDesc(theme.versions).map((v) => ({
         version: v.version,
         versionNotes: v.versionNotes,
         dependencies: v.dependencies,

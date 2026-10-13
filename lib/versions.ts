@@ -58,3 +58,10 @@ export function calculateNextVersion(
   }
   return `${minor}.${patch + 1}`;
 }
+
+/** Newest first by version number - the order every versions list uses. */
+export function sortVersionsDesc<T extends { version: string }>(
+  versions: T[],
+): T[] {
+  return [...versions].sort((a, b) => compareVersions(b.version, a.version));
+}

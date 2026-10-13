@@ -64,9 +64,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * PATCH /api/drafts/[code]
  *
  * Omitted fields stay as they are, `null` clears one, and `dependencies`
- * replaces the whole list. The config's source and timestamp only move when
- * the config itself actually changed, which is what the wizard watches for
- * when it waits on `stellar publish`.
+ * replaces the whole list. The config's source and timestamp - what the
+ * wizard watches while it waits on `stellar publish` - move on every config
+ * write from the CLI, even an identical one (an explicit push should always
+ * show up), and on web writes only when the config actually changed.
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
@@ -196,7 +197,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (input.source !== undefined) {
       updates.source = input.source;
     }
-    if (input.config !== undefined && input.config !== row.config) {
+    const pushedFromCli = via === "cli" && input.config !== null;
+    if (
+      input.config !== undefined &&
+      (input.config !== row.config || pushedFromCli)
+    ) {
       updates.config = input.config;
       updates.configSource = input.config === null ? null : via;
       updates.configUpdatedAt = now;

@@ -596,16 +596,30 @@ export async function loadThemeContexts(
   return contexts;
 }
 
+/** A config that is only whitespace counts as no config at all. */
+function hasConfig(row: Pick<ThemeDraft, "config">): boolean {
+  return !!row.config && row.config.trim() !== "";
+}
+
 export function draftMissing(row: ThemeDraft): DraftMissingField[] {
+  const missing: DraftMissingField[] = [];
+
   if (row.kind === "version") {
-    return row.version ? [] : ["version"];
+    if (!row.version) {
+      missing.push("version");
+    }
+    // A version draft starts with the latest config and can't clear it, but
+    // it can still be set to whitespace - which would publish an empty theme.
+    if (!hasConfig(row)) {
+      missing.push("config");
+    }
+    return missing;
   }
 
-  const missing: DraftMissingField[] = [];
   if (!row.name) {
     missing.push("name");
   }
-  if (!row.config) {
+  if (!hasConfig(row)) {
     missing.push("config");
   }
   if (!row.screenshotPath) {
@@ -618,7 +632,9 @@ function draftStatus(
   row: ThemeDraft,
   missing: DraftMissingField[],
 ): DraftStatus {
-  if (row.configSource === null || row.configSource === "latest") {
+  // Only an actually missing config is waited for. A version draft still on
+  // the latest version's config is a complete draft like any other.
+  if (!hasConfig(row)) {
     return "waiting_for_config";
   }
   if (missing.length > 0) {

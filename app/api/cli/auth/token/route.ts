@@ -18,7 +18,7 @@ const MIN_POLL_GAP_MS = (CLI_AUTH_INTERVAL_SECONDS - 1) * 1000;
 function invalidGrant() {
   return apiError(
     400,
-    "Unknown or already used login request - run `stellar auth` again",
+    "Unknown or already used login request - run stellar auth again",
     "invalid_grant",
   );
 }
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       await db.delete(cliAuthRequests).where(eq(cliAuthRequests.id, row.id));
       return apiError(
         400,
-        "The login request expired - run `stellar auth` again",
+        "The login request expired - run stellar auth again",
         "expired_token",
       );
     }

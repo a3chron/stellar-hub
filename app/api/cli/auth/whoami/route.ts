@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     if (lookup.kind === "none") {
       return apiError(
         401,
-        "Not logged in - run `stellar auth` first",
+        "Not logged in - run stellar auth first",
         "unauthorized",
       );
     }

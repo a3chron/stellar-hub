@@ -105,13 +105,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       form = await request.formData();
     } catch {
       return invalidScreenshot(
-        "Expected a multipart/form-data body with a `screenshot` part",
+        "Expected a multipart/form-data body with a screenshot part",
       );
     }
 
     const file = form.get("screenshot");
     if (file === null || typeof file === "string") {
-      return invalidScreenshot("The `screenshot` part is missing");
+      return invalidScreenshot("The screenshot part is missing");
     }
 
     const fileProblem = validateScreenshotFile(file);

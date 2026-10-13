@@ -11,6 +11,7 @@ import type { Draft } from "@/lib/draft-shared";
 import { apiFetch, existingDraftCode, jsonRequest } from "@/lib/drafts-client";
 import type { ThemeGroup } from "@/lib/theme-groups";
 import { formatDownloads } from "@/lib/utils";
+import { pickLatestVersion } from "@/lib/versions";
 import EditMetadataForm from "../edit-metadata-form";
 
 interface Theme {
@@ -138,7 +139,7 @@ export default function ThemeManagement({
 
         <div className="space-y-4">
           {themes.map((theme) => {
-            const latestVersion = theme.versions[0];
+            const latestVersion = pickLatestVersion(theme.versions);
 
             return (
               <div

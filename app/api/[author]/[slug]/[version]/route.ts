@@ -5,6 +5,7 @@ import { themes, themeVersions } from "@/lib/db/schema";
 import type { ThemeVersion } from "@/lib/db/types";
 import { hasCustomSections } from "@/lib/toml-custom-detect";
 import { usernameEquals } from "@/lib/username";
+import { pickLatestVersion } from "@/lib/versions";
 
 type RouteParams = {
   params: Promise<{ author: string; slug: string; version: string }>;
@@ -65,10 +66,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     let version: ThemeVersion | undefined;
     if (normalizedVersion === "latest") {
-      version = await db.query.themeVersions.findFirst({
-        where: eq(themeVersions.themeId, theme.id),
-        orderBy: (versions, { desc }) => [desc(versions.createdAt)],
-      });
+      // The numerically highest version (1.10 after 1.9), not the most
+      // recently created one - first the numbers, then that one row.
+      const numbers = await db
+        .select({ id: themeVersions.id, version: themeVersions.version })
+        .from(themeVersions)
+        .where(eq(themeVersions.themeId, theme.id));
+      const latest = pickLatestVersion(numbers);
+      version = latest
+        ? await db.query.themeVersions.findFirst({
+            where: eq(themeVersions.id, latest.id),
+          })
+        : undefined;
     } else {
       version = await db.query.themeVersions.findFirst({
         where: and(

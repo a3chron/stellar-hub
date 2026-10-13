@@ -30,7 +30,7 @@ const BEARER_PATTERN = /^Bearer\s+(stl_[A-Za-z0-9_-]+)$/;
 export function invalidTokenResponse() {
   return apiError(
     401,
-    "This CLI login is invalid or was revoked - run `stellar auth` to log in again",
+    "This CLI login is invalid or was revoked - run stellar auth to log in again",
     "invalid_token",
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowRight, Loader2, Trash2, XIcon } from "lucide-react";
+import { ArrowRight, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import ConfirmDialog from "@/components/confirm-dialog";
 import { LocalDate, TimeAgo } from "@/components/local-time";
 import type { Draft, DraftStatus } from "@/lib/draft-shared";
 import { apiFetch } from "@/lib/drafts-client";
@@ -38,31 +39,21 @@ function draftTitle(draft: Draft): string {
  */
 export default function Drafts({ drafts }: { drafts: Draft[] }) {
   const router = useRouter();
-  const [confirmCode, setConfirmCode] = useState<string | null>(null);
-  const [deletingCode, setDeletingCode] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Draft | null>(null);
 
-  async function handleDelete(code: string) {
-    if (confirmCode !== code) {
-      setConfirmCode(code);
-      setError(null);
-      return;
-    }
-
-    setDeletingCode(code);
-    setError(null);
-    const result = await apiFetch<void>(`/api/drafts/${code}`, {
+  // Resolves with the message to show in the dialog, or null once deleted.
+  async function deleteDraft(draft: Draft): Promise<string | null> {
+    const result = await apiFetch<void>(`/api/drafts/${draft.code}`, {
       method: "DELETE",
     });
-    setDeletingCode(null);
 
     // A 404 means it's gone already, which is what was asked for.
     if (result.ok || result.status === 404) {
-      setConfirmCode(null);
+      setDeleting(null);
       router.refresh();
-      return;
+      return null;
     }
-    setError(result.error.error);
+    return result.error.error;
   }
 
   return (
@@ -80,16 +71,6 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
 
       <ul className="space-y-3">
         {drafts.map((draft) => {
-          const confirming = confirmCode === draft.code;
-          const deleting = deletingCode === draft.code;
-
-          let deleteTitle = "Delete draft";
-          if (deleting) {
-            deleteTitle = "Deleting...";
-          } else if (confirming) {
-            deleteTitle = "Click again to confirm";
-          }
-
           return (
             <li
               key={draft.code}
@@ -132,48 +113,43 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                   <button
-                    onClick={() => handleDelete(draft.code)}
+                    onClick={() => setDeleting(draft)}
                     type="button"
-                    disabled={deleting}
-                    className={`p-2 transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${
-                      confirming
-                        ? "text-ctp-crust bg-ctp-red rounded-l pr-2.5"
-                        : "text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded"
-                    }`}
-                    title={deleteTitle}
+                    className="p-2 text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded transition cursor-pointer"
+                    title="Delete draft"
+                    aria-label={`Delete draft ${draft.code}`}
                   >
-                    {deleting ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-4 h-4" />
-                    )}
+                    <Trash2 className="w-4 h-4" />
                   </button>
-                  {confirming && (
-                    <button
-                      onClick={() => {
-                        setConfirmCode(null);
-                        setError(null);
-                      }}
-                      type="button"
-                      disabled={deleting}
-                      className="p-2 pl-2.5 -ml-2 bg-ctp-surface0 rounded-r text-ctp-text cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                      title="Cancel deletion"
-                    >
-                      <XIcon className="w-4 h-4" />
-                    </button>
-                  )}
                 </div>
               </div>
-
-              {confirming && error && (
-                <p role="alert" className="text-sm text-ctp-red mt-3">
-                  {error}
-                </p>
-              )}
             </li>
           );
         })}
       </ul>
+
+      {deleting && (
+        <ConfirmDialog
+          title="Delete draft?"
+          confirmLabel="Delete draft"
+          busyLabel="Deleting..."
+          onConfirm={() => deleteDraft(deleting)}
+          onCancel={() => setDeleting(null)}
+        >
+          <p>
+            <span className="text-ctp-text font-semibold">
+              {draftTitle(deleting)}
+            </span>{" "}
+            (draft <span className="font-mono">{deleting.code}</span>)
+            {deleting.kind === "theme"
+              ? " is deleted, together with its config and screenshot."
+              : " is deleted - the published theme itself isn't touched."}{" "}
+            Its link stops working, including for a pending{" "}
+            <code className="text-ctp-subtext1">stellar publish --draft</code>.
+          </p>
+          <p className="text-ctp-red">This can't be undone.</p>
+        </ConfirmDialog>
+      )}
     </section>
   );
 }

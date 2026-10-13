@@ -15,6 +15,11 @@ interface ModalProps {
   onRequestClose: () => void;
   children: React.ReactNode;
   className?: string;
+  /**
+   * Element to focus when the dialog opens, instead of its first focusable
+   * one - a confirmation puts Cancel here, so a stray Enter is harmless.
+   */
+  initialFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -31,6 +36,7 @@ export default function Modal({
   onRequestClose,
   children,
   className,
+  initialFocusRef,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -44,12 +50,16 @@ export default function Modal({
     onRequestCloseRef.current = onRequestClose;
   });
 
+  // Mount-only on purpose: initialFocusRef is read once, when the dialog
+  // opens. Depending on its .current would re-run this as soon as the ref
+  // attaches, restoring and re-stealing focus.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: see above
   useEffect(() => {
     const previouslyFocused = document.activeElement as HTMLElement | null;
 
     const dialog = dialogRef.current;
     const focusable = dialog?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
-    (focusable ?? dialog)?.focus();
+    (initialFocusRef?.current ?? focusable ?? dialog)?.focus();
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";

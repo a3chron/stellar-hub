@@ -72,7 +72,7 @@ out the rest:
 Then it prints something like this, with a ctrl+clickable link:
 
 ```text
-✓ Draft K7QF2M: My Theme (a3chron/my-theme 1.0)
+✓ Draft K7QF2M: My Theme (a3chron/my-theme@1.0)
 Finish it on the hub: https://stellar.a3chron.dev/upload/K7QF2M
 ```
 
@@ -90,24 +90,29 @@ stellar publish my-theme --publish --name "My Theme" --screenshot ./prompt.png
 Missing something? In a terminal it asks; in a script it fails and tells you
 which flag to add.
 
-Only the theme itself is required. Every flag is optional, except a screenshot
-when you `--publish` a brand-new theme.
+Only the theme itself is required. Two flags can be: `--screenshot` when you
+`--publish` a brand-new theme, and `--slug` for a loose `starship.toml` in a
+script.
 
 | Flag | Required? | What it sets |
 | --- | --- | --- |
 | `--screenshot` | With `--publish` for a new theme, unless its draft already has one | A PNG, JPEG or WebP, at most 4 MB |
 | `--slug` | Only for a loose `starship.toml` in a script (a terminal asks) | The address and `stellar apply` name (default: the folder name) |
-| `--name` | Optional | The display name of a new theme (default: the slug, capitalized) |
-| `--description` | Optional | The description |
-| `--group` | Optional | A group for related variants |
-| `--color-mode` | Optional | `dark`, `light` or `both` |
+| `--name` | Optional, new themes only | The display name (default: the slug, capitalized) |
+| `--description` | Optional, new themes only | The description |
+| `--group` | Optional, new themes only | A group for related variants |
+| `--color-mode` | Optional, new themes only | `dark`, `light` or `both` |
 | `--dep` | Optional | A dependency, e.g. a Nerd Font (repeat it for more) |
 | `--min-starship` | Optional | The minimum Starship version, like `1.24.0` |
 | `--version` | Optional | The version to publish (default: your file's version, like `1.2.toml` → `1.2`, or the next free one) |
 | `--notes` | Optional | Version notes |
 | `--draft` | Optional | Attach to a specific draft by its code |
 | `--publish` | Optional | Publish right away instead of leaving a draft |
-| `--yes`, `-y` | Optional | Never ask, assume yes |
+| `--yes`, `-y` | Optional | Never prompt: confirm everything and use defaults (fails if a required value has no default) |
+
+`--name`, `--description`, `--group` and `--color-mode` describe the theme
+itself, so they only apply to a new theme. For a new version they're ignored
+(with a warning) - change them in [settings](/settings) instead.
 
 <Callout type="caution" title="Custom commands">
 
@@ -141,6 +146,10 @@ its next version - `1.4` becomes `2.0` unless you pass `--version 1.5` (or
 your local file already has a newer version number). Versions compare
 numerically, so `1.10` is newer than `1.9`. If nothing actually changed since
 the latest version, it asks before going ahead.
+
+```text
+✓ Draft K7QF2M: new version a3chron/my-theme@2.0
+```
 
 In the browser it's the upload icon next to your theme in
 [settings](/settings), which opens the same kind of draft in the wizard.

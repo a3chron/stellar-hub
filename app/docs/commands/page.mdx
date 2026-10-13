@@ -183,7 +183,13 @@ stellar fork a3chron/ctp-blue cozy-blue
 
 # Fork a specific version
 stellar fork a3chron/ctp-blue@1.2 cozy-blue
+
+# Fork without being asked to confirm custom shell commands
+stellar fork a3chron/ctp-blue cozy-blue --force
 ```
+
+Like `apply`, `fork` asks before copying a theme that contains `[custom]`
+commands; `--force` (or `-f`) skips that question.
 
 Themes made with `new` and `fork` are kept by `stellar clean` - only
 `stellar clean --include-own` removes them, after asking.

@@ -7,7 +7,11 @@ import type { ThemeVersion } from "@/lib/db/types";
 import { getSessionUser } from "@/lib/request-auth";
 import { hasCustomSections } from "@/lib/toml-custom-detect";
 import { usernameEquals } from "@/lib/username";
-import { pickLatestVersion, VERSION_PATTERN } from "@/lib/versions";
+import {
+  pickLatestVersion,
+  VERSION_PATTERN,
+  versionFloor,
+} from "@/lib/versions";
 
 type RouteParams = {
   params: Promise<{ author: string; slug: string; version: string }>;
@@ -131,11 +135,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * DELETE /api/[author]/[slug]/[version]
  * Delete one version of a theme (requires authentication and ownership).
  *
- * Never the theme's latest version: a new version has to be numerically
- * greater than the latest, so a deleted number is always below it and can
- * never be published again with different content. That keeps `stellar`
- * caches, which are keyed by version number, honest - an `@1.1` someone
- * already has can't silently turn into another config.
+ * Any version but the theme's only one; deleting the latest makes the one
+ * below it the latest. The deleted number is remembered in
+ * `themes.highestDeletedVersion` and publishing only accepts newer numbers
+ * (lib/publish.ts), so it never comes back with different content. That
+ * keeps `stellar` caches, which are keyed by version number, honest - an
+ * `@2.0` someone already has can't silently turn into another config.
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
@@ -193,10 +198,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     return await db.transaction(async (tx) => {
       // Locked like publishVersion() in lib/publish.ts does, so a publish or
-      // another delete of this theme runs strictly before or after this one
-      // and the "is it the latest" check below can't go stale.
+      // another delete of this theme runs strictly before or after this one:
+      // the only-version check can't go stale, and a publish can't slip in a
+      // number that is being deleted right now.
       const [locked] = await tx
-        .select({ id: themes.id })
+        .select({
+          id: themes.id,
+          highestDeletedVersion: themes.highestDeletedVersion,
+        })
         .from(themes)
         .where(and(eq(themes.id, theme.id), eq(themes.authorId, user.id)))
         .for("update");
@@ -226,17 +235,17 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
         );
       }
 
-      if (pickLatestVersion(versions)?.id === target.id) {
-        return apiError(
-          409,
-          "The latest version can't be deleted - publish a newer version first, or delete the whole theme",
-          "latest_version",
-        );
-      }
+      await tx.delete(themeVersions).where(eq(themeVersions.id, target.id));
 
       // themes.updatedAt stays as it is: it drives the "Latest" sorting, and
-      // removing an old version isn't news.
-      await tx.delete(themeVersions).where(eq(themeVersions.id, target.id));
+      // removing a version isn't news.
+      const floor = versionFloor(version, locked.highestDeletedVersion);
+      if (floor !== locked.highestDeletedVersion) {
+        await tx
+          .update(themes)
+          .set({ highestDeletedVersion: floor })
+          .where(eq(themes.id, locked.id));
+      }
 
       return NextResponse.json({ success: true });
     });

@@ -30,7 +30,11 @@ import {
 import { isValidScreenshotFilename } from "@/lib/file-validation";
 import { supabaseAdmin } from "@/lib/supabase";
 import { isSingleLineSafe, SINGLE_LINE_MESSAGE } from "@/lib/text-rules";
-import { pickLatestVersion, VERSION_PATTERN } from "@/lib/versions";
+import {
+  pickLatestVersion,
+  VERSION_PATTERN,
+  versionFloor,
+} from "@/lib/versions";
 
 // Server-side draft helpers: validation, serialization to the API's `Draft`
 // shape, expiry and screenshot cleanup. The routes in app/api/drafts/** and
@@ -552,6 +556,7 @@ export interface DraftThemeContext {
   slug: string;
   name: string;
   latest: LatestVersion | undefined;
+  highestDeletedVersion: string | null;
 }
 
 /** Slug, name and numerically latest version of the themes behind drafts. */
@@ -565,7 +570,7 @@ export async function loadThemeContexts(
 
   const rows = await db.query.themes.findMany({
     where: inArray(themes.id, [...new Set(themeIds)]),
-    columns: { id: true, slug: true, name: true },
+    columns: { id: true, slug: true, name: true, highestDeletedVersion: true },
     with: {
       versions: {
         columns: {
@@ -583,6 +588,7 @@ export async function loadThemeContexts(
       slug: row.slug,
       name: row.name,
       latest: pickLatestVersion(row.versions),
+      highestDeletedVersion: row.highestDeletedVersion,
     });
   }
   return contexts;
@@ -682,6 +688,12 @@ export function serializeDraft(
             slug: context.slug,
             name: context.name,
             latestVersion: context.latest?.version ?? null,
+            // The number a new version has to beat - above the latest when a
+            // higher version was deleted (see versionFloor).
+            highestVersion: versionFloor(
+              context.latest?.version,
+              context.highestDeletedVersion,
+            ),
           }
         : null,
     name: row.name,

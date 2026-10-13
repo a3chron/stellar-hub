@@ -24,9 +24,10 @@ interface ThemeVersionsProps {
 }
 
 /**
- * A theme's versions behind a disclosure, newest first. Every version but the
- * latest can be deleted - the DELETE handler in
- * app/api/[author]/[slug]/[version]/route.ts explains why never the latest.
+ * A theme's versions behind a disclosure, newest first. Any version can be
+ * deleted as long as one is left; deleting the latest makes the next one
+ * down the latest. A deleted number is never published again - see the
+ * DELETE handler in app/api/[author]/[slug]/[version]/route.ts.
  */
 export default function ThemeVersions({ author, theme }: ThemeVersionsProps) {
   const router = useRouter();
@@ -36,6 +37,8 @@ export default function ThemeVersions({ author, theme }: ThemeVersionsProps) {
 
   const versions = sortVersionsDesc(theme.versions);
   const latest = versions[0]?.version;
+  // The only version can't go - that is deleting the theme.
+  const deletable = versions.length > 1;
   // Once the last deletable version is gone, focus falls back to the
   // disclosure button - the list has no heading of its own.
   const {
@@ -43,10 +46,10 @@ export default function ThemeVersions({ author, theme }: ThemeVersionsProps) {
     buttonRef,
     removing,
   } = useFocusAfterRemoval<HTMLButtonElement>(
-    versions
-      .filter((entry) => entry.version !== latest)
-      .map((entry) => entry.version),
+    deletable ? versions.map((entry) => entry.version) : [],
   );
+  // Deleting the latest hands "latest" to the next one down.
+  const nextLatest = versions[1]?.version;
 
   // Resolves with the message to show in the dialog, or null once deleted.
   async function deleteVersion(entry: ListedVersion): Promise<string | null> {
@@ -129,11 +132,7 @@ export default function ThemeVersions({ author, theme }: ThemeVersionsProps) {
                   )}
                 </div>
 
-                {isLatest ? (
-                  // Keeps the rows' right edges aligned without offering a
-                  // button that could only ever be disabled.
-                  <span aria-hidden="true" className="size-8 shrink-0" />
-                ) : (
+                {deletable ? (
                   <button
                     ref={buttonRef(entry.version)}
                     type="button"
@@ -144,14 +143,19 @@ export default function ThemeVersions({ author, theme }: ThemeVersionsProps) {
                   >
                     <Trash2 className="size-4" />
                   </button>
+                ) : (
+                  // Keeps the row's right edge where the others have their
+                  // button, without offering one that could only be disabled.
+                  <span aria-hidden="true" className="size-8 shrink-0" />
                 )}
               </li>
             );
           })}
         </ul>
         <p className="mt-2 text-xs leading-relaxed text-ctp-subtext0">
-          The latest version can't be deleted - publish a newer one first, or
-          delete the whole theme.
+          {deletable
+            ? "Deleting the latest makes the one below it the latest. A deleted version number can't be used again."
+            : "A theme needs at least one version - to remove this one, delete the whole theme."}
         </p>
       </div>
 
@@ -167,7 +171,22 @@ export default function ThemeVersions({ author, theme }: ThemeVersionsProps) {
             <span className="font-semibold text-ctp-text">
               {theme.name} {formatVersion(deleting.version)}
             </span>{" "}
-            is deleted.{" "}
+            is deleted
+            {deleting.version === latest && nextLatest && (
+              <>
+                {" "}
+                and{" "}
+                <span className="font-semibold text-ctp-text">
+                  {formatVersion(nextLatest)}
+                </span>{" "}
+                becomes the latest - it's what{" "}
+                <code className="break-words text-ctp-subtext1">
+                  stellar apply {author}/{theme.slug}
+                </code>{" "}
+                installs from then on
+              </>
+            )}
+            .{" "}
             <code className="break-words text-ctp-subtext1">
               stellar apply {author}/{theme.slug}@{deleting.version}
             </code>{" "}
@@ -175,8 +194,8 @@ export default function ThemeVersions({ author, theme }: ThemeVersionsProps) {
             people who already downloaded it keep their copy.
           </p>
           <p>
-            The number {deleting.version} can't be used again: new versions
-            always have to be newer than the latest one.
+            The number {deleting.version} can't be used again: the next version
+            you publish has to be newer than it.
           </p>
           <p className="text-ctp-red">This can't be undone.</p>
         </ConfirmDialog>

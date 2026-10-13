@@ -136,9 +136,13 @@ export default function VersionWizard({
   const latestVersion = theme?.latestVersion ?? null;
   // A theme always has a version; "?" is only there to satisfy the types.
   const latestLabel = latestVersion ? formatVersion(latestVersion) : "?";
+  // The number to beat: the latest, or a deleted version above it - deleted
+  // numbers are never reused. An older hub doesn't send it.
+  const floorVersion = theme?.highestVersion ?? latestVersion;
+  const floorDeleted = floorVersion !== null && floorVersion !== latestVersion;
   const bumps: Record<Bump, string> = {
-    minor: calculateNextVersion(latestVersion ?? "0.0", "minor"),
-    patch: calculateNextVersion(latestVersion ?? "0.0", "patch"),
+    minor: calculateNextVersion(floorVersion ?? "0.0", "minor"),
+    patch: calculateNextVersion(floorVersion ?? "0.0", "patch"),
   };
   // A version stellar-cli set (`--version`, or a newer local file) that isn't
   // one of the two bumps stays selectable as it is.
@@ -199,12 +203,16 @@ export default function VersionWizard({
     !MIN_STARSHIP_VERSION_PATTERN.test(fields.minStarshipVersion.trim());
   const minStarshipShown = minStarshipTouched && minStarshipInvalid;
 
-  // A version stellar-cli set can be older than the latest one; the bumps
+  // A version stellar-cli set can be older than the number to beat; the bumps
   // never are. Shown inline, and the publish would be refused anyway.
   const versionNotNewer =
     fields.version !== "" &&
-    latestVersion !== null &&
-    compareVersions(fields.version, latestVersion) <= 0;
+    floorVersion !== null &&
+    compareVersions(fields.version, floorVersion) <= 0;
+  let floorLabel = `the latest ${latestLabel}`;
+  if (floorDeleted && floorVersion) {
+    floorLabel = `${formatVersion(floorVersion)}, which was deleted`;
+  }
 
   function setField<K extends FieldKey>(key: K, value: VersionFields[K]) {
     setForm((prev) => ({ ...prev, fields: { ...prev.fields, [key]: value } }));
@@ -515,6 +523,12 @@ export default function VersionWizard({
                 </div>
                 <p className="text-xs text-ctp-subtext0 mt-2">
                   Latest is {latestLabel}.{" "}
+                  {floorDeleted && floorVersion && (
+                    <>
+                      {formatVersion(floorVersion)} was deleted, and a deleted
+                      number can't be used again.{" "}
+                    </>
+                  )}
                   <span className="text-ctp-text">Minor:</span> New features,
                   improvements · <span className="text-ctp-text">Patch:</span>{" "}
                   Small fixes
@@ -524,8 +538,8 @@ export default function VersionWizard({
                 </p>
                 {versionNotNewer && (
                   <p role="alert" className="text-xs text-ctp-red mt-2">
-                    {formatVersion(fields.version)} isn't newer than the latest{" "}
-                    {latestLabel} - pick one of the bumps instead.
+                    {formatVersion(fields.version)} isn't newer than{" "}
+                    {floorLabel} - pick one of the bumps instead.
                   </p>
                 )}
               </fieldset>

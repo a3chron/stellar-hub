@@ -25,7 +25,11 @@ import {
 } from "@/lib/drafts";
 import { getDraftUser } from "@/lib/request-auth";
 import { themeSlugTaken } from "@/lib/theme-exists";
-import { calculateNextVersion, pickLatestVersion } from "@/lib/versions";
+import {
+  calculateNextVersion,
+  pickLatestVersion,
+  versionFloor,
+} from "@/lib/versions";
 
 /**
  * GET /api/drafts
@@ -173,7 +177,7 @@ export async function POST(request: NextRequest) {
         eq(themes.authorId, user.id),
         eq(themes.slug, input.themeSlug),
       ),
-      columns: { id: true },
+      columns: { id: true, highestDeletedVersion: true },
       with: {
         versions: {
           columns: {
@@ -206,8 +210,11 @@ export async function POST(request: NextRequest) {
       configSource = via;
     }
 
-    let version: string | null = latest
-      ? calculateNextVersion(latest.version, "minor")
+    // The next minor above the number to beat - which is a deleted version
+    // when that is higher than the latest, as deleted numbers aren't reused.
+    const floor = versionFloor(latest?.version, theme.highestDeletedVersion);
+    let version: string | null = floor
+      ? calculateNextVersion(floor, "minor")
       : "1.0";
     if (input.version !== undefined) {
       version = input.version;

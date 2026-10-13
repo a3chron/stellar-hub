@@ -14,7 +14,7 @@ stellar auth
 
 Your browser opens on a page showing a code like `WDJB-MJHT`. Check that it
 matches the one in your terminal, click **Approve**, close the tab. The CLI
-notices on its own a few seconds later - no copy-pasting tokens around.
+should notice the approval on its own a few seconds later.
 
 ```bash
 stellar auth --no-browser   # on an SSH box: just print the link
@@ -24,7 +24,7 @@ stellar auth logout         # revoke this login
 
 <Callout type="tip" title="What that login can do">
 
-Create, edit and publish your theme drafts. That's it - it can't touch your
+Create, edit and publish your theme drafts. It can't touch your
 profile, your password or anything else on the account. It's stored in
 `~/.config/stellar/credentials.json`, readable only by you. In CI, set
 `STELLAR_TOKEN` instead.
@@ -43,16 +43,16 @@ This creates `~/.config/stellar/<you>/my-theme/1.0.toml` with a small starter
 config. `stellar apply <you>/my-theme` it and start editing - on Linux and
 macOS your prompt updates as you save.
 
-Or stand on the shoulders of someone else's prompt:
+Or start with someone else's prompt:
 
 ```bash
 stellar fork a3chron/ctp-blue cozy-blue
 ```
 
 That copies the theme (a specific `@version` works too) into
-`<you>/cozy-blue/1.0.toml`, with a `# Forked from ...` line at the top so the
-original author gets the credit. Neither command ever overwrites an existing
-file, and `stellar clean` leaves both alone.
+`<you>/cozy-blue/1.0.toml`, with a `# Forked from ...` line at the top. 
+Neither command ever overwrites an existing file, and `stellar clean` leaves both alone
+(unless you pass `--include-own`).
 
 ## Publish it
 
@@ -90,21 +90,24 @@ stellar publish my-theme --publish --name "My Theme" --screenshot ./prompt.png
 Missing something? In a terminal it asks; in a script it fails and tells you
 which flag to add.
 
-| Flag | What it sets |
-| --- | --- |
-| `--slug` | The address and `stellar apply` name (default: the folder name) |
-| `--name` | The display name (new themes only) |
-| `--description` | The description |
-| `--group` | A group for related variants |
-| `--color-mode` | `dark`, `light` or `both` |
-| `--dep` | A dependency, e.g. a Nerd Font (repeat it for more) |
-| `--min-starship` | The minimum Starship version, like `1.24.0` |
-| `--screenshot` | A PNG, JPEG or WebP, at most 4 MB |
-| `--version` | The version to publish |
-| `--notes` | Version notes |
-| `--draft` | Attach to a specific draft by its code |
-| `--publish` | Publish right away instead of leaving a draft |
-| `--yes`, `-y` | Never ask, assume yes |
+Only the theme itself is required. Every flag is optional, except a screenshot
+when you `--publish` a brand-new theme.
+
+| Flag | Required? | What it sets |
+| --- | --- | --- |
+| `--screenshot` | With `--publish` for a new theme, unless its draft already has one | A PNG, JPEG or WebP, at most 4 MB |
+| `--slug` | Only for a loose `starship.toml` in a script (a terminal asks) | The address and `stellar apply` name (default: the folder name) |
+| `--name` | Optional | The display name of a new theme (default: the slug, capitalized) |
+| `--description` | Optional | The description |
+| `--group` | Optional | A group for related variants |
+| `--color-mode` | Optional | `dark`, `light` or `both` |
+| `--dep` | Optional | A dependency, e.g. a Nerd Font (repeat it for more) |
+| `--min-starship` | Optional | The minimum Starship version, like `1.24.0` |
+| `--version` | Optional | The version to publish (default: your file's version, like `1.2.toml` → `1.2`, or the next free one) |
+| `--notes` | Optional | Version notes |
+| `--draft` | Optional | Attach to a specific draft by its code |
+| `--publish` | Optional | Publish right away instead of leaving a draft |
+| `--yes`, `-y` | Optional | Never ask, assume yes |
 
 <Callout type="caution" title="Custom commands">
 

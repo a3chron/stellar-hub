@@ -169,7 +169,7 @@ export function DecisionResult({ decision }: { decision: Decision }) {
     <div>
       <CircleCheck size={40} className="mb-4 text-ctp-green" />
       <h1 className="text-3xl font-bold text-ctp-text">
-        ✓ You can close this tab
+        You can close this tab
       </h1>
       <p className="mt-4 text-sm leading-relaxed text-ctp-subtext0">
         stellar-cli picks up the login by itself within a few seconds. You can

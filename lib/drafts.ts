@@ -702,7 +702,7 @@ export function serializeDraft(
     minStarshipVersion: row.minStarshipVersion,
     version: row.version,
     versionNotes: row.versionNotes,
-    hasConfig: row.config !== null,
+    hasConfig: hasConfig(row),
     configSource: row.configSource as ConfigSource | null,
     configUpdatedAt: row.configUpdatedAt?.toISOString() ?? null,
     unchangedFromLatest:

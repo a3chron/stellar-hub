@@ -100,7 +100,9 @@ fi
 
 # -------------------------------------------------------------- clipboard
 if command -v wl-copy >/dev/null; then
-  printf '%s' "$KEY" | wl-copy
+  # wl-copy forks to serve the clipboard; without the redirect that child
+  # keeps this script's stdout open and anything piping it never finishes.
+  printf '%s' "$KEY" | wl-copy >/dev/null 2>&1
   ok "key copied to clipboard (wl-copy) - paste it into Vercel"
 else
   note "wl-copy not found - read the new key yourself from $HUB_ENV_FILE (STATS_API_KEY) if you need to paste it elsewhere"

@@ -35,6 +35,15 @@ const RING_CLASS: Record<StepStatus, string> = {
   error: "ring-ctp-red/40",
 };
 
+// Same idea for hovering a step you can jump to. Spelled out in full rather
+// than built from RING_CLASS, so Tailwind finds every class name.
+const HOVER_RING_CLASS: Record<StepStatus, string> = {
+  empty: "group-hover:ring-ctp-overlay0/50",
+  partial: "group-hover:ring-ctp-lavender/40",
+  complete: "group-hover:ring-ctp-green/40",
+  error: "group-hover:ring-ctp-red/40",
+};
+
 // Colour alone doesn't say anything to a screen reader (or to everyone who
 // can't tell red from green), so every status but "empty" is also spelled out.
 const STATUS_TEXT: Record<StepStatus, string | null> = {
@@ -137,7 +146,7 @@ export default function Stepper({
                       `ring-2 ring-offset-2 ring-offset-ctp-base ${RING_CLASS[stepStatus]}`,
                     reachable &&
                       !isCurrent &&
-                      "group-hover:ring-1 group-hover:ring-offset-1 group-hover:ring-offset-ctp-base group-hover:ring-ctp-surface2",
+                      `group-hover:ring-1 group-hover:ring-offset-1 group-hover:ring-offset-ctp-base ${HOVER_RING_CLASS[stepStatus]}`,
                   )}
                 />
                 <span

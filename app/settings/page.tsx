@@ -12,6 +12,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cliTokens, themeDrafts } from "@/lib/db/schema";
 import { purgeExpiredDrafts, serializeDrafts } from "@/lib/drafts";
+import { getAuthorGroups } from "@/lib/theme-groups";
 
 export default async function SettingsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -43,6 +44,7 @@ export default async function SettingsPage() {
   const colorSchemes = await db.query.colorSchemes.findMany({
     orderBy: (colorSchemes, { asc }) => [asc(colorSchemes.name)],
   });
+  const groups = await getAuthorGroups(user.id);
 
   await purgeExpiredDrafts(user.id);
   const drafts = await serializeDrafts(
@@ -85,6 +87,7 @@ export default async function SettingsPage() {
               author={user.username}
               themes={user.themes}
               colorSchemes={colorSchemes}
+              groups={groups}
             />
             <CliSessions logins={cliLogins} />
             <DeleteAccount user={user} themeCount={user.themes.length} />

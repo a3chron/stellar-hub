@@ -66,6 +66,14 @@ export default function Modal({
 
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") {
+        // A control inside already used this Escape to close its own popup
+        // (a select, the group picker). React's root listener sits on this
+        // same document node and runs first, so stopPropagation() there
+        // can't keep the key from reaching this listener - preventDefault()
+        // is the signal instead.
+        if (e.defaultPrevented) {
+          return;
+        }
         e.preventDefault();
         onRequestCloseRef.current();
         return;

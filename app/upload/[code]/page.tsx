@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { user } from "@/lib/db/schema";
 import { findLiveDraft, purgeExpiredDrafts, serializeOne } from "@/lib/drafts";
+import { getAuthorGroups } from "@/lib/theme-groups";
 
 export const metadata: Metadata = {
   title: "Finish Draft",
@@ -70,6 +71,7 @@ export default async function DraftPage({ params }: PageProps) {
   const colorSchemes = await db.query.colorSchemes.findMany({
     orderBy: (colorSchemes, { asc }) => [asc(colorSchemes.name)],
   });
+  const groups = await getAuthorGroups(session.user.id);
 
   return (
     <main className="bg-ctp-base">
@@ -84,6 +86,7 @@ export default async function DraftPage({ params }: PageProps) {
           <ThemeWizard
             author={author}
             colorSchemes={colorSchemes}
+            groups={groups}
             initialDraft={draft}
           />
         </div>

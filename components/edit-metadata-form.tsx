@@ -8,8 +8,10 @@ import {
   ACCEPTED_SCREENSHOT_TYPES,
   validateScreenshotFile,
 } from "@/lib/screenshot-validation";
+import type { ThemeGroup } from "@/lib/theme-groups";
 import { useConfirmClose } from "@/lib/use-confirm-close";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
+import GroupPicker from "./group-picker";
 import Input from "./input";
 import Modal from "./modal";
 import Select from "./select";
@@ -30,6 +32,8 @@ interface EditMetadataFormProps {
   author: string;
   theme: EditableTheme;
   colorSchemes: Array<{ id: string; name: string }>;
+  // The author's existing theme groups, for the group picker.
+  groups: ThemeGroup[];
   onCancel: () => void;
 }
 
@@ -37,6 +41,7 @@ export default function EditMetadataForm({
   author,
   theme,
   colorSchemes,
+  groups,
   onCancel,
 }: EditMetadataFormProps) {
   const router = useRouter();
@@ -258,15 +263,11 @@ export default function EditMetadataForm({
           </div>
 
           {/* Group */}
-          <div>
-            <Input
-              type="text"
-              name="group"
-              label="Group (optional)"
-              defaultValue={theme.group || ""}
-              placeholder="e.g., 'variants'"
-            />
-          </div>
+          <GroupPicker
+            groups={groups}
+            name="group"
+            defaultValue={theme.group || ""}
+          />
 
           {/* Screenshot Update */}
           <div>

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
+import GroupPicker from "@/components/group-picker";
 import Input from "@/components/input";
 import Select from "@/components/select";
 import {
@@ -14,6 +15,7 @@ import {
   parseDependencies,
 } from "@/lib/draft-shared";
 import { apiFetch, jsonRequest } from "@/lib/drafts-client";
+import type { ThemeGroup } from "@/lib/theme-groups";
 import { finishSlugInput, generateSlug } from "@/lib/theme-slug";
 import { useThemeSlugAvailability } from "@/lib/use-theme-slug-availability";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
@@ -199,6 +201,8 @@ function initialStep(draft: Draft | null): number {
 interface ThemeWizardProps {
   author: string;
   colorSchemes: Array<{ id: string; name: string }>;
+  // The author's existing theme groups, for the group picker.
+  groups: ThemeGroup[];
   // An existing draft (/upload/[code]), or null for a fresh /upload.
   initialDraft: Draft | null;
 }
@@ -213,6 +217,7 @@ interface ThemeWizardProps {
 export default function ThemeWizard({
   author,
   colorSchemes,
+  groups,
   initialDraft,
 }: ThemeWizardProps) {
   const router = useRouter();
@@ -723,20 +728,11 @@ JetBrainsMono Nerd Font`}
                 ]}
               />
 
-              <div>
-                <Input
-                  type="text"
-                  label="Group (optional)"
-                  value={fields.group}
-                  onChange={(e) => setField("group", e.currentTarget.value)}
-                  maxLength={100}
-                  placeholder="e.g., 'seasons'"
-                />
-                <p className="text-xs text-ctp-subtext0 mt-1">
-                  Group related themes together (e.g., different color variants
-                  of the same theme, like catppuccin flavors / accents)
-                </p>
-              </div>
+              <GroupPicker
+                groups={groups}
+                value={fields.group}
+                onChange={(value) => setField("group", value)}
+              />
 
               <div>
                 <Input

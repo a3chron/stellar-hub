@@ -6,6 +6,7 @@ import ThemeWizard from "@/components/wizard/theme-wizard";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { user } from "@/lib/db/schema";
+import { getAuthorGroups } from "@/lib/theme-groups";
 
 export default async function UploadPage() {
   const session = await auth.api.getSession({
@@ -20,6 +21,7 @@ export default async function UploadPage() {
   const colorSchemes = await db.query.colorSchemes.findMany({
     orderBy: (colorSchemes, { asc }) => [asc(colorSchemes.name)],
   });
+  const groups = await getAuthorGroups(session.user.id);
 
   // Always set in the database; better-auth only types it as optional.
   const author =
@@ -52,6 +54,7 @@ export default async function UploadPage() {
           <ThemeWizard
             author={author}
             colorSchemes={colorSchemes}
+            groups={groups}
             initialDraft={null}
           />
         </div>

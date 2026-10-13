@@ -9,6 +9,7 @@ import ConfirmDialog from "@/components/confirm-dialog";
 import { LocalDate } from "@/components/local-time";
 import type { Draft } from "@/lib/draft-shared";
 import { apiFetch, existingDraftCode, jsonRequest } from "@/lib/drafts-client";
+import type { ThemeGroup } from "@/lib/theme-groups";
 import { formatDownloads } from "@/lib/utils";
 import EditMetadataForm from "../edit-metadata-form";
 
@@ -44,12 +45,14 @@ interface ThemeManagementProps {
   author: string;
   themes: Theme[];
   colorSchemes: Array<{ id: string; name: string }>;
+  groups: ThemeGroup[];
 }
 
 export default function ThemeManagement({
   author,
   themes,
   colorSchemes,
+  groups,
 }: ThemeManagementProps) {
   const router = useRouter();
   const [editingMetadata, setEditingMetadata] = useState<string | null>(null);
@@ -275,6 +278,7 @@ export default function ThemeManagement({
           author={author}
           theme={editingTheme}
           colorSchemes={colorSchemes}
+          groups={groups}
           onCancel={() => setEditingMetadata(null)}
         />
       )}

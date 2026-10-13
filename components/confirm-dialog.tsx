@@ -41,6 +41,7 @@ export default function ConfirmDialog({
   confirmDisabled = false,
 }: ConfirmDialogProps) {
   const titleId = useId();
+  const descriptionId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
   // State for rendering, the ref for the double-submit guard: two quick
   // clicks both run before the first re-render would disable the button.
@@ -73,6 +74,8 @@ export default function ConfirmDialog({
   return (
     <Modal
       titleId={titleId}
+      role="alertdialog"
+      describedById={descriptionId}
       initialFocusRef={cancelRef}
       onRequestClose={() => {
         if (!busyRef.current) {
@@ -94,7 +97,10 @@ export default function ConfirmDialog({
         <h3 id={titleId} className="text-xl font-semibold text-ctp-text mb-3">
           {title}
         </h3>
-        <div className="space-y-3 text-sm text-ctp-subtext0 leading-relaxed">
+        <div
+          id={descriptionId}
+          className="space-y-3 text-sm text-ctp-subtext0 leading-relaxed"
+        >
           {children}
         </div>
 

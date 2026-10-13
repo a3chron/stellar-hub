@@ -14,6 +14,7 @@ import type { ThemeGroup } from "@/lib/theme-groups";
 import { formatDownloads } from "@/lib/utils";
 import { pickLatestVersion } from "@/lib/versions";
 import EditMetadataForm from "../edit-metadata-form";
+import { useFocusAfterRemoval } from "./use-focus-after-removal";
 
 interface Theme {
   id: string;
@@ -64,6 +65,9 @@ export default function ThemeManagement({
     message: string;
   } | null>(null);
   const [deleting, setDeleting] = useState<Theme | null>(null);
+  const { headingRef, buttonRef, removing } = useFocusAfterRemoval(
+    themes.map((theme) => theme.slug),
+  );
 
   // A new version is put together as a draft in the upload wizard. An open
   // version draft for the theme (from an earlier visit, or from
@@ -96,6 +100,7 @@ export default function ThemeManagement({
       });
 
       if (response.ok) {
+        removing(theme.slug);
         setDeleting(null);
         router.refresh();
         return null;
@@ -114,7 +119,11 @@ export default function ThemeManagement({
         id="themes"
         className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
       >
-        <h2 className="text-2xl font-semibold text-ctp-text mb-6">
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-2xl font-semibold text-ctp-text mb-6 focus:outline-none"
+        >
           Your Themes
         </h2>
         <div className="text-center py-12">
@@ -140,7 +149,11 @@ export default function ThemeManagement({
         id="themes"
         className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
       >
-        <h2 className="text-2xl font-semibold text-ctp-text mb-6">
+        <h2
+          ref={headingRef}
+          tabIndex={-1}
+          className="text-2xl font-semibold text-ctp-text mb-6 focus:outline-none"
+        >
           Your Themes ({themes.length})
         </h2>
 
@@ -214,6 +227,7 @@ export default function ThemeManagement({
                           )}
                         </button>
                         <button
+                          ref={buttonRef(theme.slug)}
                           onClick={() => setDeleting(theme)}
                           type="button"
                           className="p-2 text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded transition cursor-pointer"

@@ -7,6 +7,7 @@ import { useState } from "react";
 import ConfirmDialog from "@/components/confirm-dialog";
 import { LocalDate, TimeAgo } from "@/components/local-time";
 import type { CliToken } from "@/lib/db/types";
+import { useFocusAfterRemoval } from "./use-focus-after-removal";
 
 type CliLogin = Pick<CliToken, "id" | "label" | "createdAt" | "lastUsedAt">;
 
@@ -19,6 +20,9 @@ type CliLogin = Pick<CliToken, "id" | "label" | "createdAt" | "lastUsedAt">;
 export default function CliSessions({ logins }: { logins: CliLogin[] }) {
   const router = useRouter();
   const [revoking, setRevoking] = useState<CliLogin | null>(null);
+  const { headingRef, buttonRef, removing } = useFocusAfterRemoval(
+    logins.map((login) => login.id),
+  );
 
   // Resolves with the message to show in the dialog, or null once revoked.
   async function revoke(login: CliLogin): Promise<string | null> {
@@ -29,6 +33,7 @@ export default function CliSessions({ logins }: { logins: CliLogin[] }) {
 
       // Already gone (revoked from the CLI meanwhile) is just as good.
       if (response.ok || response.status === 404) {
+        removing(login.id);
         setRevoking(null);
         router.refresh();
         return null;
@@ -46,7 +51,13 @@ export default function CliSessions({ logins }: { logins: CliLogin[] }) {
       id="cli-logins"
       className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
     >
-      <h2 className="text-2xl font-semibold text-ctp-text mb-2">CLI logins</h2>
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-2xl font-semibold text-ctp-text mb-2 focus:outline-none"
+      >
+        CLI logins
+      </h2>
       <p className="text-sm text-ctp-subtext0 mb-6 leading-relaxed">
         Terminals where you ran{" "}
         <code className="text-ctp-subtext1">stellar auth</code>. They can create
@@ -82,6 +93,7 @@ export default function CliSessions({ logins }: { logins: CliLogin[] }) {
               </div>
               <button
                 type="button"
+                ref={buttonRef(login.id)}
                 onClick={() => setRevoking(login)}
                 className="shrink-0 px-4 py-2 text-sm rounded-md border-2 border-ctp-red/50 text-ctp-red transition hover:bg-ctp-red/10 cursor-pointer"
               >

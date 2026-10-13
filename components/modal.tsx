@@ -20,6 +20,10 @@ interface ModalProps {
    * one - a confirmation puts Cancel here, so a stray Enter is harmless.
    */
   initialFocusRef?: React.RefObject<HTMLElement | null>;
+  /** "alertdialog" for a confirmation that interrupts to ask something. */
+  role?: "dialog" | "alertdialog";
+  /** id of the element that says what the dialog is about. */
+  describedById?: string;
 }
 
 const FOCUSABLE_SELECTOR =
@@ -37,6 +41,8 @@ export default function Modal({
   children,
   className,
   initialFocusRef,
+  role = "dialog",
+  describedById,
 }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -137,11 +143,14 @@ export default function Modal({
     // effect above, so a second key handler here would fire onRequestClose
     // twice per Escape.
     // biome-ignore lint/a11y/useKeyWithClickEvents: see comment above.
+    // biome-ignore lint/a11y/noStaticElementInteractions: role is always dialog or alertdialog (a prop, which the linter can't follow)
+    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: aria-modal is valid on both dialog and alertdialog
     <div
       ref={dialogRef}
-      role="dialog"
+      role={role}
       aria-modal="true"
       aria-labelledby={titleId}
+      aria-describedby={describedById}
       tabIndex={-1}
       className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[100] outline-none"
       onClick={handleBackdropClick}

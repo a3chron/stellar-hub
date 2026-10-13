@@ -9,6 +9,7 @@ import { LocalDate, TimeAgo } from "@/components/local-time";
 import type { Draft, DraftStatus } from "@/lib/draft-shared";
 import { apiFetch } from "@/lib/drafts-client";
 import { cn } from "@/lib/utils";
+import { useFocusAfterRemoval } from "./use-focus-after-removal";
 
 const STATUS_STYLES: Record<DraftStatus, string> = {
   waiting_for_config: "text-ctp-peach border-ctp-peach/40 bg-ctp-peach/10",
@@ -40,6 +41,9 @@ function draftTitle(draft: Draft): string {
 export default function Drafts({ drafts }: { drafts: Draft[] }) {
   const router = useRouter();
   const [deleting, setDeleting] = useState<Draft | null>(null);
+  const { headingRef, buttonRef, removing } = useFocusAfterRemoval(
+    drafts.map((draft) => draft.code),
+  );
 
   // Resolves with the message to show in the dialog, or null once deleted.
   async function deleteDraft(draft: Draft): Promise<string | null> {
@@ -49,6 +53,7 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
 
     // A 404 means it's gone already, which is what was asked for.
     if (result.ok || result.status === 404) {
+      removing(draft.code);
       setDeleting(null);
       router.refresh();
       return null;
@@ -61,7 +66,11 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
       id="drafts"
       className="bg-ctp-mantle rounded-lg border border-ctp-surface0 p-8 scroll-mt-24"
     >
-      <h2 className="text-2xl font-semibold text-ctp-text mb-2">
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="text-2xl font-semibold text-ctp-text mb-2 focus:outline-none"
+      >
         Drafts{drafts.length > 0 && ` (${drafts.length})`}
       </h2>
       <p className="text-sm text-ctp-subtext0 mb-6 leading-relaxed">
@@ -124,6 +133,7 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                     <button
+                      ref={buttonRef(draft.code)}
                       onClick={() => setDeleting(draft)}
                       type="button"
                       className="p-2 text-ctp-subtext0 hover:text-ctp-red hover:bg-ctp-surface0 rounded transition cursor-pointer"

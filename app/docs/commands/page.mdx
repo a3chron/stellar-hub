@@ -14,7 +14,7 @@ hub.
 | `stellar list` | List cached themes |
 | `stellar current` | Show the currently applied theme |
 | `stellar info` | Show details about a theme |
-| `stellar clean` | Remove cached themes you're not using |
+| `stellar clean` | Remove downloaded themes you're not using |
 | `stellar remove` | Remove one or more cached themes |
 | `stellar rollback` | Switch back to the previously applied theme |
 | `stellar new` | Create a new, empty theme of your own |
@@ -103,20 +103,30 @@ stellar info a3chron/ctp-green
 
 ## clean
 
-Removes cached theme versions you're not currently using, freeing up
-space in `~/.config/stellar/`.
+Removes themes stellar downloaded from the hub that you're not currently
+using, freeing up space in `~/.config/stellar/`. Your own themes - the ones
+you made by hand or with `new` and `fork` - stay, and so do the theme you
+have applied and your backups.
 
 ```bash
 stellar clean
 
-# Also remove the currently applied theme's cache entry
+# Also remove your own themes (asks first)
+stellar clean --include-own
+
+# ...without asking
+stellar clean --include-own --yes
+
+# Also remove the currently applied theme
 stellar clean --all
 ```
 
-`clean` only ever removes versions that aren't currently applied (except
-`--all`, duh), so it's safe to run while you have local edits in the active
-theme's file - see
+`clean` never removes the version you have applied (except with `--all`,
+duh), so it's safe to run while you have local edits in the active theme's
+file - see
 [Customizing an applied theme](/docs/how-it-works#customizing-an-applied-theme).
+Backups are never removed by `clean`, whatever the flags - only
+`stellar remove <username>/backup` deletes them.
 
 ## remove
 
@@ -175,7 +185,8 @@ stellar fork a3chron/ctp-blue cozy-blue
 stellar fork a3chron/ctp-blue@1.2 cozy-blue
 ```
 
-Themes made with `new` and `fork` are never removed by `stellar clean`.
+Themes made with `new` and `fork` are kept by `stellar clean` - only
+`stellar clean --include-own` removes them, after asking.
 
 ## publish
 
@@ -219,9 +230,11 @@ stellar update
 
 ## uninstall
 
-Removes stellar itself: the binary and `~/.config/stellar`. If your `starship.toml` is a symlink into
-stellar's cache it is first replaced by a plain copy of the current theme,
-so your prompt looks the same afterwards.
+Removes stellar itself: the binary and `~/.config/stellar`. If your
+`starship.toml` is a symlink into stellar's cache it is first replaced by a
+plain copy of the current theme, so your prompt looks the same afterwards.
+Before it asks for confirmation, it lists your own themes and backups, since
+those go too.
 
 ```bash
 stellar uninstall

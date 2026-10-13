@@ -125,8 +125,9 @@ This also removes `%LOCALAPPDATA%\stellar\bin` from your PATH again.
 From an installed binary, `stellar uninstall` does the same thing. Your
 prompt keeps working: if `starship.toml` is a symlink into stellar's cache,
 it is turned into a plain file with the current theme's content first. Then
-`~/.config/stellar` is removed - including your backups - unless you pass
-`--keep-config`. Pass `--yes` to skip the confirmation.
+`~/.config/stellar` is removed - including your backups and your own themes,
+which it lists before asking - unless you pass `--keep-config`. Pass `--yes`
+to skip the confirmation.
 
 ```bash
 # Remove stellar but keep ~/.config/stellar (cache, backups, config)

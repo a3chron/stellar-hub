@@ -123,12 +123,13 @@ pixels on either side (40 megapixels in total). A file that only has the
 right extension is refused too. Re-export it, or take a fresh screen
 capture.
 
-### "invalid config: …" or "Invalid TOML document: …"
+### "invalid TOML: …" or "Invalid TOML document: …"
 
 The config isn't valid TOML: the first comes from stellar's own check before
 uploading, the second from stellar-hub, and both point at the line and
 column. Applying the theme locally first (`stellar apply`) catches the same
-mistakes.
+mistakes. Its cousins "config is empty" and "config is too long: N characters
+(max 100000)" mean what they say.
 
 ### "[custom] notice: this theme runs shell commands"
 

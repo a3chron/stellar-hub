@@ -12,7 +12,7 @@ import type { Draft } from "@/lib/draft-shared";
 import { apiFetch, existingDraftCode, jsonRequest } from "@/lib/drafts-client";
 import type { ThemeGroup } from "@/lib/theme-groups";
 import { formatDownloads } from "@/lib/utils";
-import { pickLatestVersion } from "@/lib/versions";
+import { formatVersion, pickLatestVersion } from "@/lib/versions";
 import EditMetadataForm from "../edit-metadata-form";
 import { useFocusAfterRemoval } from "./use-focus-after-removal";
 
@@ -194,7 +194,8 @@ export default function ThemeManagement({
                           {theme.name}
                         </Link>
                         <p className="text-sm text-ctp-subtext0 font-mono">
-                          {theme.slug} • v{latestVersion?.version || "1.0"}
+                          {theme.slug} ·{" "}
+                          {formatVersion(latestVersion?.version ?? "1.0")}
                         </p>
                         {theme.description && (
                           <p className="text-sm text-ctp-subtext0 mt-1 line-clamp-2">
@@ -249,9 +250,13 @@ export default function ThemeManagement({
                           {formatDownloads(theme.downloads)}
                         </span>
                       </div>
-                      <span>•</span>
-                      <span>{theme.versions.length} versions</span>
-                      <span>•</span>
+                      <span>·</span>
+                      <span>
+                        {theme.versions.length === 1
+                          ? "1 version"
+                          : `${theme.versions.length} versions`}
+                      </span>
+                      <span>·</span>
                       <span>
                         Updated <LocalDate date={theme.updatedAt} />
                       </span>
@@ -274,7 +279,7 @@ export default function ThemeManagement({
         <ConfirmDialog
           title="Delete theme?"
           confirmLabel="Delete theme"
-          busyLabel="Deleting..."
+          busyLabel="Deleting…"
           onConfirm={() => deleteTheme(deleting)}
           onCancel={() => setDeleting(null)}
         >

@@ -65,3 +65,11 @@ export function sortVersionsDesc<T extends { version: string }>(
 ): T[] {
   return [...versions].sort((a, b) => compareVersions(b.version, a.version));
 }
+
+/**
+ * How a version is shown on the web: "v1.3". Display only - stored values,
+ * API payloads and CLI syntax (`author/slug@1.3`) keep the bare number.
+ */
+export function formatVersion(version: string): string {
+  return `v${version}`;
+}

@@ -122,7 +122,7 @@ export default function ProfileSettings({ user }: { user: UserType }) {
             onChange={(e) => setBio(e.target.value)}
             rows={4}
             maxLength={500}
-            placeholder="Tell us about yourself..."
+            placeholder="Tell us about yourself…"
             className="w-full px-4 py-3 bg-ctp-base border border-ctp-surface0 rounded text-ctp-text placeholder-ctp-overlay0 focus:outline-none focus:border-ctp-overlay1"
           />
           <p className="text-sm text-ctp-subtext0 mt-1">
@@ -179,7 +179,7 @@ export default function ProfileSettings({ user }: { user: UserType }) {
             disabled={loading}
             className="px-6 py-2 bg-ctp-surface0 hover:bg-ctp-surface1 text-ctp-text rounded-md border-2 border-ctp-surface1 transition disabled:opacity-50"
           >
-            {loading ? "Saving..." : "Save Changes"}
+            {loading ? "Saving…" : "Save Changes"}
           </button>
         </div>
       </form>

@@ -20,13 +20,14 @@ import type { ThemeGroup } from "@/lib/theme-groups";
 import { finishSlugInput, generateSlug } from "@/lib/theme-slug";
 import { useThemeSlugAvailability } from "@/lib/use-theme-slug-availability";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
-import { VERSION_PATTERN } from "@/lib/versions";
+import { formatVersion, VERSION_PATTERN } from "@/lib/versions";
 import ConfigStep from "./config-step";
 import {
   DraftStatusLine,
   ErrorBox,
   errorField,
   GoneBanner,
+  lineCount,
   Muted,
   PublishConsent,
   ReviewRow,
@@ -569,7 +570,7 @@ export default function ThemeWizard({
 
   let nextLabel = "Next";
   if (step === STEP.review) {
-    nextLabel = busy ? "Publishing..." : "Publish Theme";
+    nextLabel = busy ? "Publishing…" : "Publish Theme";
   }
 
   // The same facts the step statuses are built from.
@@ -609,7 +610,12 @@ export default function ThemeWizard({
       {!gone && <DraftStatusLine draft={draft} />}
 
       {gone ? (
-        <GoneBanner onStartOver={startOver} busy={busy} error={error} />
+        <GoneBanner
+          kind="theme"
+          onStartOver={startOver}
+          busy={busy}
+          error={error}
+        />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <StepHeading key={step} step={STEPS[step]} headingRef={headingRef} />
@@ -647,7 +653,7 @@ export default function ThemeWizard({
                     maxLength={DESCRIPTION_MAX_LENGTH}
                     aria-describedby={`${descriptionId}-count`}
                     className="p-2 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text placeholder:text-ctp-subtext0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base"
-                    placeholder="A brief description of your theme..."
+                    placeholder="A brief description of your theme…"
                   />
                 </label>
                 <p className="text-xs text-ctp-subtext0 mt-1 flex justify-between">
@@ -821,7 +827,7 @@ JetBrainsMono Nerd Font`}
                   missing={!current.config.trim()}
                   onEdit={() => go(STEP.config)}
                 >
-                  {current.config.split("\n").length} lines
+                  {lineCount(current.config)}
                   {configSourceNote}
                 </ReviewRow>
                 <ReviewRow
@@ -842,7 +848,7 @@ JetBrainsMono Nerd Font`}
                   )}
                 </ReviewRow>
                 <ReviewRow label="Version" onEdit={() => go(STEP.details)}>
-                  {current.version}
+                  {formatVersion(current.version)}
                 </ReviewRow>
                 <ReviewRow label="Theme Mode" onEdit={() => go(STEP.details)}>
                   {COLOR_MODE_OPTIONS.find(

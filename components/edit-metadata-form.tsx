@@ -127,7 +127,7 @@ export default function EditMetadataForm({
       }
 
       // A proxy error page isn't JSON, and letting the parse throw would
-      // strand the button on "Saving...".
+      // strand the button on "Saving…".
       const body = await response.json().catch(() => null);
       setError(
         body?.details?.[0]?.message ??
@@ -227,7 +227,7 @@ export default function EditMetadataForm({
                 rows={3}
                 defaultValue={theme.description || ""}
                 className="p-2 rounded-lg bg-ctp-mantle border-2 border-ctp-crust text-ctp-text placeholder:text-ctp-subtext0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
-                placeholder="A brief description..."
+                placeholder="A brief description…"
               />
             </label>
           </div>
@@ -326,7 +326,7 @@ export default function EditMetadataForm({
               disabled={loading || screenshotError !== null}
               className="flex-1 px-4 py-2 bg-ctp-text hover:bg-ctp-subtext1 text-ctp-base rounded-md border-2 border-ctp-subtext0 transition disabled:opacity-50"
             >
-              {loading ? "Saving..." : "Save Changes"}
+              {loading ? "Saving…" : "Save Changes"}
             </button>
           </div>
         </form>

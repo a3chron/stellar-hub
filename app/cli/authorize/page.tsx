@@ -14,7 +14,7 @@ import { formatTimeAgo } from "@/lib/utils";
 import AuthorizeForm, { DecisionResult } from "./authorize-form";
 
 export const metadata: Metadata = {
-  title: "Authorize stellar CLI",
+  title: "Authorize stellar-cli",
   description: "Approve a `stellar auth` login from your terminal.",
   robots: { index: false, follow: false },
 };
@@ -46,7 +46,7 @@ export default async function CliAuthorizePage({ searchParams }: PageProps) {
   if (!codeParam) {
     return (
       <AuthShell>
-        <Heading>Authorize stellar CLI</Heading>
+        <Heading>Authorize stellar-cli</Heading>
         <p className="mt-4 text-sm leading-relaxed text-ctp-subtext0">
           Enter the code <code className="text-ctp-subtext1">stellar auth</code>{" "}
           printed in your terminal.

@@ -161,7 +161,7 @@ export default function ThemeFilters({ colorSchemes }: ThemeFiltersProps) {
           value={searchInput}
           onChange={(e) => handleSearchChange(e.target.value)}
           onKeyDown={handleSearchKeyDown}
-          placeholder="Search themes..."
+          placeholder="Search themes…"
           aria-label="Search themes"
           className="w-full rounded-xl border-2 border-ctp-crust bg-ctp-mantle py-2.5 pr-9 pl-9 text-sm text-ctp-text placeholder:text-ctp-overlay0 focus:outline-none focus:ring-2 ring-offset-2 ring-offset-ctp-base focus:ring-ctp-surface0"
         />

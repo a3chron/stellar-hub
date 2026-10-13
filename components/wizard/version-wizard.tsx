@@ -15,13 +15,18 @@ import {
 import { apiFetch, jsonRequest } from "@/lib/drafts-client";
 import { useUnsavedChangesWarning } from "@/lib/use-unsaved-changes-warning";
 import { cn } from "@/lib/utils";
-import { calculateNextVersion, compareVersions } from "@/lib/versions";
+import {
+  calculateNextVersion,
+  compareVersions,
+  formatVersion,
+} from "@/lib/versions";
 import ConfigStep from "./config-step";
 import {
   DraftStatusLine,
   ErrorBox,
   errorField,
   GoneBanner,
+  lineCount,
   Muted,
   PublishConsent,
   ReviewRow,
@@ -129,6 +134,8 @@ export default function VersionWizard({
 
   const theme = initialDraft.theme;
   const latestVersion = theme?.latestVersion ?? null;
+  // A theme always has a version; "?" is only there to satisfy the types.
+  const latestLabel = latestVersion ? formatVersion(latestVersion) : "?";
   const bumps: Record<Bump, string> = {
     minor: calculateNextVersion(latestVersion ?? "0.0", "minor"),
     patch: calculateNextVersion(latestVersion ?? "0.0", "patch"),
@@ -414,25 +421,27 @@ export default function VersionWizard({
 
   let nextLabel = "Next";
   if (step === STEP.review) {
-    nextLabel = busy ? "Publishing..." : `Publish v${fields.version}`;
+    nextLabel = busy
+      ? "Publishing…"
+      : `Publish ${formatVersion(fields.version)}`;
   }
 
   let configSourceNote = "edited here";
   if (draft.configSource === "latest") {
-    configSourceNote = `same as v${latestVersion}`;
+    configSourceNote = `same as ${latestLabel}`;
   } else if (draft.configSource === "cli") {
     configSourceNote = `from stellar-cli${draft.source ? ` (${draft.source})` : ""}`;
   }
 
   const dependencies = parseDependencies(fields.dependencies);
   const versionOptions: Array<{ value: string; label: string }> = [
-    { value: bumps.minor, label: `Minor (${bumps.minor})` },
-    { value: bumps.patch, label: `Patch (${bumps.patch})` },
+    { value: bumps.minor, label: `Minor (${formatVersion(bumps.minor)})` },
+    { value: bumps.patch, label: `Patch (${formatVersion(bumps.patch)})` },
   ];
   if (cliVersion) {
     versionOptions.push({
       value: cliVersion,
-      label: `${cliVersion} (from stellar-cli)`,
+      label: `${formatVersion(cliVersion)} (from stellar-cli)`,
     });
   }
 
@@ -448,7 +457,12 @@ export default function VersionWizard({
       {!gone && <DraftStatusLine draft={draft} />}
 
       {gone ? (
-        <GoneBanner onStartOver={startOver} busy={busy} error={error} />
+        <GoneBanner
+          kind="version"
+          onStartOver={startOver}
+          busy={busy}
+          error={error}
+        />
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           <StepHeading key={step} step={STEPS[step]} headingRef={headingRef} />
@@ -456,8 +470,8 @@ export default function VersionWizard({
           {step === STEP.config && (
             <>
               <p className="text-sm text-ctp-subtext0 leading-relaxed">
-                Starts from the config of v{latestVersion}. Edit it here, upload
-                a file, or push one from your terminal.
+                Starts from the config of {latestLabel}. Edit it here, upload a
+                file, or push one from your terminal.
               </p>
               <ConfigStep
                 code={draft.code}
@@ -500,9 +514,9 @@ export default function VersionWizard({
                   ))}
                 </div>
                 <p className="text-xs text-ctp-subtext0 mt-2">
-                  Latest is v{latestVersion}.{" "}
+                  Latest is {latestLabel}.{" "}
                   <span className="text-ctp-text">Minor:</span> New features,
-                  improvements • <span className="text-ctp-text">Patch:</span>{" "}
+                  improvements · <span className="text-ctp-text">Patch:</span>{" "}
                   Small fixes
                   <br />
                   For breaking changes, major redesigns, please create a new
@@ -510,8 +524,8 @@ export default function VersionWizard({
                 </p>
                 {versionNotNewer && (
                   <p role="alert" className="text-xs text-ctp-red mt-2">
-                    v{fields.version} isn't newer than the latest v
-                    {latestVersion} - pick one of the bumps instead.
+                    {formatVersion(fields.version)} isn't newer than the latest{" "}
+                    {latestLabel} - pick one of the bumps instead.
                   </p>
                 )}
               </fieldset>
@@ -530,7 +544,7 @@ export default function VersionWizard({
                     }
                     maxLength={VERSION_NOTES_MAX_LENGTH}
                     className="p-2 rounded-lg text-sm bg-ctp-mantle border-2 border-ctp-crust text-ctp-text placeholder:text-ctp-subtext0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0 ring-offset-2 ring-offset-ctp-base"
-                    placeholder="What's new in this version..."
+                    placeholder="What's new in this version…"
                   />
                 </label>
               </div>
@@ -604,15 +618,15 @@ JetBrainsMono Nerd Font`}
                   missing={!fields.version}
                   onEdit={() => go(STEP.version)}
                 >
-                  v{fields.version} <Muted>(latest is v{latestVersion})</Muted>
+                  {formatVersion(fields.version)}{" "}
+                  <Muted>(latest is {latestLabel})</Muted>
                 </ReviewRow>
                 <ReviewRow
                   label="Config"
                   missing={!fields.config.trim()}
                   onEdit={() => go(STEP.config)}
                 >
-                  {fields.config.split("\n").length} lines{" "}
-                  <Muted>· {configSourceNote}</Muted>
+                  {lineCount(fields.config)} <Muted>· {configSourceNote}</Muted>
                 </ReviewRow>
                 <ReviewRow label="Notes" onEdit={() => go(STEP.version)}>
                   {fields.versionNotes.trim() ? (
@@ -645,8 +659,8 @@ JetBrainsMono Nerd Font`}
                     size={16}
                     className="mt-0.5 shrink-0 text-ctp-peach"
                   />
-                  Nothing changed compared to v{latestVersion} - update the
-                  config, dependencies or minimum Starship version first.
+                  Nothing changed compared to {latestLabel} - update the config,
+                  dependencies or minimum Starship version first.
                 </p>
               )}
               <PublishConsent />

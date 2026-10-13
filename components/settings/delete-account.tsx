@@ -95,7 +95,7 @@ export default function DeleteAccount({
         Delete account
       </h2>
       <p className="text-sm text-ctp-subtext0 mb-6 leading-relaxed">
-        {themesDescription} This cannot be undone.
+        {themesDescription} This can't be undone.
       </p>
 
       <button
@@ -110,7 +110,7 @@ export default function DeleteAccount({
         <ConfirmDialog
           title="Delete your account?"
           confirmLabel="Delete my account"
-          busyLabel="Deleting..."
+          busyLabel="Deleting…"
           onConfirm={deleteAccount}
           onCancel={close}
           confirmDisabled={!confirmed}

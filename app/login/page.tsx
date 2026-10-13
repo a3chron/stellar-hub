@@ -203,7 +203,7 @@ function LoginContent() {
             <Loader2 size={16} className="animate-spin" />
           )}
           {resendCooldown > 0 && `Sent - resend in ${resendCooldown}s`}
-          {resendCooldown === 0 && resendState === "sending" && "Sending..."}
+          {resendCooldown === 0 && resendState === "sending" && "Sending…"}
           {resendCooldown === 0 &&
             resendState !== "sending" &&
             "Resend confirmation email"}
@@ -473,7 +473,7 @@ export default function LoginPage() {
     <Suspense
       fallback={
         <AuthShell>
-          <div className="text-ctp-subtext0">Loading...</div>
+          <div className="text-ctp-subtext0">Loading…</div>
         </AuthShell>
       }
     >

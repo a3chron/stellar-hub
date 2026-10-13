@@ -11,7 +11,7 @@ interface ConfirmDialogProps {
   children: React.ReactNode;
   /** The destructive button: "Delete theme". */
   confirmLabel: string;
-  /** Shown on it while the request runs: "Deleting...". */
+  /** Shown on it while the request runs: "Deleting…". */
   busyLabel: string;
   /**
    * Runs the action. Resolve with an error message to show it inside the

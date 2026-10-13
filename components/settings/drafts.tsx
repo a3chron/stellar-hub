@@ -9,6 +9,7 @@ import { LocalDate, TimeAgo } from "@/components/local-time";
 import type { Draft, DraftStatus } from "@/lib/draft-shared";
 import { apiFetch } from "@/lib/drafts-client";
 import { cn } from "@/lib/utils";
+import { formatVersion } from "@/lib/versions";
 import { useFocusAfterRemoval } from "./use-focus-after-removal";
 
 const STATUS_STYLES: Record<DraftStatus, string> = {
@@ -29,7 +30,8 @@ function statusLabel(draft: Draft): string {
 
 function draftTitle(draft: Draft): string {
   if (draft.kind === "version") {
-    return `${draft.theme?.name ?? "Theme"} → v${draft.version ?? "?"}`;
+    const version = draft.version ? formatVersion(draft.version) : "?";
+    return `${draft.theme?.name ?? "Theme"} → ${version}`;
   }
   return draft.name || draft.slug || "Untitled theme";
 }
@@ -113,9 +115,9 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
                     </div>
                     <p className="text-sm text-ctp-subtext0 font-mono mt-1">
                       {draft.kind === "theme"
-                        ? `${draft.slug} • new theme`
-                        : `${draft.theme?.slug} • new version`}{" "}
-                      • {draft.code}
+                        ? `${draft.slug} · new theme`
+                        : `${draft.theme?.slug} · new version`}{" "}
+                      · {draft.code}
                     </p>
                     <p className="text-xs text-ctp-subtext0 mt-2">
                       Updated <TimeAgo date={draft.updatedAt} /> · kept until{" "}
@@ -154,7 +156,7 @@ export default function Drafts({ drafts }: { drafts: Draft[] }) {
         <ConfirmDialog
           title="Delete draft?"
           confirmLabel="Delete draft"
-          busyLabel="Deleting..."
+          busyLabel="Deleting…"
           onConfirm={() => deleteDraft(deleting)}
           onCancel={() => setDeleting(null)}
         >

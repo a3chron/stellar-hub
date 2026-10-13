@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import ThemeWizard from "@/components/wizard/theme-wizard";
 import VersionWizard from "@/components/wizard/version-wizard";
@@ -53,13 +54,14 @@ export default async function DraftPage({ params }: PageProps) {
               New Version
             </h1>
             <p className="mb-8 text-ctp-subtext0">
-              Of{" "}
+              New version of{" "}
               <span className="text-ctp-text">
                 {draft.theme?.name ?? "your theme"}
               </span>{" "}
               <span className="font-mono text-sm">
                 ({author}/{draft.theme?.slug})
               </span>
+              . <TerminalHint />
             </p>
             <VersionWizard author={author} initialDraft={draft} />
           </div>
@@ -81,7 +83,7 @@ export default async function DraftPage({ params }: PageProps) {
             Publish Theme
           </h1>
           <p className="mb-8 text-ctp-subtext0">
-            Share your Starship theme with the community
+            Share your Starship theme with the community. <TerminalHint />
           </p>
           <ThemeWizard
             author={author}
@@ -92,5 +94,21 @@ export default async function DraftPage({ params }: PageProps) {
         </div>
       </div>
     </main>
+  );
+}
+
+/** The same pointer to the CLI that /upload shows. */
+function TerminalHint() {
+  return (
+    <>
+      Prefer the terminal?{" "}
+      <Link
+        href="/docs/publishing"
+        className="text-ctp-lavender underline underline-offset-2"
+      >
+        stellar publish
+      </Link>{" "}
+      does it too.
+    </>
   );
 }

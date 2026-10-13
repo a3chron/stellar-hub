@@ -124,10 +124,12 @@ export function WizardNav({
 
 /** Shown in place of the wizard once its draft has disappeared server-side. */
 export function GoneBanner({
+  kind,
   onStartOver,
   busy,
   error,
 }: {
+  kind: Draft["kind"];
   onStartOver: () => void;
   busy: boolean;
   error: ApiErrorBody | null;
@@ -139,7 +141,8 @@ export function GoneBanner({
       </h2>
       <p className="text-sm text-ctp-subtext0 leading-relaxed">
         Everything you entered on this page is still here. Start a new draft
-        with it - a screenshot has to be added again.
+        with it
+        {kind === "theme" && " - only the screenshot has to be added again"}.
       </p>
       {error && <ErrorBox error={error} />}
       <div className="flex flex-wrap gap-3">
@@ -317,4 +320,10 @@ export function StepHeading({
       )}
     </h2>
   );
+}
+
+/** "1 line", "42 lines" - for the config row of a review. */
+export function lineCount(text: string): string {
+  const lines = text.split("\n").length;
+  return lines === 1 ? "1 line" : `${lines} lines`;
 }

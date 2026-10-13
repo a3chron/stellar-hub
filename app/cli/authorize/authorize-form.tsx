@@ -70,7 +70,7 @@ export default function AuthorizeForm({
   return (
     <div>
       <h1 className="text-3xl font-bold text-ctp-text">
-        Authorize stellar CLI
+        Authorize stellar-cli
       </h1>
       <p className="mt-3 text-sm leading-relaxed text-ctp-subtext0">
         Check that this code matches the one in your terminal:

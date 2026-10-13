@@ -6,6 +6,7 @@ import { Suspense, useCallback, useState } from "react";
 import { ConfigPreviewModal } from "@/components/config-preview-modal";
 import Tooltip from "@/components/tooltip";
 import type { ThemeVersion } from "@/lib/db/types";
+import { formatVersion } from "@/lib/versions";
 
 interface ThemeVersionsSectionProps {
   author: string;
@@ -33,7 +34,9 @@ function VersionRows({
         >
           <div className="flex justify-between gap-4">
             <div className="flex gap-3 items-center">
-              <h3 className="font-semibold">{version.version}</h3>
+              <h3 className="font-semibold">
+                {formatVersion(version.version)}
+              </h3>
               <button
                 type="button"
                 onClick={() => onView(version.version)}

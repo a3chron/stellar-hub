@@ -180,7 +180,7 @@ export default function UsernameSettings({
                   : "border-ctp-surface1"
               }`}
             >
-              {loading ? "Saving..." : "Change username"}
+              {loading ? "Saving…" : "Change username"}
             </button>
           </div>
         </form>

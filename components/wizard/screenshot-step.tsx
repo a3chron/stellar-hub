@@ -188,7 +188,7 @@ export default function ScreenshotStep({
         <ConfirmDialog
           title="Remove screenshot?"
           confirmLabel="Remove"
-          busyLabel="Removing..."
+          busyLabel="Removing…"
           onConfirm={remove}
           onCancel={() => setConfirmingRemove(false)}
         >

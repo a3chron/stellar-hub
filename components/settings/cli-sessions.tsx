@@ -108,7 +108,7 @@ export default function CliSessions({ logins }: { logins: CliLogin[] }) {
         <ConfirmDialog
           title="Revoke CLI login?"
           confirmLabel="Revoke"
-          busyLabel="Revoking..."
+          busyLabel="Revoking…"
           onConfirm={() => revoke(revoking)}
           onCancel={() => setRevoking(null)}
         >

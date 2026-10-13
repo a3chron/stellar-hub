@@ -364,7 +364,7 @@ export default function QuickSearch() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleInputKeyDown}
-                placeholder="Search themes and authors..."
+                placeholder="Search themes and authors…"
                 className="flex-1 bg-transparent text-sm text-ctp-text placeholder:text-ctp-overlay0 focus:outline-none"
               />
               <button

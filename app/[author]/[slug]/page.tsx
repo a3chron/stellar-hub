@@ -184,7 +184,7 @@ export default async function ThemePage({ params }: PageProps) {
           <Link className="text-ctp-text" href={`/${theme.author.username}`}>
             {theme.author.name}
           </Link>{" "}
-          •{" "}
+          ·{" "}
           <span title={`${theme.downloads.toLocaleString("en-US")} downloads`}>
             {formatDownloads(theme.downloads)}
           </span>

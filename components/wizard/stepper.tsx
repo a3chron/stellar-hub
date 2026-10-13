@@ -1,6 +1,5 @@
 "use client";
 
-import { AlertCircle, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface WizardStep {
@@ -18,34 +17,51 @@ export interface WizardStep {
  */
 export type StepStatus = "empty" | "partial" | "complete" | "error";
 
-const BAR_CLASS: Record<StepStatus, string> = {
-  empty: "bg-ctp-surface0",
-  partial: "bg-ctp-lavender",
-  complete: "bg-ctp-green",
+// What a bar shows. Deliberately fewer colours than statuses: a step is
+// either fine (lavender, faded for an optional one), the one you're on
+// (blue), wrong (red), or not done yet (neutral) - "in progress" doesn't get
+// a colour of its own.
+type BarTone = "error" | "current" | "done" | "doneOptional" | "neutral";
+
+function barTone(
+  stepStatus: StepStatus,
+  isCurrent: boolean,
+  optional: boolean,
+): BarTone {
+  // Red wins even on the current step: that's where the inline error is.
+  if (stepStatus === "error") {
+    return "error";
+  }
+  if (isCurrent) {
+    return "current";
+  }
+  if (stepStatus === "complete") {
+    return optional ? "doneOptional" : "done";
+  }
+  return "neutral";
+}
+
+const BAR_CLASS: Record<BarTone, string> = {
   error: "bg-ctp-red",
+  current: "bg-ctp-blue",
+  done: "bg-ctp-lavender",
+  doneOptional: "bg-ctp-lavender/50",
+  neutral: "bg-ctp-surface0",
 };
 
-// The current step's ring: its own bar colour, faded, so the ring marks
-// "you are here" without competing with the status colours. An empty bar's
-// surface colour would vanish against the page, so it uses a brighter grey.
-const RING_CLASS: Record<StepStatus, string> = {
-  empty: "ring-ctp-overlay0/50",
-  partial: "ring-ctp-lavender/40",
-  complete: "ring-ctp-green/40",
-  error: "ring-ctp-red/40",
-};
-
-// Same idea for hovering a step you can jump to. Spelled out in full rather
-// than built from RING_CLASS, so Tailwind finds every class name.
-const HOVER_RING_CLASS: Record<StepStatus, string> = {
-  empty: "group-hover:ring-ctp-overlay0/50",
-  partial: "group-hover:ring-ctp-lavender/40",
-  complete: "group-hover:ring-ctp-green/40",
+// Hovering a step you can jump to rings its bar in its own colour, faded.
+// A neutral bar's surface colour would vanish against the page, so it gets a
+// brighter grey. Spelled out in full so Tailwind finds every class name.
+const HOVER_RING_CLASS: Record<BarTone, string> = {
   error: "group-hover:ring-ctp-red/40",
+  current: "group-hover:ring-ctp-blue/40",
+  done: "group-hover:ring-ctp-lavender/40",
+  doneOptional: "group-hover:ring-ctp-lavender/30",
+  neutral: "group-hover:ring-ctp-overlay0/50",
 };
 
-// Colour alone doesn't say anything to a screen reader (or to everyone who
-// can't tell red from green), so every status but "empty" is also spelled out.
+// The colour doesn't say anything to a screen reader, so every status but
+// "empty" is also spelled out for one.
 const STATUS_TEXT: Record<StepStatus, string | null> = {
   empty: null,
   partial: "in progress",
@@ -96,13 +112,12 @@ interface StepperProps {
 }
 
 /**
- * The wizard's progress: one rounded bar per step, coloured by the step's
- * status (see StepStatus) - neutral, lavender for in progress, green for
- * complete, red when it needs attention. The current step is marked by a
- * ring around its bar and a bold label instead of a colour of its own, and
- * complete or failing steps also carry an icon and screen-reader text.
- * Steps already reached are buttons, so you can jump back (or forward again)
- * without paging through every step in between.
+ * The wizard's progress: one rounded bar per step - blue for the current
+ * one, lavender once a step is complete (faded for an optional one), red
+ * when it needs attention, neutral otherwise (see barTone). The current
+ * step's label is bold, and each status is also spelled out for screen
+ * readers. Steps already reached are buttons, so you can jump back (or
+ * forward again) without paging through every step in between.
  */
 export default function Stepper({
   steps,
@@ -119,6 +134,7 @@ export default function Stepper({
           const reachable = index <= furthest;
           const stepStatus = status[step.id] ?? "empty";
           const statusText = STATUS_TEXT[stepStatus];
+          const tone = barTone(stepStatus, isCurrent, !!step.optional);
 
           let labelClass = "text-ctp-subtext0";
           if (isCurrent) {
@@ -141,12 +157,10 @@ export default function Stepper({
                 <span
                   className={cn(
                     "block h-1.5 rounded-full transition-colors",
-                    BAR_CLASS[stepStatus],
-                    isCurrent &&
-                      `ring-2 ring-offset-2 ring-offset-ctp-base ${RING_CLASS[stepStatus]}`,
+                    BAR_CLASS[tone],
                     reachable &&
                       !isCurrent &&
-                      `group-hover:ring-1 group-hover:ring-offset-1 group-hover:ring-offset-ctp-base ${HOVER_RING_CLASS[stepStatus]}`,
+                      `group-hover:ring-1 group-hover:ring-offset-1 group-hover:ring-offset-ctp-base ${HOVER_RING_CLASS[tone]}`,
                   )}
                 />
                 <span
@@ -163,20 +177,6 @@ export default function Stepper({
                     <span className="text-ctp-overlay0 font-normal">
                       (optional)
                     </span>
-                  )}
-                  {stepStatus === "complete" && (
-                    <Check
-                      size={12}
-                      className="shrink-0 text-ctp-green"
-                      aria-hidden="true"
-                    />
-                  )}
-                  {stepStatus === "error" && (
-                    <AlertCircle
-                      size={12}
-                      className="shrink-0 text-ctp-red"
-                      aria-hidden="true"
-                    />
                   )}
                   {statusText && (
                     <span className="sr-only">({statusText})</span>

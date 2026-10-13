@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { apiError, validationFailed } from "@/lib/api-error";
 import { normalizeUserCode } from "@/lib/cli-auth";
+import { checkLoginName, defaultLoginName } from "@/lib/cli-login-name";
 import { db } from "@/lib/db";
 import { cliAuthRequests } from "@/lib/db/schema";
 import type { CliAuthRequest } from "@/lib/db/types";
@@ -13,6 +14,9 @@ const approveSchema = z.object({
   action: z.enum(["approve", "deny"], {
     errorMap: () => ({ message: 'must be "approve" or "deny"' }),
   }),
+  // The login's name, as chosen on the approval page. Checked below; only
+  // used when approving.
+  name: z.string().optional(),
 });
 
 function invalidCode() {
@@ -82,10 +86,34 @@ export async function POST(request: NextRequest) {
       return alreadyDecided(row, userId);
     }
 
-    const status = parsed.data.action === "approve" ? "approved" : "denied";
+    const approving = parsed.data.action === "approve";
+
+    // The approving user names the login, in the browser. Never the terminal:
+    // whoever runs `stellar auth` could be an attacker who sent the link, and
+    // would pick a name that looks trustworthy. Empty means the default
+    // derived from the client string.
+    let name: string | undefined;
+    if (approving) {
+      const raw = parsed.data.name?.trim() ?? "";
+      if (raw === "") {
+        name = defaultLoginName(row.client);
+      } else {
+        const check = checkLoginName(raw);
+        if (!check.ok) {
+          return apiError(400, `name: ${check.error}`, "validation_failed", {
+            details: { name: [check.error] },
+          });
+        }
+        name = check.name;
+      }
+    }
+
+    const status = approving ? "approved" : "denied";
     const [updated] = await db
       .update(cliAuthRequests)
-      .set({ status, userId })
+      // From here on `client` holds the chosen name rather than the client
+      // string - the token route copies it into cli_tokens.label.
+      .set(approving ? { status, userId, client: name } : { status, userId })
       .where(
         and(
           eq(cliAuthRequests.id, row.id),

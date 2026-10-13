@@ -1,4 +1,5 @@
 import { createHash, randomBytes, randomInt } from "node:crypto";
+import { CLIENT_PATTERN, UNKNOWN_CLIENT } from "@/lib/cli-login-name";
 
 // Secrets and short codes for the CLI device login and for drafts.
 //
@@ -12,11 +13,6 @@ export const CLI_AUTH_INTERVAL_SECONDS = 3;
 export const CLI_AUTH_MAX_PENDING_PER_IP = 5;
 // Pending requests allowed in total, whoever started them.
 export const CLI_AUTH_MAX_PENDING_TOTAL = 500;
-
-// The User-Agent shape the CLI sends; anything else is labelled as unknown
-// rather than shown verbatim on the approval page.
-const CLIENT_PATTERN =
-  /^stellar-cli\/[0-9A-Za-z.+-]+ \((linux|darwin|windows); (amd64|arm64)\)$/;
 
 export function randomCode(length: number): string {
   let code = "";
@@ -59,5 +55,5 @@ export function formatUserCode(code: string): string {
 export function parseClientLabel(client: unknown): string {
   return typeof client === "string" && CLIENT_PATTERN.test(client)
     ? client
-    : "unknown client";
+    : UNKNOWN_CLIENT;
 }

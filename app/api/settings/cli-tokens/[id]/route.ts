@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
+import { checkLoginName } from "@/lib/cli-login-name";
 import { db } from "@/lib/db";
 import { cliTokens } from "@/lib/db/schema";
 import { checkOrigin } from "@/lib/request-auth";
@@ -46,6 +47,67 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     console.error("CLI token revoke error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
+}
+
+/**
+ * PATCH /api/settings/cli-tokens/[id] - `{ name }`
+ *
+ * Renames one of the signed-in user's CLI logins. Same rules as naming it on
+ * the approval page: 1-50 characters, no control or invisible bidi marks.
+ */
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (!checkOrigin(request)) {
+      return NextResponse.json(
+        { error: "Request origin not allowed" },
+        { status: 403 },
+      );
+    }
+
+    const { id } = await params;
+    if (!z.string().uuid().safeParse(id).success) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    const body = await request.json().catch(() => null);
+    const raw =
+      body && typeof body === "object" && typeof body.name === "string"
+        ? body.name
+        : "";
+    const check = checkLoginName(raw);
+    if (!check.ok) {
+      return NextResponse.json(
+        {
+          error: `The name ${check.error}`,
+          code: "validation_failed",
+          details: { name: [check.error] },
+        },
+        { status: 400 },
+      );
+    }
+
+    const [renamed] = await db
+      .update(cliTokens)
+      .set({ label: check.name })
+      .where(and(eq(cliTokens.id, id), eq(cliTokens.userId, session.user.id)))
+      .returning({ id: cliTokens.id, label: cliTokens.label });
+
+    if (!renamed) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(renamed);
+  } catch (error) {
+    console.error("CLI token rename error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

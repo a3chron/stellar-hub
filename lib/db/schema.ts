@@ -219,7 +219,10 @@ export const cliAuthRequests = pgTable(
     deviceCodeHash: text("device_code_hash").notNull().unique(),
     // The 8 characters shown in the terminal, stored without the dash.
     userCode: text("user_code").notNull().unique(),
-    // "stellar-cli/1.6.0 (linux; amd64)", or "unknown client".
+    // Until approval the client string of the start request, "stellar-cli/1.7.0
+    // (linux; amd64)" or "unknown client", shown on the approval page. Once
+    // approved, the name the user chose there - which the token route copies
+    // into cli_tokens.label.
     client: text("client").notNull(),
     // getClientNetworkHash() of the start request (an HMAC of the IP, the /64
     // for IPv6), for the per-network limit and the "different network" notice.
@@ -251,7 +254,8 @@ export const cliTokens = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     tokenHash: text("token_hash").notNull().unique(),
-    // The client string of the login request, shown in settings.
+    // The name chosen when the login was approved; renameable in settings.
+    // Logins from before names existed hold the raw client string instead.
     label: text("label").notNull(),
     userId: text("user_id")
       .references(() => user.id, { onDelete: "cascade" })

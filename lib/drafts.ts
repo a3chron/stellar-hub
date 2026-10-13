@@ -29,6 +29,7 @@ import {
 } from "@/lib/draft-shared";
 import { isValidScreenshotFilename } from "@/lib/file-validation";
 import { supabaseAdmin } from "@/lib/supabase";
+import { isSingleLineSafe, SINGLE_LINE_MESSAGE } from "@/lib/text-rules";
 import { pickLatestVersion, VERSION_PATTERN } from "@/lib/versions";
 
 // Server-side draft helpers: validation, serialization to the API's `Draft`
@@ -300,23 +301,14 @@ function emptyToNull(value: unknown) {
   return value === "" ? null : value;
 }
 
-// Single-line text (names, groups, dependencies) may hold neither control
-// characters nor the bidi and invisible formatting marks that make text
-// render differently from what it is - a name that reads "ctp-blue" on the
-// page but is something else underneath.
-const SINGLE_LINE_FORBIDDEN = /[\p{Cc}‎‏؜‪-‮⁦-⁩]/u;
-const SINGLE_LINE_MESSAGE =
-  "must not contain control characters or invisible text-direction marks";
+// Single-line text (names, groups, dependencies) follows the shared rule in
+// lib/text-rules.ts: no control characters, no invisible bidi marks.
 
 // Multi-line text (description, version notes) keeps newlines and tabs and
 // nothing else from the control range.
 const MULTI_LINE_FORBIDDEN = /[^\P{Cc}\n\t]/u;
 const MULTI_LINE_MESSAGE =
   "must not contain control characters other than line breaks and tabs";
-
-function isSingleLineSafe(value: string) {
-  return !SINGLE_LINE_FORBIDDEN.test(value);
-}
 
 function isMultiLineSafe(value: string) {
   return !MULTI_LINE_FORBIDDEN.test(value);

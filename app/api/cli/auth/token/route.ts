@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
         const token = generateCliToken();
         await tx.insert(cliTokens).values({
           tokenHash: hashSecret(token),
+          // The name chosen when approving (see the approve route).
           label: claimed.client,
           userId: claimed.userId,
         });

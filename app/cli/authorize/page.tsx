@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import AuthShell from "@/components/auth/auth-shell";
 import { auth } from "@/lib/auth";
 import { formatUserCode, normalizeUserCode } from "@/lib/cli-auth";
+import { defaultLoginName } from "@/lib/cli-login-name";
 import { db } from "@/lib/db";
 import { cliAuthRequests, user } from "@/lib/db/schema";
 import { getClientNetworkHash } from "@/lib/rate-limit";
@@ -144,6 +145,7 @@ export default async function CliAuthorizePage({ searchParams }: PageProps) {
         code={shownCode}
         username={me?.username ?? session.user.name}
         client={request.client}
+        defaultName={defaultLoginName(request.client)}
         requestedAgo={formatTimeAgo(request.createdAt)}
         differentNetwork={
           getClientNetworkHash(requestHeaders) !== request.ipHash

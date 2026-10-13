@@ -202,8 +202,9 @@ export default function LegalPage() {
             approval page warn you when the request came from a different
             network. Both are deleted together with the request. An approved
             request becomes a CLI login, stored as a one-way hash of its token
-            together with that client string and when it was last used, so you
-            can see and revoke it in your settings.
+            together with a name you choose when approving it (prefilled with
+            your operating system and CPU architecture) and when it was last
+            used, so you can see, rename and revoke it in your settings.
           </p>
 
           <H3>Themes you publish</H3>

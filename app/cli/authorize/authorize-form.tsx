@@ -8,8 +8,9 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import LegalLink from "@/components/legal-link";
+import { CLI_LOGIN_NAME_MAX_LENGTH } from "@/lib/cli-login-name";
 
 type Decision = "approved" | "denied";
 
@@ -21,6 +22,9 @@ interface AuthorizeFormProps {
   // The approving browser's IP hash differs from the one that started the
   // login - the classic sign of someone sending you their login link.
   differentNetwork: boolean;
+  // Prefilled into the name field - derived from the client string, so it
+  // says the same thing the client line above does, just friendlier.
+  defaultName: string;
 }
 
 export default function AuthorizeForm({
@@ -29,7 +33,10 @@ export default function AuthorizeForm({
   client,
   requestedAgo,
   differentNetwork,
+  defaultName,
 }: AuthorizeFormProps) {
+  const nameId = useId();
+  const [name, setName] = useState(defaultName);
   const [result, setResult] = useState<Decision | null>(null);
   const [pending, setPending] = useState<"approve" | "deny" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +49,12 @@ export default function AuthorizeForm({
       const response = await fetch("/api/cli/auth/approve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userCode: code, action }),
+        // Only an approval carries the name; Deny ignores the field.
+        body: JSON.stringify(
+          action === "approve"
+            ? { userCode: code, action, name }
+            : { userCode: code, action },
+        ),
       });
       const body = await response.json().catch(() => null);
 
@@ -51,6 +63,11 @@ export default function AuthorizeForm({
         (body?.status === "approved" || body?.status === "denied")
       ) {
         setResult(body.status);
+        return;
+      }
+      const nameProblem: string | undefined = body?.details?.name?.[0];
+      if (nameProblem) {
+        setError(`The name ${nameProblem}.`);
         return;
       }
       setError(body?.error ?? `Something went wrong (${response.status})`);
@@ -122,6 +139,25 @@ export default function AuthorizeForm({
         </LegalLink>
         .
       </p>
+
+      <div className="mt-6">
+        <label htmlFor={nameId} className="block text-sm text-ctp-text mb-1.5">
+          Name this login
+        </label>
+        <input
+          id={nameId}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          maxLength={CLI_LOGIN_NAME_MAX_LENGTH}
+          autoComplete="off"
+          spellCheck={false}
+          aria-describedby={`${nameId}-hint`}
+          className="w-full rounded-lg border-2 border-ctp-crust bg-ctp-mantle p-2 text-sm text-ctp-text placeholder:text-ctp-overlay0 focus:outline-none focus:ring-2 focus:ring-ctp-surface0"
+        />
+        <p id={`${nameId}-hint`} className="mt-1.5 text-xs text-ctp-subtext0">
+          Optional. Helps you tell your logins apart in settings.
+        </p>
+      </div>
 
       {error && (
         <p role="alert" className="mt-4 text-sm text-ctp-red">

@@ -10,6 +10,7 @@ import {
   extractValidFilename,
   isValidAvatarFilename,
 } from "@/lib/file-validation";
+import { checkOrigin } from "@/lib/request-auth";
 import { supabaseAdmin } from "@/lib/supabase";
 
 // GitHub usernames: alphanumeric and hyphens, no leading/trailing hyphen,
@@ -57,6 +58,15 @@ export async function POST(request: NextRequest) {
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Cookie-authenticated and state-changing, so only from our own pages:
+    // the session cookie alone mustn't let another site do this (checkOrigin).
+    if (!checkOrigin(request)) {
+      return NextResponse.json(
+        { error: "Request origin not allowed" },
+        { status: 403 },
+      );
     }
 
     const formData = await request.formData();

@@ -1,10 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import type { MetadataRoute } from "next";
+import { APP_URL } from "@/lib/app-url";
 import { db } from "@/lib/db";
 import { themes, user } from "@/lib/db/schema";
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL || "https://stellar.a3chron.dev";
 
 // Sitemaps this size are far outside what a single-server hub like this will
 // realistically have themes/authors for; the cap just guarantees the sitemap
@@ -50,8 +48,6 @@ const STATIC_ROUTES = [
     changeFrequency: "monthly" as const,
     priority: 0.5,
   },
-  { path: "/upload", changeFrequency: "yearly" as const, priority: 0.3 },
-  { path: "/login", changeFrequency: "yearly" as const, priority: 0.2 },
   { path: "/legal", changeFrequency: "yearly" as const, priority: 0.2 },
 ];
 
@@ -84,13 +80,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
 
   const staticEntries: MetadataRoute.Sitemap = STATIC_ROUTES.map((route) => ({
-    url: `${siteUrl}${route.path}`,
+    url: `${APP_URL}${route.path}`,
     changeFrequency: route.changeFrequency,
     priority: route.priority,
   }));
 
   const themeEntries: MetadataRoute.Sitemap = themeRows.map((theme) => ({
-    url: `${siteUrl}/${theme.authorUsername}/${theme.slug}`,
+    url: `${APP_URL}/${theme.authorUsername}/${theme.slug}`,
     lastModified: theme.updatedAt,
     changeFrequency: "weekly",
     priority: 0.7,
@@ -98,7 +94,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const authorEntries: MetadataRoute.Sitemap = authorRows.map((author) => ({
-    url: `${siteUrl}/${author.username}`,
+    url: `${APP_URL}/${author.username}`,
     lastModified: author.updatedAt,
     changeFrequency: "weekly",
     priority: 0.5,

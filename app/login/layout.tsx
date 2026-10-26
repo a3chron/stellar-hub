@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Sign In",
   description:
     "Sign in to Stellar to publish and manage your Starship shell prompt themes.",
+  // Nothing here for a searcher; ?callbackUrl=… variants used to be crawlable
+  // copies of it too.
+  robots: { index: false, follow: true },
 };
 
 export default function LoginLayout({

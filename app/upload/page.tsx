@@ -72,4 +72,5 @@ export const metadata = {
   // The root layout's title.template appends " - Stellar" automatically.
   title: "Upload Theme",
   description: "Share your Starship theme with the community",
+  robots: { index: false, follow: true },
 };

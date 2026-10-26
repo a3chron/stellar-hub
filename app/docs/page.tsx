@@ -10,6 +10,8 @@ import { DOCS_CARD_KEYS, DOCS_PAGES } from "@/components/docs/pages";
 // to a plain string here, which rendered "Overview | stellar docs - Stellar".
 export const metadata: Metadata = {
   title: { absolute: "Overview | stellar docs" },
+  description:
+    "Documentation for stellar, the CLI and hub for Starship prompt themes: installing, commands, how theme switching works, publishing and troubleshooting.",
 };
 
 const CARDS = DOCS_CARD_KEYS.map((key) => DOCS_PAGES[key]);

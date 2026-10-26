@@ -1,7 +1,5 @@
 import type { MetadataRoute } from "next";
-
-const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL || "https://stellar.a3chron.dev";
+import { APP_URL } from "@/lib/app-url";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -12,6 +10,6 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ["/api/", "/settings", "/cli/", "/upload/"],
       },
     ],
-    sitemap: `${siteUrl}/sitemap.xml`,
+    sitemap: `${APP_URL}/sitemap.xml`,
   };
 }

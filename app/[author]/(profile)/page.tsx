@@ -192,6 +192,7 @@ export async function generateMetadata({ params }: PageProps) {
       description,
       images: author.image ? [author.image] : [],
       type: "profile",
+      url: "./",
     },
     twitter: {
       card: "summary",

@@ -21,13 +21,23 @@ export const metadata: Metadata = {
     default: "Stellar",
     template: "%s - Stellar",
   },
-  description: "Web Hub for starship configs",
+  description:
+    "Discover, preview and install community-made Starship shell prompt themes with the stellar CLI.",
+  // No title/description here: Next fills og:/twitter: title and description
+  // from each page's own when the openGraph object leaves them out. Setting
+  // them pinned every page that has no openGraph of its own to the
+  // homepage's text, and the fixed url pointed all of them at the homepage.
   openGraph: {
     siteName: "Stellar",
-    title: "Stellar",
-    description: "Web Hub for starship configs",
     type: "website",
-    url: siteUrl,
+    url: "./",
+  },
+  // Every page declares itself canonical ("./" resolves against each route's
+  // own path), so query-string variants Google crawls - ?_rsc=… prefetches,
+  // ?utm_… links - fold into the clean URL instead of being reported as
+  // "Duplicate without user-selected canonical".
+  alternates: {
+    canonical: "./",
   },
   verification: {
     google: "waG0eqk7cOJVSMbB42gHQIR-bDsRmy5ABoQWNFI8UKQ",

@@ -7,6 +7,7 @@ import { ThemeGridWrapper } from "@/components/home/theme-grid-wrapper";
 import AsteriskLogo from "@/components/icons/asterisk";
 import { FiltersSkeleton } from "@/components/skeletons/filters-skeleton";
 import { ThemeGridSkeleton } from "@/components/skeletons/theme-grid-skeleton";
+import { APP_URL } from "@/lib/app-url";
 import type { colorModeEnum } from "@/lib/db/schema";
 import { MAX_SEARCH_QUERY_LENGTH } from "@/lib/theme-search";
 
@@ -21,7 +22,50 @@ export const metadata: Metadata = {
     description:
       "Discover and install beautiful Starship shell prompt themes with a single command.",
     type: "website",
+    url: "./",
   },
+};
+
+// The hub itself (WebSite) and the CLI it exists for (SoftwareApplication),
+// so search engines can tell the site and the tool apart. Theme pages carry
+// their own SoftwareApplication per theme.
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${APP_URL}/#website`,
+      name: "stellar",
+      alternateName: "Stellar Hub",
+      url: `${APP_URL}/`,
+      description:
+        "A hub for community-made Starship shell prompt themes, installable with the stellar CLI.",
+      publisher: { "@id": `${APP_URL}/#author` },
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "stellar",
+      description:
+        "A command-line theme manager for the Starship prompt: browse, preview, apply and publish Starship themes.",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Linux, macOS, Windows",
+      url: `${APP_URL}/`,
+      downloadUrl: "https://github.com/a3chron/stellar/releases",
+      installUrl: `${APP_URL}/docs/installing`,
+      softwareHelp: { "@type": "WebPage", url: `${APP_URL}/docs` },
+      license: "https://github.com/a3chron/stellar/blob/main/LICENSE",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+      author: { "@id": `${APP_URL}/#author` },
+    },
+    {
+      "@type": "Person",
+      "@id": `${APP_URL}/#author`,
+      name: "Kurt Schambach",
+      alternateName: "a3chron",
+      url: "https://a3chron.dev",
+      sameAs: ["https://github.com/a3chron"],
+    },
+  ],
 };
 
 interface HomePageProps {
@@ -71,6 +115,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   return (
     <main className="container mx-auto px-4 py-12">
+      <script
+        type="application/ld+json"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD structured data built from constants above
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       {/* Hero Section - renders immediately */}
       <section className="mb-16 flex flex-col md:flex-row gap-8 md:gap-16 justify-between">
         <div className="md:mt-10">

@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import Markdown from "@/components/markdown";
 import ThemeCard from "@/components/theme-card";
 import { ThemeVersionsSection } from "@/components/theme-versions-section";
+import { APP_URL } from "@/lib/app-url";
 import { db } from "@/lib/db";
 import { themes } from "@/lib/db/schema";
 import { hasCustomSections } from "@/lib/toml-custom-detect";
@@ -59,6 +60,7 @@ export async function generateMetadata({
       description,
       images: [theme.screenshotUrl],
       type: "website",
+      url: "./",
     },
     twitter: {
       card: "summary_large_image",
@@ -134,9 +136,7 @@ export default async function ThemePage({ params }: PageProps) {
     (t) => t.slug !== themeSlug,
   );
 
-  const siteUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://stellar.a3chron.dev";
-  const themeUrl = `${siteUrl}/${author.username}/${theme.slug}`;
+  const themeUrl = `${APP_URL}/${author.username}/${theme.slug}`;
 
   // SoftwareApplication rather than CreativeWork: a Starship theme is a
   // versioned, downloadable config the CLI installs and applies (it has a
@@ -157,7 +157,7 @@ export default async function ThemePage({ params }: PageProps) {
     author: {
       "@type": "Person",
       name: author.name,
-      url: `${siteUrl}/${author.username}`,
+      url: `${APP_URL}/${author.username}`,
     },
     ...(theme.downloads > 0 && {
       interactionStatistic: {
